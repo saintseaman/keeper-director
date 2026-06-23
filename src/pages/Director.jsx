@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Film, Timer, StopCircle, Play, Volume2 } from 'lucide-react';
+import { Film, Timer, StopCircle, Play } from 'lucide-react';
 import { useAudio } from '@/lib/useAudio';
 import { SOUNDS, PRESET_SCENES } from '@/lib/soundData';
 import { getIcon } from '@/lib/iconMap';
@@ -9,22 +9,22 @@ import ActiveMixer from '@/components/keeper/ActiveMixer';
 import PanicButton from '@/components/keeper/PanicButton';
 import QuickTrigger from '@/components/keeper/QuickTrigger';
 import BottomNav from '@/components/keeper/BottomNav';
+import { useLang } from '@/lib/LangContext';
 
 export default function Director() {
   const { activeSounds, play, stopAll, trigger } = useAudio();
+  const { t } = useLang();
   const [sessionTime, setSessionTime] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [activeScene, setActiveScene] = useState(null);
   const [nextEvent, setNextEvent] = useState(null);
 
-  // Session timer
   useEffect(() => {
     if (!sessionActive) return;
-    const interval = setInterval(() => setSessionTime(t => t + 1), 1000);
+    const interval = setInterval(() => setSessionTime(prev => prev + 1), 1000);
     return () => clearInterval(interval);
   }, [sessionActive]);
 
-  // Scene timeline
   useEffect(() => {
     if (!activeScene || !sessionActive) return;
     const events = activeScene.timeline_events || [];
@@ -62,12 +62,12 @@ export default function Director() {
 
   return (
     <div className="min-h-screen bg-obsidian parchment-texture pb-24 session-mode">
-      {/* Header with session info */}
+      {/* Header */}
       <div className="px-4 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Film size={18} className="text-brass-glow" />
-            <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">Director</h1>
+            <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">{t('director')}</h1>
           </div>
           <div className="flex items-center gap-3">
             {sessionActive && (
@@ -78,12 +78,18 @@ export default function Director() {
               </div>
             )}
             <button
-              onClick={() => { setSessionActive(!sessionActive); if (sessionActive) { stopAll(1); setActiveScene(null); setSessionTime(0); }}}
+              onClick={() => {
+                setSessionActive(!sessionActive);
+                if (sessionActive) { stopAll(1); setActiveScene(null); setSessionTime(0); }
+              }}
               className={`px-3 py-1.5 rounded-full text-xs font-heading tracking-wider border transition-all
-                ${sessionActive ? 'bg-red-950/50 border-red-900/30 text-red-400' : 'bg-brass/10 border-brass/20 text-brass'}
+                ${sessionActive
+                  ? 'bg-red-950/50 border-red-900/30 text-red-400'
+                  : 'bg-brass/10 border-brass/20 text-brass'
+                }
               `}
             >
-              {sessionActive ? 'End' : 'Start Session'}
+              {sessionActive ? t('endSession') : t('startSession')}
             </button>
           </div>
         </div>
@@ -99,12 +105,12 @@ export default function Director() {
           >
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-heading tracking-[0.2em] text-brass uppercase">Active Scene</p>
+                <p className="text-[10px] font-heading tracking-[0.2em] text-brass uppercase">{t('activeScene')}</p>
                 <p className="text-sm font-heading text-brass-glow mt-0.5">{activeScene.title}</p>
               </div>
               {nextEvent && (
                 <div className="text-right">
-                  <p className="text-[10px] text-parchment-dim">Next event at {formatTime(nextEvent.time_seconds)}</p>
+                  <p className="text-[10px] text-parchment-dim">{t('nextEvent')} {formatTime(nextEvent.time_seconds)}</p>
                   <p className="text-[10px] font-display italic text-brass">{nextEvent.description}</p>
                 </div>
               )}
@@ -115,7 +121,7 @@ export default function Director() {
         {/* PANIC */}
         <PanicButton />
 
-        {/* Quick Triggers Row */}
+        {/* Quick Triggers */}
         <QuickTrigger />
 
         {/* Active Mixer */}
@@ -123,7 +129,7 @@ export default function Director() {
 
         {/* Scene Launcher */}
         <div>
-          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">Launch Scene</h2>
+          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">{t('launchScene')}</h2>
           <div className="grid grid-cols-2 gap-2">
             {PRESET_SCENES.slice(0, 6).map(scene => {
               const Icon = getIcon(scene.icon);
@@ -150,9 +156,9 @@ export default function Director() {
           </div>
         </div>
 
-        {/* Quick Atmosphere */}
+        {/* Atmosphere */}
         <div>
-          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">Atmosphere</h2>
+          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">{t('atmosphere')}</h2>
           <div className="grid grid-cols-3 gap-2">
             {atmosphereSounds.map(sound => (
               <SoundButton key={sound.id} sound={sound} />
@@ -162,7 +168,7 @@ export default function Director() {
 
         {/* Events */}
         <div>
-          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">Events</h2>
+          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">{t('events')}</h2>
           <div className="grid grid-cols-3 gap-2">
             {eventSounds.map(sound => (
               <SoundButton key={sound.id} sound={sound} />

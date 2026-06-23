@@ -5,10 +5,21 @@ import { SOUNDS, SOUND_CATEGORIES, getSoundsByCategory, searchSounds } from '@/l
 import SoundButton from '@/components/keeper/SoundButton';
 import BottomNav from '@/components/keeper/BottomNav';
 import { getIcon } from '@/lib/iconMap';
+import { useLang } from '@/lib/LangContext';
+
+const CAT_KEY_MAP = {
+  atmosphere: 'catAtmosphere',
+  events: 'catEvents',
+  creatures: 'catCreatures',
+  horror: 'catHorror',
+  madness: 'catMadness',
+  jumpscare: 'catJumpscare',
+};
 
 export default function Soundboard() {
   const [activeCategory, setActiveCategory] = useState('atmosphere');
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useLang();
 
   const displaySounds = searchQuery
     ? searchSounds(searchQuery)
@@ -18,8 +29,8 @@ export default function Soundboard() {
     <div className="min-h-screen bg-obsidian parchment-texture pb-24">
       {/* Header */}
       <div className="px-4 pt-6 pb-3">
-        <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">Soundboard</h1>
-        <p className="text-xs font-display italic text-parchment-dim mt-0.5">{SOUNDS.length} sounds ready</p>
+        <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">{t('soundboard')}</h1>
+        <p className="text-xs font-display italic text-parchment-dim mt-0.5">{SOUNDS.length} {t('soundsReady')}</p>
       </div>
 
       {/* Search */}
@@ -27,7 +38,7 @@ export default function Soundboard() {
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-parchment-dim" />
           <Input
-            placeholder="Search sounds..."
+            placeholder={t('searchSounds')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-9 bg-graphite border-border text-parchment placeholder:text-muted-foreground font-display text-sm h-10"
@@ -57,7 +68,7 @@ export default function Soundboard() {
                   `}
                 >
                   <Icon size={14} />
-                  {cat.label}
+                  {t(CAT_KEY_MAP[cat.id])}
                 </button>
               );
             })}
@@ -74,7 +85,7 @@ export default function Soundboard() {
         </div>
         {displaySounds.length === 0 && (
           <p className="text-center text-sm text-muted-foreground font-display italic py-8">
-            No sounds found
+            {t('noSoundsFound')}
           </p>
         )}
       </div>

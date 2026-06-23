@@ -4,12 +4,22 @@ import { Input } from '@/components/ui/input';
 import { PRESET_SCENES } from '@/lib/soundData';
 import SceneCard from '@/components/keeper/SceneCard';
 import BottomNav from '@/components/keeper/BottomNav';
+import { useLang } from '@/lib/LangContext';
+
+const FILTER_KEY_MAP = {
+  all: 'filterAll',
+  location: 'filterLocation',
+  event: 'filterEvent',
+  encounter: 'filterEncounter',
+  ritual: 'filterRitual',
+};
 
 const SCENE_FILTERS = ['all', 'location', 'event', 'encounter', 'ritual'];
 
 export default function Scenes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+  const { t } = useLang();
   const [favorites, setFavorites] = useState(() => {
     try { return JSON.parse(localStorage.getItem('keeper_favorites') || '[]'); } catch { return []; }
   });
@@ -30,7 +40,7 @@ export default function Scenes() {
     scenes = scenes.filter(s =>
       s.title.toLowerCase().includes(q) ||
       s.description?.toLowerCase().includes(q) ||
-      s.tags?.some(t => t.includes(q))
+      s.tags?.some(tag => tag.includes(q))
     );
   }
 
@@ -39,8 +49,8 @@ export default function Scenes() {
   return (
     <div className="min-h-screen bg-obsidian parchment-texture pb-24">
       <div className="px-4 pt-6 pb-3">
-        <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">Scene Library</h1>
-        <p className="text-xs font-display italic text-parchment-dim mt-0.5">{PRESET_SCENES.length} pre-built scenes</p>
+        <h1 className="font-heading text-base tracking-widest text-brass-glow uppercase">{t('sceneLibrary')}</h1>
+        <p className="text-xs font-display italic text-parchment-dim mt-0.5">{PRESET_SCENES.length} {t('prebuiltScenes')}</p>
       </div>
 
       {/* Search */}
@@ -48,7 +58,7 @@ export default function Scenes() {
         <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-parchment-dim" />
           <Input
-            placeholder="Search scenes..."
+            placeholder={t('searchScenes')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="pl-9 bg-graphite border-border text-parchment placeholder:text-muted-foreground font-display text-sm h-10"
@@ -71,7 +81,7 @@ export default function Scenes() {
                 }
               `}
             >
-              {filter}
+              {t(FILTER_KEY_MAP[filter])}
             </button>
           ))}
         </div>
@@ -82,7 +92,7 @@ export default function Scenes() {
         {favoriteScenes.length > 0 && !searchQuery && activeFilter === 'all' && (
           <div>
             <h2 className="text-[10px] font-heading tracking-[0.2em] text-brass uppercase mb-2 flex items-center gap-1.5">
-              <BookOpen size={12} /> Favorites
+              <BookOpen size={12} /> {t('favorites')}
             </h2>
             <div className="space-y-2">
               {favoriteScenes.map(scene => (
@@ -100,7 +110,7 @@ export default function Scenes() {
         {/* All Scenes */}
         <div>
           <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">
-            {activeFilter === 'all' ? 'All Scenes' : activeFilter}
+            {activeFilter === 'all' ? t('allScenes') : t(FILTER_KEY_MAP[activeFilter])}
           </h2>
           <div className="space-y-2">
             {scenes.map(scene => (
