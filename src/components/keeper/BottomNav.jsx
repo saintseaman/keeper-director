@@ -1,17 +1,19 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Grid3x3, BookOpen, Sparkles, Film } from 'lucide-react';
-
-const NAV_ITEMS = [
-  { path: '/', label: 'Home', icon: LayoutDashboard },
-  { path: '/soundboard', label: 'Sounds', icon: Grid3x3 },
-  { path: '/scenes', label: 'Scenes', icon: BookOpen },
-  { path: '/director', label: 'Director', icon: Film },
-  { path: '/ai-keeper', label: 'AI', icon: Sparkles },
-];
+import { useLang } from '@/lib/LangContext';
 
 export default function BottomNav() {
   const location = useLocation();
+  const { t } = useLang();
+
+  const NAV_ITEMS = [
+    { path: '/', label: t('navHome'), icon: LayoutDashboard },
+    { path: '/soundboard', label: t('navSounds'), icon: Grid3x3 },
+    { path: '/scenes', label: t('navScenes'), icon: BookOpen },
+    { path: '/director', label: t('navDirector'), icon: Film },
+    { path: '/ai-keeper', label: t('navAI'), icon: Sparkles },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-obsidian/95 backdrop-blur-xl border-t border-border pb-[env(safe-area-inset-bottom)]">

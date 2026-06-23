@@ -8,9 +8,12 @@ import QuickTrigger from '@/components/keeper/QuickTrigger';
 import PanicButton from '@/components/keeper/PanicButton';
 import SceneCard from '@/components/keeper/SceneCard';
 import BottomNav from '@/components/keeper/BottomNav';
+import LangSelector from '@/components/keeper/LangSelector';
+import { useLang } from '@/lib/LangContext';
 
 export default function Home() {
   const { activeSounds, stopAll } = useAudio();
+  const { t } = useLang();
   const activeCount = Object.keys(activeSounds).length;
   const [selectedScene, setSelectedScene] = useState(null);
 
@@ -22,10 +25,11 @@ export default function Home() {
       <div className="px-4 pt-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-heading text-lg tracking-widest text-brass-glow uppercase">Keeper Director</h1>
-            <p className="text-xs font-display italic text-parchment-dim mt-0.5">AI Atmosphere Engine</p>
+            <h1 className="font-heading text-lg tracking-widest text-brass-glow uppercase">{t('appName')}</h1>
+            <p className="text-xs font-display italic text-parchment-dim mt-0.5">{t('appSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
+            <LangSelector />
             {activeCount > 0 && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -33,7 +37,7 @@ export default function Home() {
                 className="flex items-center gap-1.5 bg-brass/10 border border-brass/20 rounded-full px-3 py-1.5"
               >
                 <div className="w-2 h-2 rounded-full bg-brass-glow sound-active" />
-                <span className="text-[10px] font-heading tracking-wide text-brass">{activeCount} active</span>
+                <span className="text-[10px] font-heading tracking-wide text-brass">{activeCount} {t('activeLabel')}</span>
               </motion.div>
             )}
             {activeCount > 0 && (
@@ -54,7 +58,7 @@ export default function Home() {
 
         {/* Quick Triggers */}
         <div>
-          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">Quick Triggers</h2>
+          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">{t('quickTriggers')}</h2>
           <QuickTrigger />
         </div>
 
@@ -63,7 +67,7 @@ export default function Home() {
 
         {/* Quick Scenes */}
         <div>
-          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">Scenes</h2>
+          <h2 className="text-[10px] font-heading tracking-[0.2em] text-parchment-dim uppercase mb-2">{t('scenes')}</h2>
           <div className="space-y-2">
             {quickScenes.map(scene => (
               <SceneCard key={scene.id} scene={scene} onSelect={setSelectedScene} />
@@ -79,7 +83,7 @@ export default function Home() {
         </div>
 
         <p className="text-center text-[10px] font-display italic text-muted-foreground">
-          "The oldest and strongest emotion of mankind is fear"
+          {t('quote')}
         </p>
       </div>
 

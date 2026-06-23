@@ -4,16 +4,18 @@ import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import MixerSlider from './MixerSlider';
 import { SOUNDS } from '@/lib/soundData';
+import { useLang } from '@/lib/LangContext';
 
 export default function ActiveMixer() {
   const { activeSounds, masterVolume, setMasterVolume, stopAll } = useAudio();
+  const { t } = useLang();
 
   const activeEntries = Object.entries(activeSounds).filter(([, v]) => v.isPlaying !== false);
 
   if (activeEntries.length === 0) {
     return (
       <div className="rounded-lg border border-border bg-graphite/60 p-4 text-center">
-        <p className="text-xs text-muted-foreground font-display italic">No active sounds. Launch a scene or tap a sound.</p>
+        <p className="text-xs text-muted-foreground font-display italic">{t('noActiveSounds')}</p>
       </div>
     );
   }
@@ -23,11 +25,11 @@ export default function ActiveMixer() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Volume2 size={14} className="text-brass" />
-          <span className="text-xs font-heading tracking-wide text-parchment">Active Mixer</span>
+          <span className="text-xs font-heading tracking-wide text-parchment">{t('activeMixer')}</span>
           <span className="text-[10px] bg-brass/20 text-brass px-1.5 py-0.5 rounded">{activeEntries.length}</span>
         </div>
         <button onClick={() => stopAll(0.8)} className="text-[10px] font-heading tracking-wider text-red-400 hover:text-red-300 transition-colors uppercase">
-          Stop All
+          {t('stopAll')}
         </button>
       </div>
 
