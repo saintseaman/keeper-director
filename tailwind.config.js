@@ -50,6 +50,24 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
+        brass: {
+          DEFAULT: '#B08D57',
+          dim: '#8A6D3B',
+          glow: '#D4A54A',
+        },
+        burgundy: {
+          DEFAULT: '#5C1A1A',
+          glow: '#8B2E2E',
+        },
+        parchment: {
+          DEFAULT: '#D4C5A9',
+          dim: '#9E9274',
+        },
+        obsidian: '#0D0D0D',
+        graphite: {
+          DEFAULT: '#1A1A1A',
+          light: '#2A2A2A',
+        },
   			sidebar: {
   				DEFAULT: 'hsl(var(--sidebar-background))',
   				foreground: 'hsl(var(--sidebar-foreground))',
@@ -62,27 +80,19 @@ module.exports = {
   			}
   		},
   		fontFamily: {
-  			heading: ['var(--font-heading)'],
-  			body: ['var(--font-body)'],
-  			display: ['var(--font-display)'],
+  			heading: ['Cinzel', 'serif'],
+  			body: ['Crimson Text', 'serif'],
+  			display: ['IM Fell English', 'serif'],
   			mono: ['var(--font-mono)']
   		},
   		keyframes: {
   			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
+  				from: { height: '0' },
+  				to: { height: 'var(--radix-accordion-content-height)' }
   			},
   			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
+  				from: { height: 'var(--radix-accordion-content-height)' },
+  				to: { height: '0' }
   			}
   		},
   		animation: {

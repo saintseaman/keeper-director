@@ -1,0 +1,50 @@
+{
+  "name": "Sound",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Display name of the sound"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "atmosphere",
+        "events",
+        "creatures",
+        "horror",
+        "madness",
+        "jumpscare"
+      ],
+      "description": "Primary category"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Searchable tags like basement, rain, cult, ritual"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Lucide icon name"
+    },
+    "is_loopable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this sound can loop"
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Duration in seconds"
+    },
+    "color": {
+      "type": "string",
+      "description": "Accent color for the button"
+    }
+  },
+  "required": [
+    "title",
+    "category"
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "name": "Scene",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Scene name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short atmospheric description"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "location",
+        "event",
+        "encounter",
+        "ritual",
+        "custom"
+      ],
+      "description": "Scene type"
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sound_name": {
+            "type": "string"
+          },
+          "volume": {
+            "type": "number"
+          },
+          "icon": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Ambient layers with volumes"
+    },
+    "timeline_events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "time_seconds": {
+            "type": "number"
+          },
+          "sound_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Timed events in the scene"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "icon": {
+      "type": "string"
+    },
+    "is_favorite": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_preset": {
+      "type": "boolean",
+      "default": false,
+      "description": "Built-in scene vs user-created"
+    }
+  },
+  "required": [
+    "title"
+  ]
+}

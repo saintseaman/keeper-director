@@ -1,0 +1,17 @@
+{
+  "name": "Favorite",
+  "type": "object",
+  "properties": {
+    "scene_id": {
+      "type": "string",
+      "description": "Reference to Scene id"
+    },
+    "label": {
+      "type": "string",
+      "description": "Custom label"
+    }
+  },
+  "required": [
+    "scene_id"
+  ]
+}
