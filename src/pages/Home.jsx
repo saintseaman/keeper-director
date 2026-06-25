@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Square, Disc3, FolderDown } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
-import { SOUNDS } from '@/lib/soundData';
 import { useCustomPads } from '@/lib/useCustomPads';
 import PadDeck from '@/components/pad/PadDeck';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
@@ -21,10 +20,8 @@ export default function Home() {
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
-  // Базові 45 слотів (5 дек) + сторінки з власних пэдів з Google Диска.
-  const baseDecks = paginate(SOUNDS, 9).slice(0, 5);
-  const customDecks = paginate(customPads, 9);
-  const decks = [...baseDecks, ...customDecks];
+  // Тільки власні пэди, імпортовані з Google Диска.
+  const decks = paginate(customPads, 9);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -72,7 +69,20 @@ export default function Home() {
 
       {/* Дека */}
       <div className="flex-1 min-h-0 px-4 pt-4 pb-3">
-        <PadDeck pages={decks} onRemoveCustom={removePad} />
+        {decks.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center gap-3">
+            <FolderDown size={32} className="text-white/20" />
+            <p className="text-sm text-white/50 font-mono tracking-wide">Нет пэдов</p>
+            <button
+              onClick={() => setFolderOpen(true)}
+              className="rounded-lg px-4 py-2 text-[11px] font-mono tracking-wider bg-white/5 border border-orange-400/40 text-orange-300 hover:bg-orange-400/10 transition-colors"
+            >
+              Импортировать папку с Google Диска
+            </button>
+          </div>
+        ) : (
+          <PadDeck pages={decks} onRemoveCustom={removePad} />
+        )}
       </div>
 
       <DriveFolderDialog
