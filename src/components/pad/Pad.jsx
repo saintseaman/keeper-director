@@ -40,7 +40,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
     if (fileUrl) {
       // У пэда свой MP3 (загруженный или импортированный из Drive).
       if (isOneShot) {
-        audioEngine.triggerFile(sound.id, fileUrl);
+        audioEngine.triggerFile(sound.id, fileUrl, title, volume);
       } else {
         if (audioEngine.isPlaying(sound.id)) stop(sound.id);
         else audioEngine.playFile(sound.id, fileUrl, title, volume, true);

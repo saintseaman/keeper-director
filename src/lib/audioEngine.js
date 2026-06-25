@@ -1056,24 +1056,45 @@ class AudioEngine {
   }
 
   // Одноразовое воспроизведение загруженного файла (one-shot пэд).
-  triggerFile(soundId, url) {
+  // Регистрируем в activeSounds, чтобы счётчик «STOP» видел звук и его можно
+  // было остановить вручную. По окончании — само-удаление из реестра.
+  triggerFile(soundId, url, title = '', volume = 1.0) {
     this._ensureContext();
+
+    // Повторный тап по уже играющему one-shot — перезапуск с начала.
+    if (this.activeSounds.has(soundId)) {
+      this.stop(soundId, 0);
+    }
+
     const el = new Audio(url);
     el.crossOrigin = 'anonymous';
     const mediaSource = this.audioContext.createMediaElementSource(el);
     const gainNode = this.audioContext.createGain();
-    gainNode.gain.value = 1.0;
+    gainNode.gain.value = volume;
     mediaSource.connect(gainNode);
     gainNode.connect(this.masterGain);
     el.play().catch(() => {});
-    // C2: полностью освобождаем граф после окончания, иначе узлы копятся (утечка).
+
+    this.activeSounds.set(soundId, {
+      source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
+      mediaEl: el, gainNode, lfo: null, extraNodes: [],
+      isPlaying: true, volume, title, loop: false, isFile: true, seq: this._seq++,
+    });
+
+    // По окончании/ошибке убираем звук из реестра и освобождаем граф.
     const cleanup = () => {
       try { mediaSource.disconnect(); } catch (e) {}
       try { gainNode.disconnect(); } catch (e) {}
       try { el.pause(); el.src = ''; el.load(); } catch (e) {}
+      if (this.activeSounds.get(soundId)?.mediaEl === el) {
+        this.activeSounds.delete(soundId);
+        this._notify();
+      }
     };
     el.addEventListener('ended', cleanup, { once: true });
     el.addEventListener('error', cleanup, { once: true });
+
+    this._notify();
   }
 
   play(soundId, title, volume = 0.8, loop = true) {
