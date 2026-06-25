@@ -1082,6 +1082,9 @@ class AudioEngine {
       this.setVolume(soundId, volume);
       return;
     }
+    // Резервуємо id одразу, щоб швидкий повторний тап не побудував граф вдруге
+    // (інакше один source-вузол може отримати start() двічі → InvalidStateError).
+    this.activeSounds.set(soundId, { isPlaying: true, volume, title, loop, seq: this._seq++ });
     this._enforceVoiceLimit();
 
     const { sourceNode, gainNode, lfo, extraNodes = [] } = this._buildSoundGraph(soundId);
@@ -1102,6 +1105,12 @@ class AudioEngine {
     if (!sound) return;
 
     const { gainNode, source, lfo, extraNodes = [], mediaEl } = sound;
+    // Граф ще не побудований (зарезервований id) — просто знімаємо запис.
+    if (!gainNode) {
+      this.activeSounds.delete(soundId);
+      this._notify();
+      return;
+    }
     gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, fadeTime / 4);
 
     setTimeout(() => {
