@@ -11,10 +11,11 @@
 - [x] Прибрати дубльовану мапу з `AIKeeper.jsx` (+ `AVAILABLE_SOUNDS` тепер похідна від `SOUNDS`)
 - [x] Документи: ARCHITECTURE.md, DECISIONS.md, ROADMAP.md, TASKS.md
 
-## ▶️ Milestone 2 — Локалізація контенту (наступний)
-- [ ] Додати локалізовані поля назв/описів у `SOUNDS` та `PRESET_SCENES`
-- [ ] Хелпер `localized(item, field, lang)`
-- [ ] Підключити в SceneCard / Soundboard / Director / AIKeeper
+## ✅ Milestone 2 — Локалізація контенту
+- [x] Словник перекладів контенту `lib/contentI18n.js` (RU/UA; EN = з самого об'єкта)
+- [x] Хелпери `localizedSoundTitle`, `localizedSoundTitleByName`, `localizedSceneTitle`, `localizedSceneDescription`
+- [x] Підключено: SceneCard, SoundButton, MixerSlider, Director, AIKeeper (Home/Soundboard — через ці компоненти)
+- [x] Англ. `title` лишився стабільним ключем (SoT і мапа не зачеплені)
 
 ## Беклог
 - [ ] Розділення `SoundFile` / `SoundButton` (M3)

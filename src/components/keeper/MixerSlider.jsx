@@ -3,10 +3,14 @@ import { getIcon } from '@/lib/iconMap';
 import { X } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
+import { localizedSoundTitle } from '@/lib/contentI18n';
+import { useLang } from '@/lib/LangContext';
 
 export default function MixerSlider({ soundId, title, icon, volume }) {
   const { setVolume, stop } = useAudio();
+  const { lang } = useLang();
   const IconComponent = getIcon(icon);
+  const displayTitle = localizedSoundTitle(soundId, lang, title);
 
   return (
     <div className="flex items-center gap-3 py-2">
@@ -14,7 +18,7 @@ export default function MixerSlider({ soundId, title, icon, volume }) {
         <IconComponent size={16} className="text-brass" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-heading tracking-wide text-parchment mb-1.5 truncate">{title}</p>
+        <p className="text-xs font-heading tracking-wide text-parchment mb-1.5 truncate">{displayTitle}</p>
         <Slider
           value={[Math.round(volume * 100)]}
           onValueChange={([v]) => setVolume(soundId, v / 100)}

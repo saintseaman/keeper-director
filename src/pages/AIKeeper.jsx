@@ -6,6 +6,7 @@ import { useAudio } from '@/lib/useAudio';
 import { SOUNDS, getSoundIdByName } from '@/lib/soundData';
 import BottomNav from '@/components/keeper/BottomNav';
 import { useLang } from '@/lib/LangContext';
+import { localizedSoundTitleByName } from '@/lib/contentI18n';
 
 // Список доступних назв звуків для ШІ — похідний від SOUNDS (єдине джерело правди)
 const AVAILABLE_SOUNDS = SOUNDS.map(s => s.title);
@@ -22,7 +23,7 @@ export default function AIKeeper() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const { play, stopAll } = useAudio();
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const EXAMPLES = [t('ex1'), t('ex2'), t('ex3'), t('ex4'), t('ex5')];
 
@@ -172,7 +173,7 @@ Create an atmospheric mix. Return JSON with:
                 <div className="space-y-1.5">
                   {result.layers?.map((layer, i) => (
                     <div key={i} className="flex items-center justify-between py-1">
-                      <span className="text-xs font-display text-parchment">{layer.sound_name}</span>
+                      <span className="text-xs font-display text-parchment">{localizedSoundTitleByName(layer.sound_name, lang)}</span>
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 rounded-full bg-graphite-light overflow-hidden">
                           <div className="h-full rounded-full bg-brass" style={{ width: `${layer.volume}%` }} />
@@ -194,7 +195,7 @@ Create an atmospheric mix. Return JSON with:
                         {Math.floor(event.time_seconds / 60)}:{(event.time_seconds % 60).toString().padStart(2, '0')}
                       </span>
                       <div>
-                        <p className="text-xs font-display text-parchment">{event.sound_name}</p>
+                        <p className="text-xs font-display text-parchment">{localizedSoundTitleByName(event.sound_name, lang)}</p>
                         <p className="text-[10px] text-muted-foreground italic">{event.description}</p>
                       </div>
                     </div>

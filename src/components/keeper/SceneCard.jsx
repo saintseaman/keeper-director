@@ -3,10 +3,13 @@ import { motion } from 'framer-motion';
 import { getIcon } from '@/lib/iconMap';
 import { useAudio } from '@/lib/useAudio';
 import { getSoundIdByName } from '@/lib/soundData';
+import { localizedSceneTitle, localizedSceneDescription, localizedSoundTitleByName } from '@/lib/contentI18n';
+import { useLang } from '@/lib/LangContext';
 import { Play, Square, Heart } from 'lucide-react';
 
 export default function SceneCard({ scene, onToggleFavorite, isFavorite, onSelect }) {
   const { activeSounds, play, stopAll } = useAudio();
+  const { lang } = useLang();
 
   const isActive = scene.layers?.some(l => {
     const soundId = getSoundIdByName(l.sound_name);
@@ -54,15 +57,15 @@ export default function SceneCard({ scene, onToggleFavorite, isFavorite, onSelec
 
         <div className="flex-1 min-w-0">
           <h3 className={`font-heading text-sm tracking-wide ${isActive ? 'text-brass-glow' : 'text-parchment'}`}>
-            {scene.title}
+            {localizedSceneTitle(scene.id, lang, scene.title)}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 font-display italic">
-            {scene.description}
+            {localizedSceneDescription(scene.id, lang, scene.description)}
           </p>
           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
             {scene.layers?.slice(0, 3).map((layer, i) => (
               <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-graphite-light text-parchment-dim">
-                {layer.sound_name}
+                {localizedSoundTitleByName(layer.sound_name, lang)}
               </span>
             ))}
             {(scene.layers?.length || 0) > 3 && (

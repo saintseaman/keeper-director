@@ -2,9 +2,12 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { getIcon } from '@/lib/iconMap';
 import { useAudio } from '@/lib/useAudio';
+import { localizedSoundTitle } from '@/lib/contentI18n';
+import { useLang } from '@/lib/LangContext';
 
 export default function SoundButton({ sound, size = 'normal' }) {
   const { activeSounds, toggle, trigger } = useAudio();
+  const { lang } = useLang();
   const isActive = !!activeSounds[sound.id];
 
   const IconComponent = getIcon(sound.icon);
@@ -51,7 +54,7 @@ export default function SoundButton({ sound, size = 'normal' }) {
       <span className={`text-xs font-heading tracking-wide leading-tight text-center
         ${isActive ? 'text-brass-glow' : isJumpscare ? 'text-red-300' : 'text-parchment-dim'}
       `}>
-        {sound.title}
+        {localizedSoundTitle(sound.id, lang, sound.title)}
       </span>
       {isActive && sound.isLoopable && (
         <div className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brass-glow sound-active" />

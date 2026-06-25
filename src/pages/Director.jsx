@@ -10,10 +10,11 @@ import PanicButton from '@/components/keeper/PanicButton';
 import QuickTrigger from '@/components/keeper/QuickTrigger';
 import BottomNav from '@/components/keeper/BottomNav';
 import { useLang } from '@/lib/LangContext';
+import { localizedSceneTitle } from '@/lib/contentI18n';
 
 export default function Director() {
   const { activeSounds, play, stopAll, trigger } = useAudio();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [sessionTime, setSessionTime] = useState(0);
   const [sessionActive, setSessionActive] = useState(false);
   const [activeScene, setActiveScene] = useState(null);
@@ -106,7 +107,7 @@ export default function Director() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-heading tracking-[0.2em] text-brass uppercase">{t('activeScene')}</p>
-                <p className="text-sm font-heading text-brass-glow mt-0.5">{activeScene.title}</p>
+                <p className="text-sm font-heading text-brass-glow mt-0.5">{localizedSceneTitle(activeScene.id, lang, activeScene.title)}</p>
               </div>
               {nextEvent && (
                 <div className="text-right">
@@ -148,7 +149,7 @@ export default function Director() {
                 >
                   <Icon size={16} className={isThis ? 'text-brass-glow' : 'text-parchment-dim'} />
                   <p className={`text-xs font-heading tracking-wide mt-1 ${isThis ? 'text-brass-glow' : 'text-parchment'}`}>
-                    {scene.title}
+                    {localizedSceneTitle(scene.id, lang, scene.title)}
                   </p>
                 </button>
               );
