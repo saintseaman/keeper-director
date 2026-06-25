@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Square, Disc3, FolderDown } from 'lucide-react';
+import { Square, Disc3, FolderDown, SlidersHorizontal } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
 import PadDeck from '@/components/pad/PadDeck';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
+import MixerDialog from '@/components/pad/MixerDialog';
 
 // Розбити масив звуків на сторінки по 9 пэдів.
 function paginate(list, size = 9) {
@@ -17,6 +18,7 @@ export default function Home() {
   const { activeSounds, masterVolume, setMasterVolume, stopAll } = useAudio();
   const { pads: customPads, addPads, removePad } = useCustomPads();
   const [folderOpen, setFolderOpen] = useState(false);
+  const [mixerOpen, setMixerOpen] = useState(false);
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
@@ -41,6 +43,20 @@ export default function Home() {
           >
             <FolderDown size={13} />
             <span className="hidden sm:inline">DRIVE</span>
+          </button>
+
+          {/* Настройки всех кнопок (микшер) */}
+          <button
+            onClick={() => setMixerOpen(true)}
+            disabled={customPads.length === 0}
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-mono tracking-wider border transition-colors
+              ${customPads.length === 0
+                ? 'bg-white/5 border-white/10 text-white/25'
+                : 'bg-white/5 border-white/10 text-white/60 hover:border-orange-400/40 hover:text-orange-300'}`}
+            title="Настройки всех кнопок"
+          >
+            <SlidersHorizontal size={13} />
+            <span className="hidden sm:inline">МИКС</span>
           </button>
 
           {/* Master */}
@@ -89,6 +105,12 @@ export default function Home() {
         open={folderOpen}
         onClose={() => setFolderOpen(false)}
         onImported={(sounds) => addPads(sounds)}
+      />
+
+      <MixerDialog
+        open={mixerOpen}
+        onClose={() => setMixerOpen(false)}
+        pads={customPads}
       />
     </div>
   );

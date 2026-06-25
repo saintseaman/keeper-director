@@ -1115,12 +1115,16 @@ class AudioEngine {
     }
     gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, fadeTime / 4);
 
+    // Файловий луп (<audio>) ставимо на паузу одразу — інакше елемент може
+    // продовжувати грати попри фейд гучності.
+    if (mediaEl) { try { mediaEl.pause(); } catch (e) {} }
+
     setTimeout(() => {
       try { source.stop(); } catch (e) {}
       try { if (lfo) lfo.stop(); } catch (e) {}
       extraNodes.forEach(n => { try { if (n.stop) n.stop(); } catch (e) {} });
       // Полностью освобождаем граф (и для файловых лупов — сам <audio>).
-      if (mediaEl) { try { mediaEl.src = ''; mediaEl.load(); } catch (e) {} }
+      if (mediaEl) { try { mediaEl.pause(); mediaEl.src = ''; mediaEl.load(); } catch (e) {} }
       try { gainNode.disconnect(); } catch (e) {}
       this.activeSounds.delete(soundId);
       this._notify();
