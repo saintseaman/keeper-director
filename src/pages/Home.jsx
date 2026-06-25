@@ -13,7 +13,7 @@ export default function Home() {
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-black session-mode">
+    <div className="flex-1 min-h-0 flex flex-col">
       {/* Top bar — минимальная "рейка" как у Pioneer */}
       <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
@@ -47,7 +47,7 @@ export default function Home() {
       </div>
 
       {/* Дека */}
-      <div className="flex-1 min-h-0 px-4 pt-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+      <div className="flex-1 min-h-0 px-4 pt-4 pb-3">
         <PadDeck pages={DECKS} />
       </div>
     </div>

@@ -10,7 +10,10 @@ import { LangProvider } from '@/lib/LangContext';
 import { ModeProvider } from '@/lib/ModeContext';
 import { useAudioResume } from '@/lib/useAudioResume';
 
+import PadLayout from './components/pad/PadLayout';
 import Home from './pages/Home';
+import Scenes from './pages/Scenes';
+import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -37,7 +40,11 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route element={<PadLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/scenes" element={<Scenes />} />
+        <Route path="/settings" element={<Settings />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
