@@ -37,13 +37,17 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const isOneShot = !isLoopable;
 
   const fire = () => {
+    // Тап по уже играющему пэду — всегда стоп (для любого типа).
+    if (audioEngine.isPlaying(sound.id)) {
+      stop(sound.id, 0);
+      return;
+    }
     if (fileUrl) {
       // У пэда свой MP3 (загруженный или импортированный из Drive).
       if (isOneShot) {
         audioEngine.triggerFile(sound.id, fileUrl, title, volume);
       } else {
-        if (audioEngine.isPlaying(sound.id)) stop(sound.id);
-        else audioEngine.playFile(sound.id, fileUrl, title, volume, true);
+        audioEngine.playFile(sound.id, fileUrl, title, volume, true);
       }
       return;
     }
