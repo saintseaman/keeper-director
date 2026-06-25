@@ -1104,6 +1104,7 @@ class AudioEngine {
   stop(soundId, fadeTime = 0.5) {
     const sound = this.activeSounds.get(soundId);
     if (!sound) return;
+    if (sound.isPlaying === false) return; // вже зупиняється — не запускаємо фейд вдруге
 
     const { gainNode, source, lfo, extraNodes = [], mediaEl } = sound;
     // Граф ще не побудований (зарезервований id) — просто знімаємо запис.
@@ -1161,7 +1162,8 @@ class AudioEngine {
   }
 
   isPlaying(soundId) {
-    return this.activeSounds.has(soundId) && this.activeSounds.get(soundId).isPlaying;
+    const s = this.activeSounds.get(soundId);
+    return !!s && s.isPlaying !== false;
   }
 
   // Відновити AudioContext після повернення з фону (M5).
