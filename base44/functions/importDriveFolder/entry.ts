@@ -9,19 +9,21 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // застосунку (atmosphere / events / creatures / horror / madness / jumpscare).
 
 // Ключове слово → { category, icon }. Перший збіг виграє (порядок важливий).
+// Словник орієнтований на кампанії Call of Cthulhu / D&D: міфи, ритуали,
+// істоти, локації та події. Підтримує EN + RU/UA терміни.
 const KEYWORD_RULES = [
-  // jumpscare
-  [['jumpscare', 'jump', 'scare', 'sting', 'shock'], 'jumpscare', 'AlertTriangle'],
-  // madness
-  [['madness', 'insan', 'sanity', 'tinnitus', 'drone', 'cosmic', 'warp', 'distort'], 'madness', 'BrainCircuit'],
-  // creatures
-  [['monster', 'creature', 'beast', 'cult', 'chant', 'ghoul', 'deep', 'shoggoth', 'byakhee', 'migo', 'mi-go', 'nightgaunt', 'elder', 'growl', 'snarl', 'gurgle'], 'creatures', 'Bug'],
-  // horror
-  [['whisper', 'breath', 'heartbeat', 'heart', 'scream', 'scratch', 'moan', 'ghost', 'horror', 'creepy', 'eerie', 'dread', 'reverse'], 'horror', 'Ghost'],
-  // events
-  [['door', 'slam', 'glass', 'break', 'explosion', 'blast', 'gun', 'shot', 'collapse', 'chase', 'combat', 'drum', 'lock', 'fall', 'impact', 'crash', 'hit', 'event'], 'events', 'Zap'],
-  // atmosphere (rain, wind, fire, ambient...)
-  [['rain', 'storm', 'wind', 'thunder', 'ocean', 'wave', 'sea', 'water', 'drip', 'fire', 'crackle', 'forest', 'jungle', 'desert', 'arctic', 'cave', 'clock', 'tick', 'bell', 'train', 'fog', 'mist', 'ambient', 'ambience', 'atmos', 'room', 'night', 'underground', 'library', 'birds', 'wood', 'creak'], 'atmosphere', 'CloudFog'],
+  // jumpscare — різкі лякалки
+  [['jumpscare', 'jump', 'scare', 'sting', 'shock', 'startle', 'pounce', 'reveal', 'gotcha', 'лякал', 'испуг', 'пугал'], 'jumpscare', 'AlertTriangle'],
+  // madness — божевілля, втрата розуму, космічний жах
+  [['madness', 'insan', 'sanity', 'tinnitus', 'drone', 'cosmic', 'warp', 'distort', 'dream', 'nightmare', 'hallucinat', 'void', 'abyss', 'dissonan', 'unreal', 'dimension', 'azathoth', 'yog', 'nyarlathotep', 'hastur', 'безум', 'разум', 'кошмар', 'сон', 'бездн', 'пустот'], 'madness', 'BrainCircuit'],
+  // creatures — істоти й культи Міфів
+  [['monster', 'creature', 'beast', 'cult', 'chant', 'chanting', 'ghoul', 'deep', 'deep one', 'shoggoth', 'byakhee', 'migo', 'mi-go', 'nightgaunt', 'elder', 'great old one', 'cthulhu', 'dagon', 'hydra', 'tentacle', 'eldritch', 'spawn', 'hound', 'tindalos', 'rat', 'bat', 'bats', 'bee', 'bees', 'insect', 'swarm', 'animal', 'wolf', 'howl', 'growl', 'snarl', 'gurgle', 'roar', 'hiss', 'shriek', 'screech', 'ктулху', 'культ', 'тварь', 'монстр', 'существ', 'щупаль', 'вой', 'рык', 'летуч', 'крыс', 'насеком'], 'creatures', 'Bug'],
+  // horror — напруга, привиди, тіла й жах
+  [['whisper', 'breath', 'breathing', 'heartbeat', 'heart', 'scream', 'screaming', 'scratch', 'moan', 'groan', 'ghost', 'spirit', 'phantom', 'haunt', 'horror', 'creepy', 'eerie', 'dread', 'reverse', 'blood', 'gore', 'flesh', 'bone', 'corpse', 'death', 'dying', 'sob', 'crying', 'laugh', 'cackle', 'возглас', 'крик', 'шёпот', 'шепот', 'дыхан', 'призрак', 'дух', 'кровь', 'смех', 'плач', 'стон', 'ужас', 'жуть'], 'horror', 'Ghost'],
+  // events — дії, удари, ритуали, бій
+  [['door', 'slam', 'glass', 'break', 'explosion', 'blast', 'gun', 'shot', 'gunshot', 'collapse', 'chase', 'combat', 'fight', 'battle', 'drum', 'lock', 'fall', 'impact', 'crash', 'hit', 'punch', 'sword', 'blade', 'knife', 'stab', 'ritual', 'summon', 'spell', 'incantation', 'sacrifice', 'gong', 'footstep', 'step', 'knock', 'event', 'дверь', 'выстрел', 'взрыв', 'бой', 'удар', 'ритуал', 'шаг', 'стук', 'меч', 'жертв'], 'events', 'Zap'],
+  // atmosphere — фон, локації, природа, ембієнт
+  [['rain', 'storm', 'wind', 'thunder', 'ocean', 'wave', 'sea', 'water', 'drip', 'fire', 'crackle', 'forest', 'jungle', 'desert', 'arctic', 'swamp', 'marsh', 'cave', 'cavern', 'dungeon', 'crypt', 'tomb', 'graveyard', 'cemetery', 'church', 'temple', 'manor', 'mansion', 'attic', 'cellar', 'basement', 'ship', 'harbor', 'dock', 'village', 'town', 'city', 'street', 'tavern', 'inn', 'market', 'clock', 'tick', 'bell', 'toll', 'train', 'fog', 'mist', 'ambient', 'ambience', 'atmos', 'room', 'night', 'underground', 'library', 'birds', 'crow', 'raven', 'owl', 'wood', 'creak', 'дождь', 'ветер', 'гром', 'море', 'волн', 'огонь', 'лес', 'пещер', 'склеп', 'кладбищ', 'церков', 'храм', 'таверн', 'колокол', 'туман', 'ночь', 'комнат', 'птиц'], 'atmosphere', 'CloudFog'],
 ];
 
 const CATEGORY_ICON = {
@@ -78,7 +80,10 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Drive list error', details: text }, { status: 502 });
     }
     const listData = await listRes.json();
-    const driveFiles = listData.files || [];
+    // Відсіюємо плейлисти та не-аудіо контейнери (Drive іноді тегує їх як audio/*).
+    const driveFiles = (listData.files || []).filter(
+      (f) => !/\.(m3u|m3u8|pls|cue|wpl|xspf)$/i.test(f.name || '')
+    );
 
     // 2) Завантажити кожен файл і перекласти у сховище застосунку.
     const sounds = [];
