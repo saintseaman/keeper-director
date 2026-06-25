@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings as SettingsIcon, Volume2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
-import LangSelector from '@/components/keeper/LangSelector';
+import LangSelector from '@/components/pad/LangSelector';
 
 export default function Settings() {
   const { masterVolume, setMasterVolume } = useAudio();

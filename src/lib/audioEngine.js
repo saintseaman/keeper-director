@@ -10,6 +10,21 @@ class AudioEngine {
     this.listeners = new Set();
     this.audioContext = null;
     this.masterGain = null;
+    // C3: мягкий лимит одновременных голосов (лупов). При превышении
+    // вытесняется самый старый. _seq — монотонный счётчик порядка запуска.
+    this.maxVoices = 16;
+    this._seq = 0;
+  }
+
+  // C3: если активных лупов >= лимита, останавливаем самый ранний запущенный.
+  _enforceVoiceLimit() {
+    if (this.activeSounds.size < this.maxVoices) return;
+    let oldestId = null;
+    let oldestSeq = Infinity;
+    this.activeSounds.forEach((val, key) => {
+      if (val.seq < oldestSeq) { oldestSeq = val.seq; oldestId = key; }
+    });
+    if (oldestId) this.stop(oldestId, 0.2);
   }
 
   _ensureContext() {
@@ -1019,6 +1034,7 @@ class AudioEngine {
       this.setVolume(soundId, volume);
       return;
     }
+    this._enforceVoiceLimit();
 
     const el = new Audio(url);
     el.crossOrigin = 'anonymous';
@@ -1033,7 +1049,7 @@ class AudioEngine {
     this.activeSounds.set(soundId, {
       source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
       mediaEl: el, gainNode, lfo: null, extraNodes: [],
-      isPlaying: true, volume, title, loop, isFile: true,
+      isPlaying: true, volume, title, loop, isFile: true, seq: this._seq++,
     });
     this._notify();
   }
@@ -1049,7 +1065,14 @@ class AudioEngine {
     mediaSource.connect(gainNode);
     gainNode.connect(this.masterGain);
     el.play().catch(() => {});
-    el.addEventListener('ended', () => { try { el.src = ''; } catch (e) {} });
+    // C2: полностью освобождаем граф после окончания, иначе узлы копятся (утечка).
+    const cleanup = () => {
+      try { mediaSource.disconnect(); } catch (e) {}
+      try { gainNode.disconnect(); } catch (e) {}
+      try { el.pause(); el.src = ''; el.load(); } catch (e) {}
+    };
+    el.addEventListener('ended', cleanup, { once: true });
+    el.addEventListener('error', cleanup, { once: true });
   }
 
   play(soundId, title, volume = 0.8, loop = true) {
@@ -1059,6 +1082,7 @@ class AudioEngine {
       this.setVolume(soundId, volume);
       return;
     }
+    this._enforceVoiceLimit();
 
     const { sourceNode, gainNode, lfo, extraNodes = [] } = this._buildSoundGraph(soundId);
 
@@ -1068,7 +1092,7 @@ class AudioEngine {
 
     this.activeSounds.set(soundId, {
       source: sourceNode, gainNode, lfo, extraNodes,
-      isPlaying: true, volume, title, loop,
+      isPlaying: true, volume, title, loop, seq: this._seq++,
     });
     this._notify();
   }
@@ -1077,13 +1101,16 @@ class AudioEngine {
     const sound = this.activeSounds.get(soundId);
     if (!sound) return;
 
-    const { gainNode, source, lfo, extraNodes = [] } = sound;
+    const { gainNode, source, lfo, extraNodes = [], mediaEl } = sound;
     gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, fadeTime / 4);
 
     setTimeout(() => {
       try { source.stop(); } catch (e) {}
       try { if (lfo) lfo.stop(); } catch (e) {}
       extraNodes.forEach(n => { try { if (n.stop) n.stop(); } catch (e) {} });
+      // Полностью освобождаем граф (и для файловых лупов — сам <audio>).
+      if (mediaEl) { try { mediaEl.src = ''; mediaEl.load(); } catch (e) {} }
+      try { gainNode.disconnect(); } catch (e) {}
       this.activeSounds.delete(soundId);
       this._notify();
     }, fadeTime * 1000);

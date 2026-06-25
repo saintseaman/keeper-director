@@ -291,11 +291,63 @@ export function getSoundsByCategory(category) {
   return SOUNDS.filter(s => s.category === category);
 }
 
+// Расстояние Левенштейна — для устойчивости к опечаткам (короткие слова).
+function levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  if (!m) return n;
+  if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, i) => i);
+  let curr = new Array(n + 1);
+  for (let i = 1; i <= m; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[n];
+}
+
+// Профессиональный поиск: несколько слов (AND), по title+tags+category,
+// fuzzy-устойчивость к опечаткам. Возвращает результаты, отсортированные
+// по релевантности (точное совпадение в названии — выше).
 export function searchSounds(query) {
-  const q = query.toLowerCase();
-  return SOUNDS.filter(s =>
-    s.title.toLowerCase().includes(q) ||
-    s.tags.some(t => t.includes(q)) ||
-    s.category.includes(q)
-  );
+  const raw = (query || '').toLowerCase().trim();
+  if (!raw) return SOUNDS;
+  const terms = raw.split(/\s+/).filter(Boolean);
+
+  const scoreSound = (s) => {
+    const title = s.title.toLowerCase();
+    const haystack = [title, ...s.tags, s.category];
+    let total = 0;
+    for (const term of terms) {
+      let best = 0;
+      // прямое вхождение
+      if (title.includes(term)) best = title.startsWith(term) ? 100 : 60;
+      else if (s.tags.some(t => t.includes(term))) best = 50;
+      else if (s.category.includes(term)) best = 40;
+      else {
+        // fuzzy: ищем слово в haystack с близким расстоянием
+        for (const field of haystack) {
+          for (const word of field.split(/[\s_-]+/)) {
+            if (!word) continue;
+            const maxDist = term.length <= 4 ? 1 : 2;
+            if (Math.abs(word.length - term.length) <= maxDist && levenshtein(word, term) <= maxDist) {
+              best = Math.max(best, 25);
+            }
+          }
+        }
+      }
+      if (best === 0) return -1; // это слово не нашлось — звук не подходит (AND)
+      total += best;
+    }
+    return total;
+  };
+
+  return SOUNDS
+    .map(s => ({ s, score: scoreSound(s) }))
+    .filter(x => x.score >= 0)
+    .sort((a, b) => b.score - a.score)
+    .map(x => x.s);
 }

@@ -12,6 +12,7 @@ import { useAudioResume } from '@/lib/useAudioResume';
 
 import PadLayout from './components/pad/PadLayout';
 import Home from './pages/Home';
+import Search from './pages/Search';
 import Scenes from './pages/Scenes';
 import Settings from './pages/Settings';
 
@@ -42,6 +43,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<PadLayout />}>
         <Route path="/" element={<Home />} />
+        <Route path="/search" element={<Search />} />
         <Route path="/scenes" element={<Scenes />} />
         <Route path="/settings" element={<Settings />} />
       </Route>

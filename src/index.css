@@ -103,6 +103,10 @@
   50% { opacity: 1; }
 }
 
+/* Прячем горизонтальный скроллбар у чипов (Search) */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Session mode — keep screen on feel */
 .session-mode {
   user-select: none;
