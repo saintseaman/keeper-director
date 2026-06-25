@@ -3,33 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Send, Play, Loader2, Eye } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { useAudio } from '@/lib/useAudio';
+import { SOUNDS, getSoundIdByName } from '@/lib/soundData';
 import BottomNav from '@/components/keeper/BottomNav';
 import { useLang } from '@/lib/LangContext';
 
-const SOUND_ID_MAP = {
-  'Heavy Rain': 'rain_heavy', 'Light Rain': 'rain_light', 'Howling Wind': 'wind_howling',
-  'Gentle Breeze': 'wind_gentle', 'Thunder': 'thunder', 'Ocean Waves': 'ocean_waves',
-  'Crackling Fire': 'fire_crackling', 'Clock Ticking': 'clock_ticking', 'Dripping Water': 'dripping_water',
-  'Creaking Wood': 'creaking_wood', 'Slow Footsteps': 'footsteps_slow', 'Rattling Chains': 'chains_rattling',
-  'Fog Ambience': 'fog_ambience', 'Quiet Library': 'library_quiet', 'Moving Train': 'train_moving',
-  'Church Bells': 'church_bells', 'Arctic Wind': 'arctic_wind', 'Jungle Night': 'jungle_ambient',
-  'Desert Wind': 'desert_wind', 'Deep Underground': 'underground',
-  'Door Creak': 'door_open_creak', 'Door Slam': 'door_slam', 'Breaking Glass': 'glass_break',
-  'Explosion': 'explosion', 'Gunshot': 'gunshot', 'Cave Collapse': 'collapse',
-  'Chase': 'chase_music', 'Combat Drums': 'combat_drums', 'Investigation': 'investigation',
-  'Discovery': 'discovery', 'Lock Picking': 'lock_pick', 'Falling': 'falling',
-  'Cultist Chant': 'cultist_chant', 'Deep One': 'deep_one_gurgle', 'Shoggoth': 'shoggoth_mass',
-  'Byakhee Screech': 'byakhee_screech', 'Elder Presence': 'elder_thing', 'Ghoul Snarl': 'ghoul_snarl',
-  'Mi-Go Buzzing': 'mi_go_buzz', 'Nightgaunt': 'nightgaunt',
-  'Whispers': 'whisper_voices', 'Heavy Breathing': 'heavy_breathing', 'Slow Heartbeat': 'heartbeat_slow',
-  'Racing Heart': 'heartbeat_fast', 'Scratching': 'scratching', 'Distant Scream': 'distant_scream',
-  'Music Box': 'eerie_music_box', 'Reversed Speech': 'reverse_speech', 'Metal Scraping': 'metal_scraping',
-  'Moaning': 'moaning',
-  'Sanity Loss': 'sanity_loss', 'Reality Warp': 'distortion', 'Tinnitus': 'tinnitus',
-  'Mad Laughter': 'laughter_mad', 'Cosmic Drone': 'cosmic_drone', 'Overlapping Voices': 'multiple_voices',
-};
-
-const AVAILABLE_SOUNDS = Object.keys(SOUND_ID_MAP);
+// Список доступних назв звуків для ШІ — похідний від SOUNDS (єдине джерело правди)
+const AVAILABLE_SOUNDS = SOUNDS.map(s => s.title);
 
 const tensionColors = {
   low: 'text-green-400 bg-green-950/40 border-green-900/30',
@@ -94,7 +73,7 @@ Create an atmospheric mix. Return JSON with:
     stopAll(0.3);
     setTimeout(() => {
       result.layers?.forEach(layer => {
-        const soundId = SOUND_ID_MAP[layer.sound_name];
+        const soundId = getSoundIdByName(layer.sound_name);
         if (soundId) play(soundId, layer.sound_name, (layer.volume || 50) / 100, true);
       });
     }, 400);

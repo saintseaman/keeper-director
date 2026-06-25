@@ -273,6 +273,20 @@ export const PRESET_SCENES = [
   },
 ];
 
+// ─────────────────────────────────────────────────────────────
+// SINGLE SOURCE OF TRUTH: sound title → sound id
+// Побудовано автоматично з SOUNDS. Новий звук додається ЛИШЕ в SOUNDS —
+// мапа оновлюється сама. Раніше ця мапа дублювалася в 3 файлах.
+// ─────────────────────────────────────────────────────────────
+const SOUND_NAME_TO_ID = SOUNDS.reduce((acc, s) => {
+  acc[s.title] = s.id;
+  return acc;
+}, {});
+
+export function getSoundIdByName(name) {
+  return SOUND_NAME_TO_ID[name] || null;
+}
+
 export function getSoundsByCategory(category) {
   return SOUNDS.filter(s => s.category === category);
 }

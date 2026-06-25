@@ -2,13 +2,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { getIcon } from '@/lib/iconMap';
 import { useAudio } from '@/lib/useAudio';
+import { getSoundIdByName } from '@/lib/soundData';
 import { Play, Square, Heart } from 'lucide-react';
 
 export default function SceneCard({ scene, onToggleFavorite, isFavorite, onSelect }) {
   const { activeSounds, play, stopAll } = useAudio();
 
   const isActive = scene.layers?.some(l => {
-    const soundId = getSoundIdFromName(l.sound_name);
+    const soundId = getSoundIdByName(l.sound_name);
     return !!activeSounds[soundId];
   });
 
@@ -22,7 +23,7 @@ export default function SceneCard({ scene, onToggleFavorite, isFavorite, onSelec
       stopAll(0.3);
       setTimeout(() => {
         scene.layers?.forEach(layer => {
-          const soundId = getSoundIdFromName(layer.sound_name);
+          const soundId = getSoundIdByName(layer.sound_name);
           if (soundId) {
             play(soundId, layer.sound_name, (layer.volume || 50) / 100, true);
           }
@@ -99,31 +100,3 @@ export default function SceneCard({ scene, onToggleFavorite, isFavorite, onSelec
     </motion.div>
   );
 }
-
-function getSoundIdFromName(name) {
-  const map = {
-    'Heavy Rain': 'rain_heavy', 'Light Rain': 'rain_light', 'Howling Wind': 'wind_howling',
-    'Gentle Breeze': 'wind_gentle', 'Thunder': 'thunder', 'Ocean Waves': 'ocean_waves',
-    'Crackling Fire': 'fire_crackling', 'Clock Ticking': 'clock_ticking', 'Dripping Water': 'dripping_water',
-    'Creaking Wood': 'creaking_wood', 'Slow Footsteps': 'footsteps_slow', 'Rattling Chains': 'chains_rattling',
-    'Fog Ambience': 'fog_ambience', 'Quiet Library': 'library_quiet', 'Moving Train': 'train_moving',
-    'Church Bells': 'church_bells', 'Arctic Wind': 'arctic_wind', 'Jungle Night': 'jungle_ambient',
-    'Desert Wind': 'desert_wind', 'Deep Underground': 'underground',
-    'Door Creak': 'door_open_creak', 'Door Slam': 'door_slam', 'Breaking Glass': 'glass_break',
-    'Explosion': 'explosion', 'Gunshot': 'gunshot', 'Cave Collapse': 'collapse',
-    'Chase': 'chase_music', 'Combat Drums': 'combat_drums', 'Investigation': 'investigation',
-    'Discovery': 'discovery', 'Lock Picking': 'lock_pick', 'Falling': 'falling',
-    'Cultist Chant': 'cultist_chant', 'Deep One': 'deep_one_gurgle', 'Shoggoth': 'shoggoth_mass',
-    'Byakhee Screech': 'byakhee_screech', 'Elder Presence': 'elder_thing', 'Ghoul Snarl': 'ghoul_snarl',
-    'Mi-Go Buzzing': 'mi_go_buzz', 'Nightgaunt': 'nightgaunt',
-    'Whispers': 'whisper_voices', 'Heavy Breathing': 'heavy_breathing', 'Slow Heartbeat': 'heartbeat_slow',
-    'Racing Heart': 'heartbeat_fast', 'Scratching': 'scratching', 'Distant Scream': 'distant_scream',
-    'Music Box': 'eerie_music_box', 'Reversed Speech': 'reverse_speech', 'Metal Scraping': 'metal_scraping',
-    'Moaning': 'moaning',
-    'Sanity Loss': 'sanity_loss', 'Reality Warp': 'distortion', 'Tinnitus': 'tinnitus',
-    'Mad Laughter': 'laughter_mad', 'Cosmic Drone': 'cosmic_drone', 'Overlapping Voices': 'multiple_voices',
-  };
-  return map[name] || null;
-}
-
-export { getSoundIdFromName };
