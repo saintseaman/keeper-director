@@ -5,6 +5,7 @@ import { PRESET_SCENES } from '@/lib/soundData';
 import SceneCard from '@/components/keeper/SceneCard';
 import BottomNav from '@/components/keeper/BottomNav';
 import { useLang } from '@/lib/LangContext';
+import { useFavorites } from '@/lib/useFavorites';
 
 const FILTER_KEY_MAP = {
   all: 'filterAll',
@@ -20,16 +21,7 @@ export default function Scenes() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const { t } = useLang();
-  const [favorites, setFavorites] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('keeper_favorites') || '[]'); } catch { return []; }
-  });
-
-  const toggleFavorite = (scene) => {
-    const id = scene.id;
-    const next = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
-    setFavorites(next);
-    localStorage.setItem('keeper_favorites', JSON.stringify(next));
-  };
+  const { favorites, toggleFavorite, isFavorite } = useFavorites();
 
   let scenes = PRESET_SCENES;
   if (activeFilter !== 'all') {
@@ -100,7 +92,7 @@ export default function Scenes() {
                   key={scene.id}
                   scene={scene}
                   isFavorite={true}
-                  onToggleFavorite={toggleFavorite}
+                  onToggleFavorite={(s) => toggleFavorite(s.id)}
                 />
               ))}
             </div>
@@ -117,8 +109,8 @@ export default function Scenes() {
               <SceneCard
                 key={scene.id}
                 scene={scene}
-                isFavorite={favorites.includes(scene.id)}
-                onToggleFavorite={toggleFavorite}
+                isFavorite={isFavorite(scene.id)}
+                onToggleFavorite={(s) => toggleFavorite(s.id)}
               />
             ))}
           </div>

@@ -17,9 +17,14 @@
 - [x] Підключено: SceneCard, SoundButton, MixerSlider, Director, AIKeeper (Home/Soundboard — через ці компоненти)
 - [x] Англ. `title` лишився стабільним ключем (SoT і мапа не зачеплені)
 
+## ✅ Milestone 3 — Розділення домену + шар сховища
+- [x] Ізольований шар сховища `lib/storage.js` (єдина точка доступу до localStorage)
+- [x] Хук `useFavorites` (синхронізація улюбленого між сторінками)
+- [x] Доменна модель `lib/domain.js`: `SoundFile` / `SoundButton` (розділені відповідальності)
+- [x] `Scenes` і `LangContext` переведені на шар storage (прямих localStorage більше немає)
+- [x] Персист гучності майстра через шар storage (бонус із M5)
+
 ## Беклог
-- [ ] Розділення `SoundFile` / `SoundButton` (M3)
-- [ ] Шар сховища / репозиторії (M3)
 - [ ] Режими Gameplay / Edit (M4)
 - [ ] Селекторна підписка SoundButton (M5)
-- [ ] Персист гучності та обраного (M5)
+- [ ] Редактор кнопок на базі SoundButton (M4+)

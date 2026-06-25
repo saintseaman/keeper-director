@@ -1,9 +1,12 @@
 // Web Audio Engine — manages multiple concurrent audio layers
+import { storage } from './storage';
 
 class AudioEngine {
   constructor() {
     this.activeSounds = new Map();
-    this.masterVolume = 1.0;
+    // Відновити збережену гучність майстра (шар storage), інакше 1.0
+    const saved = storage.getMasterVolume();
+    this.masterVolume = typeof saved === 'number' ? saved : 1.0;
     this.listeners = new Set();
     this.audioContext = null;
     this.masterGain = null;
@@ -1061,6 +1064,7 @@ class AudioEngine {
 
   setMasterVolume(volume) {
     this.masterVolume = volume;
+    storage.setMasterVolume(volume); // персист через шар storage
     if (this.masterGain) {
       this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
