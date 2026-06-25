@@ -397,7 +397,8 @@ class AudioEngine {
       const g1 = gain(0.8); const g2 = gain(0.4);
       const src = noise('brown', 4);
       const lp = lpf(120); const rumbleG = gain(0.3);
-      o1.start(); o2.start(); src.start();
+      // o1 повертається як sourceNode → його стартує play(). Тут стартуємо лише решту.
+      o2.start(); src.start();
       chain(o1, g1, gainNode); chain(o2, g2, gainNode); chain(src, lp, rumbleG, gainNode);
       return { sourceNode: o1, gainNode, lfo: o2, extraNodes: [g1, g2, o2, src, lp, rumbleG] };
     }
@@ -635,7 +636,7 @@ class AudioEngine {
       const o2 = osc('sine', 43); o2.start();
       const o3 = osc('sine', 61); o3.start();
       const g2 = gain(0.5); const g3 = gain(0.3);
-      o1.start();
+      // o1 повертається як sourceNode → його стартує play(). Не стартуємо тут.
       chain(o1, gainNode); chain(o2, g2, gainNode); chain(o3, g3, gainNode);
       return { sourceNode: o1, gainNode, lfo: o2, extraNodes: [o2, o3, g2, g3] };
     }
@@ -1091,7 +1092,7 @@ class AudioEngine {
 
     gainNode.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.5);
     sourceNode.loop = !!loop;
-    sourceNode.start();
+    try { sourceNode.start(); } catch (e) { /* вузол уже стартований — ігноруємо */ }
 
     this.activeSounds.set(soundId, {
       source: sourceNode, gainNode, lfo, extraNodes,
