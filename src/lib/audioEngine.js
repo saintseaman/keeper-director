@@ -1136,9 +1136,16 @@ class AudioEngine {
     }
     gainNode.gain.setTargetAtTime(0, this.audioContext.currentTime, fadeTime / 4);
 
-    // Файловий луп (<audio>) ставимо на паузу одразу — інакше елемент може
-    // продовжувати грати попри фейд гучності.
-    if (mediaEl) { try { mediaEl.pause(); } catch (e) {} }
+    // Файловий луп (<audio>) зупиняємо ЖОРСТКО і одразу: пауза + скидання +
+    // повне звільнення графа, без очікування фейду. Інакше елемент продовжує
+    // грати попри фейд гучності.
+    if (mediaEl) {
+      try { mediaEl.pause(); mediaEl.currentTime = 0; mediaEl.loop = false; mediaEl.src = ''; mediaEl.load(); } catch (e) {}
+      try { gainNode.disconnect(); } catch (e) {}
+      this.activeSounds.delete(soundId);
+      this._notify();
+      return;
+    }
 
     setTimeout(() => {
       try { source.stop(); } catch (e) {}
