@@ -4,7 +4,7 @@ import PadPage from './PadPage';
 
 // Пейджер дек: 5 страниц, свайп влево/вправо как рабочие столы iPhone.
 // pages — массив массивов звуков (по <=9 на страницу).
-export default function PadDeck({ pages }) {
+export default function PadDeck({ pages, onRemoveCustom }) {
   const [page, setPage] = useState(0);
   const [dir, setDir] = useState(0);
   const startX = useRef(null);
@@ -44,7 +44,7 @@ export default function PadDeck({ pages }) {
             transition={{ type: 'spring', stiffness: 320, damping: 34 }}
             className="absolute inset-0"
           >
-            <PadPage sounds={pages[page]} />
+            <PadPage sounds={pages[page]} onRemoveCustom={onRemoveCustom} />
           </motion.div>
         </AnimatePresence>
       </div>

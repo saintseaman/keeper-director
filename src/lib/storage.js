@@ -25,6 +25,7 @@ const DEFAULTS = {
   master_volume: null,
   sound_overrides: {},
   pad_files: {},
+  custom_pads: [],
   migrated_from_local: false,
 };
 
@@ -93,6 +94,7 @@ export const storage = {
           master_volume: typeof r.master_volume === 'number' ? r.master_volume : DEFAULTS.master_volume,
           sound_overrides: r.sound_overrides ?? DEFAULTS.sound_overrides,
           pad_files: r.pad_files ?? DEFAULTS.pad_files,
+          custom_pads: r.custom_pads ?? DEFAULTS.custom_pads,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -153,4 +155,8 @@ export const storage = {
   // Користувацькі MP3, прив'язані до пэда: { [soundId]: { url, name } }
   getPadFiles: () => cache.pad_files,
   setPadFiles: (map) => set('pad_files', map),
+
+  // Власні пэди, імпортовані з Google Диска (масив звуків з url)
+  getCustomPads: () => cache.custom_pads || [],
+  setCustomPads: (list) => set('custom_pads', list),
 };

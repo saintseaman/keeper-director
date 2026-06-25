@@ -29,6 +29,31 @@
       "default": {},
       "description": "Uploaded MP3 files keyed by sound id"
     },
+    "custom_pads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          }
+        }
+      },
+      "default": [],
+      "description": "Custom pads imported from Google Drive (each is a playable sound)"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,

@@ -9,7 +9,7 @@ const LONG_PRESS_MS = 500;
 
 // Один пэд драм-пада в стиле Pioneer DDJ.
 // Короткий тап — воспроизведение; зажатие (long-press) — редактирование (загрузка MP3).
-export default function Pad({ sound, index }) {
+export default function Pad({ sound, index, onRemoveCustom }) {
   const isActive = useIsSoundActive(sound?.id);
   const { toggle, trigger, stop } = useAudioActions();
   const { getFile } = usePadFiles();
@@ -17,22 +17,26 @@ export default function Pad({ sound, index }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
 
+  const isCustom = !!sound?.url; // імпортований з Google Диска
+
   if (!sound) {
     return <div className="aspect-square rounded-xl bg-[#0c0c0c] border border-white/5" />;
   }
 
   const Icon = getIcon(sound.icon);
-  const file = getFile(sound.id);
+  // Власний пэд з Google Диска несе свій url прямо в sound; інакше — MP3,
+  // прив'язаний до вбудованого пэда через usePadFiles.
+  const fileUrl = sound.url || getFile(sound.id)?.url || null;
   const isOneShot = !sound.isLoopable;
 
   const fire = () => {
-    if (file) {
-      // У пэда свой MP3.
+    if (fileUrl) {
+      // У пэда свой MP3 (загруженный или импортированный из Drive).
       if (isOneShot) {
-        audioEngine.triggerFile(sound.id, file.url);
+        audioEngine.triggerFile(sound.id, fileUrl);
       } else {
         if (audioEngine.isPlaying(sound.id)) stop(sound.id);
-        else audioEngine.playFile(sound.id, file.url, sound.title, 0.6, true);
+        else audioEngine.playFile(sound.id, fileUrl, sound.title, 0.6, true);
       }
       return;
     }
@@ -44,8 +48,14 @@ export default function Pad({ sound, index }) {
     longFiredRef.current = false;
     timerRef.current = setTimeout(() => {
       longFiredRef.current = true;
-      setEditOpen(true);
       if (navigator.vibrate) navigator.vibrate(15);
+      if (isCustom) {
+        // Власний пэд з Drive — пропонуємо видалити.
+        if (audioEngine.isPlaying(sound.id)) stop(sound.id);
+        if (window.confirm(`Удалить пэд «${sound.title}»?`)) onRemoveCustom?.(sound.id);
+      } else {
+        setEditOpen(true);
+      }
     }, LONG_PRESS_MS);
   };
 
@@ -78,7 +88,7 @@ export default function Pad({ sound, index }) {
         <span className={`absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full ${isActive ? 'bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.9)]' : isOneShot ? 'bg-rose-500/40' : 'bg-cyan-500/40'}`} />
 
         {/* Метка пользовательского MP3 */}
-        {file && (
+        {fileUrl && (
           <span className="absolute bottom-2 left-2.5 text-[8px] font-mono tracking-widest text-orange-300/70">MP3</span>
         )}
 
