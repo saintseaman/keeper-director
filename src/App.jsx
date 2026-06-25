@@ -8,6 +8,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { LangProvider } from '@/lib/LangContext';
 import { ModeProvider } from '@/lib/ModeContext';
+import { useAudioResume } from '@/lib/useAudioResume';
 
 import Home from './pages/Home';
 import Soundboard from './pages/Soundboard';
@@ -52,6 +53,7 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  useAudioResume(); // відновлення AudioContext при поверненні з фону (M5)
   return (
     <LangProvider>
       <ModeProvider>

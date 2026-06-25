@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Settings2 } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
-import { useAudio } from '@/lib/useAudio';
+import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
 import { localizedSoundTitle } from '@/lib/contentI18n';
 import { useLang } from '@/lib/LangContext';
 import { useMode } from '@/lib/ModeContext';
@@ -10,12 +10,13 @@ import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import SoundEditDialog from './SoundEditDialog';
 
 export default function SoundButton({ sound, size = 'normal' }) {
-  const { activeSounds, toggle, trigger } = useAudio();
+  // Селекторна підписка (M5): перемальовуємось лише при зміні статусу СВОГО звуку.
+  const isActive = useIsSoundActive(sound.id);
+  const { toggle, trigger } = useAudioActions();
   const { lang } = useLang();
   const { isEdit } = useMode();
   const { getOverride } = useSoundOverrides();
   const [editOpen, setEditOpen] = useState(false);
-  const isActive = !!activeSounds[sound.id];
 
   const IconComponent = getIcon(sound.icon);
   const override = getOverride(sound.id);

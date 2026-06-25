@@ -1075,6 +1075,15 @@ class AudioEngine {
     return this.activeSounds.has(soundId) && this.activeSounds.get(soundId).isPlaying;
   }
 
+  // Відновити AudioContext після повернення з фону (M5).
+  // На мобільних контекст часто переходить у 'suspended' — без resume звук
+  // не відновлюється, поки користувач не торкнеться екрана.
+  resume() {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume();
+    }
+  }
+
   trigger(soundId, title) {
     this._ensureContext();
     const { sourceNode, gainNode, lfo, extraNodes = [] } = this._buildSoundGraph(soundId);
