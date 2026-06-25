@@ -36,8 +36,10 @@ const CATEGORY_ICON = {
 };
 
 function cleanTitle(name) {
-  // Прибрати розширення та службові символи, зробити Title Case.
-  const base = name.replace(/\.[a-z0-9]+$/i, '').replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Прибрати розширення та службові символи.
+  let base = name.replace(/\.[a-z0-9]+$/i, '').replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  // Зрізати службовий префікс «scary sound» (і варіанти) на початку назви.
+  base = base.replace(/^scary\s*sounds?\s*/i, '').trim();
   if (!base) return 'Sound';
   return base.replace(/\b\w/g, (c) => c.toUpperCase());
 }
