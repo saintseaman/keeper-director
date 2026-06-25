@@ -18,6 +18,10 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const [editOpen, setEditOpen] = useState(false);
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
+  const startPtRef = useRef(null);
+  const movedRef = useRef(false);
+
+  const MOVE_TOLERANCE = 12; // px — больше этого считаем жестом-свайпом, а не тапом
 
   const isCustom = !!sound?.url; // імпортований з Google Диска
 
@@ -55,35 +59,47 @@ export default function Pad({ sound, index, onRemoveCustom }) {
     else toggle(sound.id, title, volume, true);
   };
 
-  const startPress = () => {
+  const startPress = (e) => {
     longFiredRef.current = false;
+    movedRef.current = false;
+    startPtRef.current = { x: e.clientX, y: e.clientY };
     timerRef.current = setTimeout(() => {
       longFiredRef.current = true;
       if (navigator.vibrate) navigator.vibrate(15);
-      if (isCustom) {
-        // Власний пэд з Drive — пропонуємо видалити.
-        if (audioEngine.isPlaying(sound.id)) stop(sound.id);
-        if (window.confirm(`Удалить пэд «${title}»?`)) onRemoveCustom?.(sound.id);
-      } else {
-        setEditOpen(true);
-      }
+      // Long-press открывает полный редактор пэда (для встроенных и Drive).
+      setEditOpen(true);
     }, LONG_PRESS_MS);
+  };
+
+  // Движение пальца сверх порога — это свайп страницы, а не тап/long-press.
+  const onMove = (e) => {
+    if (!startPtRef.current || movedRef.current) return;
+    const dx = e.clientX - startPtRef.current.x;
+    const dy = e.clientY - startPtRef.current.y;
+    if (Math.hypot(dx, dy) > MOVE_TOLERANCE) {
+      movedRef.current = true;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    }
   };
 
   const endPress = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!longFiredRef.current) fire(); // короткий тап
+    if (!longFiredRef.current && !movedRef.current) fire(); // короткий тап без свайпа
+    startPtRef.current = null;
   };
 
   const cancelPress = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
+    startPtRef.current = null;
   };
 
   return (
     <>
       <button
         onPointerDown={startPress}
+        onPointerMove={onMove}
         onPointerUp={endPress}
+        onPointerCancel={cancelPress}
         onPointerLeave={cancelPress}
         onContextMenu={(e) => e.preventDefault()}
         className={`group relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-1.5 select-none touch-none transition-all duration-100 active:scale-[0.96]
@@ -110,7 +126,16 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         </span>
       </button>
 
-      <PadEditDialog sound={sound} open={editOpen} onClose={() => setEditOpen(false)} />
+      <PadEditDialog
+        sound={sound}
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        onRemove={isCustom ? () => {
+          if (audioEngine.isPlaying(sound.id)) stop(sound.id);
+          onRemoveCustom?.(sound.id);
+          setEditOpen(false);
+        } : undefined}
+      />
     </>
   );
 }

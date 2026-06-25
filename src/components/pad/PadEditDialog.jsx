@@ -11,7 +11,7 @@ import { audioEngine } from '@/lib/audioEngine';
 import DriveImportDialog from './DriveImportDialog';
 import IconPicker from './IconPicker';
 
-export default function PadEditDialog({ sound, open, onClose }) {
+export default function PadEditDialog({ sound, open, onClose, onRemove }) {
   const { getFile, setFile, removeFile } = usePadFiles();
   const { getOverride, setOverride, resetOverride } = useSoundOverrides();
   const inputRef = useRef(null);
@@ -177,6 +177,16 @@ export default function PadEditDialog({ sound, open, onClose }) {
               className="w-full flex items-center justify-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors pt-1"
             >
               <RotateCcw size={13} /> Сбросить настройки
+            </button>
+          )}
+
+          {/* Удаление кастомного пэда (из Drive) */}
+          {onRemove && (
+            <button
+              onClick={() => { if (window.confirm(`Удалить пэд «${title}»?`)) onRemove(); }}
+              className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-600/10 py-2 text-xs text-rose-300 hover:bg-rose-600/20 transition-colors"
+            >
+              <Trash2 size={13} /> Удалить пэд
             </button>
           )}
         </div>
