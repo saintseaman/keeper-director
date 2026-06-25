@@ -12,7 +12,7 @@ import { useAudioResume } from '@/lib/useAudioResume';
 import { usePrefsReady } from '@/lib/usePrefsReady';
 
 import PadLayout from './components/pad/PadLayout';
-import Home from './pages/Home';
+import Home from './pages/Home.jsx';
 import Search from './pages/Search';
 import Scenes from './pages/Scenes';
 import Settings from './pages/Settings';
