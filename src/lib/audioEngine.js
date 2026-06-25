@@ -1141,6 +1141,15 @@ class AudioEngine {
     this._notify();
   }
 
+  // Застосувати гучність із хмари без зворотного запису (уникаємо циклу збереження).
+  setMasterVolumeFromCloud(volume) {
+    this.masterVolume = volume;
+    if (this.masterGain) {
+      this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
+    }
+    this._notify();
+  }
+
   isPlaying(soundId) {
     return this.activeSounds.has(soundId) && this.activeSounds.get(soundId).isPlaying;
   }
@@ -1176,3 +1185,11 @@ class AudioEngine {
 }
 
 export const audioEngine = new AudioEngine();
+
+// Застосувати гучність майстра після завантаження хмарних налаштувань (V3).
+storage.subscribe(() => {
+  const saved = storage.getMasterVolume();
+  if (typeof saved === 'number' && saved !== audioEngine.masterVolume) {
+    audioEngine.setMasterVolumeFromCloud(saved);
+  }
+});

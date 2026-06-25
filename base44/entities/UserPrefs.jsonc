@@ -1,0 +1,39 @@
+{
+  "name": "UserPrefs",
+  "type": "object",
+  "properties": {
+    "favorites": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Favorite scene ids"
+    },
+    "lang": {
+      "type": "string",
+      "default": "en",
+      "description": "UI language code"
+    },
+    "master_volume": {
+      "type": "number",
+      "description": "Master volume 0..1"
+    },
+    "sound_overrides": {
+      "type": "object",
+      "default": {},
+      "description": "Per-sound metadata overrides keyed by sound id"
+    },
+    "pad_files": {
+      "type": "object",
+      "default": {},
+      "description": "Uploaded MP3 files keyed by sound id"
+    },
+    "migrated_from_local": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether localStorage data was already migrated"
+    }
+  },
+  "required": []
+}

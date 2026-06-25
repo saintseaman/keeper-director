@@ -18,7 +18,11 @@ export function useSoundOverrides() {
   useEffect(() => {
     const sync = () => setOverrides(storage.getSoundOverrides());
     window.addEventListener(EVENT, sync);
-    return () => window.removeEventListener(EVENT, sync);
+    const unsub = storage.subscribe(sync); // хмарне завантаження / зміни
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      unsub();
+    };
   }, []);
 
   const getOverride = useCallback((soundId) => overrides[soundId] || {}, [overrides]);

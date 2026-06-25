@@ -14,10 +14,10 @@ export function useFavorites() {
   useEffect(() => {
     const sync = () => setFavorites(storage.getFavorites());
     window.addEventListener(EVENT, sync);
-    window.addEventListener('storage', sync); // інша вкладка
+    const unsub = storage.subscribe(sync); // хмарне завантаження / зміни
     return () => {
       window.removeEventListener(EVENT, sync);
-      window.removeEventListener('storage', sync);
+      unsub();
     };
   }, []);
 

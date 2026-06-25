@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { LangProvider } from '@/lib/LangContext';
 import { ModeProvider } from '@/lib/ModeContext';
 import { useAudioResume } from '@/lib/useAudioResume';
+import { usePrefsReady } from '@/lib/usePrefsReady';
 
 import PadLayout from './components/pad/PadLayout';
 import Home from './pages/Home';
@@ -37,6 +38,25 @@ const AuthenticatedApp = () => {
       navigateToLogin();
       return null;
     }
+  }
+
+  return <PrefsGate />;
+};
+
+// Завантажуємо хмарні налаштування користувача (UserPrefs) перед рендером
+// застосунку, щоб геттери storage віддавали хмарні дані, а не дефолти.
+const PrefsGate = () => {
+  const prefsReady = usePrefsReady();
+
+  if (!prefsReady) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-obsidian">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-brass/20 border-t-brass rounded-full animate-spin"></div>
+          <p className="text-xs font-heading tracking-widest text-brass-dim uppercase">Синхронизация…</p>
+        </div>
+      </div>
+    );
   }
 
   return (

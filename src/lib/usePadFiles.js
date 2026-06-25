@@ -13,7 +13,11 @@ export function usePadFiles() {
   useEffect(() => {
     const sync = () => setFiles(storage.getPadFiles());
     window.addEventListener(EVENT, sync);
-    return () => window.removeEventListener(EVENT, sync);
+    const unsub = storage.subscribe(sync); // хмарне завантаження / зміни
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      unsub();
+    };
   }, []);
 
   const getFile = useCallback((soundId) => files[soundId] || null, [files]);

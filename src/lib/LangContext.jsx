@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { t as translate } from './i18n';
 import { storage } from './storage';
 
@@ -6,6 +6,12 @@ const LangContext = createContext();
 
 export function LangProvider({ children }) {
   const [lang, setLang] = useState(() => storage.getLang());
+
+  useEffect(() => {
+    // Застосувати мову після завантаження хмарних налаштувань.
+    const unsub = storage.subscribe(() => setLang(storage.getLang()));
+    return unsub;
+  }, []);
 
   const changeLang = (code) => {
     setLang(code);
