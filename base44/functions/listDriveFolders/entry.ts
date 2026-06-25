@@ -1,7 +1,9 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Повертає список папок Google Диска користувача для вибору при імпорті.
-// Необовʼязковий payload: { q } — пошук по назві папки.
+// Повертає список папок Google Диска для навігації при імпорті.
+// Payload:
+//   { q }        — пошук по назві по всьому диску (ігнорує parentId)
+//   { parentId } — папки всередині вказаної папки ('root' за замовчуванням)
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -9,24 +11,30 @@ Deno.serve(async (req) => {
     if (!user) return Response.json({ error: 'Unauthorized' }, { status: 401 });
 
     let search = '';
+    let parentId = 'root';
     try {
       const body = await req.json();
       search = (body && body.q ? String(body.q) : '').trim();
+      if (body && body.parentId) parentId = String(body.parentId);
     } catch { /* без тіла — гаразд */ }
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
     let q = "mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     if (search) {
+      // Пошук по всьому диску за назвою.
       const safe = search.replace(/'/g, "\\'");
       q += ` and name contains '${safe}'`;
+    } else {
+      // Навігація: показуємо лише папки всередині поточної.
+      q += ` and '${parentId}' in parents`;
     }
 
     const params = new URLSearchParams({
       q,
       fields: 'files(id,name)',
       orderBy: 'name',
-      pageSize: '100',
+      pageSize: '200',
       spaces: 'drive',
     });
 
