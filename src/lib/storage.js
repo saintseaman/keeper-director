@@ -9,6 +9,7 @@ const KEYS = {
   lang: 'keeper_lang',
   masterVolume: 'keeper_master_volume',
   soundOverrides: 'keeper_sound_overrides',
+  padFiles: 'keeper_pad_files',
 };
 
 function readJSON(key, fallback) {
@@ -50,4 +51,9 @@ export const storage = {
   // Каталог SOUNDS незмінний — правки живуть окремим шаром.
   getSoundOverrides: () => readJSON(KEYS.soundOverrides, {}),
   setSoundOverrides: (map) => writeJSON(KEYS.soundOverrides, map),
+
+  // Користувацькі аудіофайли (MP3), прив'язані до пэда.
+  // Формат: { [soundId]: { url, name } }.
+  getPadFiles: () => readJSON(KEYS.padFiles, {}),
+  setPadFiles: (map) => writeJSON(KEYS.padFiles, map),
 };

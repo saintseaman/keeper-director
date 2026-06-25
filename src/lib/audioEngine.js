@@ -1009,6 +1009,49 @@ class AudioEngine {
     return { sourceNode: src2, gainNode, extraNodes: [lp2] };
   }
 
+  // ── Воспроизведение загруженного аудиофайла (MP3) ──
+  // Используем <audio> + MediaElementSource → masterGain. Проще и надёжнее,
+  // чем декодировать в буфер, и работает потоково для длинных файлов.
+  playFile(soundId, url, title, volume = 0.8, loop = true) {
+    this._ensureContext();
+
+    if (this.activeSounds.has(soundId)) {
+      this.setVolume(soundId, volume);
+      return;
+    }
+
+    const el = new Audio(url);
+    el.crossOrigin = 'anonymous';
+    el.loop = !!loop;
+    const mediaSource = this.audioContext.createMediaElementSource(el);
+    const gainNode = this.audioContext.createGain();
+    gainNode.gain.value = volume;
+    mediaSource.connect(gainNode);
+    gainNode.connect(this.masterGain);
+    el.play().catch(() => {});
+
+    this.activeSounds.set(soundId, {
+      source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
+      mediaEl: el, gainNode, lfo: null, extraNodes: [],
+      isPlaying: true, volume, title, loop, isFile: true,
+    });
+    this._notify();
+  }
+
+  // Одноразовое воспроизведение загруженного файла (one-shot пэд).
+  triggerFile(soundId, url) {
+    this._ensureContext();
+    const el = new Audio(url);
+    el.crossOrigin = 'anonymous';
+    const mediaSource = this.audioContext.createMediaElementSource(el);
+    const gainNode = this.audioContext.createGain();
+    gainNode.gain.value = 1.0;
+    mediaSource.connect(gainNode);
+    gainNode.connect(this.masterGain);
+    el.play().catch(() => {});
+    el.addEventListener('ended', () => { try { el.src = ''; } catch (e) {} });
+  }
+
   play(soundId, title, volume = 0.8, loop = true) {
     this._ensureContext();
 
