@@ -1,16 +1,18 @@
 import React, { useRef, useState } from 'react';
-import { Upload, Trash2, Music, Loader2, Play } from 'lucide-react';
+import { Upload, Trash2, Music, Loader2, Play, HardDrive } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { usePadFiles } from '@/lib/usePadFiles';
 import { audioEngine } from '@/lib/audioEngine';
+import DriveImportDialog from './DriveImportDialog';
 
 export default function PadEditDialog({ sound, open, onClose }) {
   const { getFile, setFile, removeFile } = usePadFiles();
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [driveOpen, setDriveOpen] = useState(false);
 
   if (!sound) return null;
   const current = getFile(sound.id);
@@ -84,7 +86,22 @@ export default function PadEditDialog({ sound, open, onClose }) {
               ? <><Loader2 size={15} className="animate-spin mr-2" /> Загрузка…</>
               : <><Upload size={15} className="mr-2" /> {current ? 'Заменить MP3' : 'Загрузить MP3'}</>}
           </Button>
+
+          <Button
+            onClick={() => setDriveOpen(true)}
+            disabled={uploading}
+            variant="outline"
+            className="w-full bg-white/5 border-white/15 text-white/80 hover:bg-white/10"
+          >
+            <HardDrive size={15} className="mr-2" /> Импорт с Google Диска
+          </Button>
         </div>
+
+        <DriveImportDialog
+          open={driveOpen}
+          onClose={() => setDriveOpen(false)}
+          onImport={({ url, name }) => setFile(sound.id, { url, name })}
+        />
       </DialogContent>
     </Dialog>
   );
