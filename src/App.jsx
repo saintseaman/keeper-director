@@ -11,10 +11,6 @@ import { ModeProvider } from '@/lib/ModeContext';
 import { useAudioResume } from '@/lib/useAudioResume';
 
 import Home from './pages/Home';
-import Soundboard from './pages/Soundboard';
-import Scenes from './pages/Scenes';
-import Director from './pages/Director';
-import AIKeeper from './pages/AIKeeper';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -42,10 +38,6 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/soundboard" element={<Soundboard />} />
-      <Route path="/scenes" element={<Scenes />} />
-      <Route path="/director" element={<Director />} />
-      <Route path="/ai-keeper" element={<AIKeeper />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
