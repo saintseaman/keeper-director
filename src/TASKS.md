@@ -24,7 +24,14 @@
 - [x] `Scenes` і `LangContext` переведені на шар storage (прямих localStorage більше немає)
 - [x] Персист гучності майстра через шар storage (бонус із M5)
 
+## ✅ Milestone 4 — Режими Gameplay / Edit
+- [x] Глобальний стан режиму `ModeContext` (Play / Edit)
+- [x] Перемикач `ModeToggle` + підказка режиму Edit
+- [x] Редактор метаданих звуку (гучність, нотатки, verified) через діалог
+- [x] Шар overrides у `storage` + хук `useSoundOverrides` (каталог незмінний)
+- [x] Застосування базової гучності з overrides при відтворенні
+
 ## Беклог
-- [ ] Режими Gameplay / Edit (M4)
+- [ ] Жести: довгий тап / drag-перевпорядкування (перенесено з M4)
 - [ ] Селекторна підписка SoundButton (M5)
 - [ ] Редактор кнопок на базі SoundButton (M4+)

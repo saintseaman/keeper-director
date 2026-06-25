@@ -8,6 +8,7 @@ const KEYS = {
   favorites: 'keeper_favorites',
   lang: 'keeper_lang',
   masterVolume: 'keeper_master_volume',
+  soundOverrides: 'keeper_sound_overrides',
 };
 
 function readJSON(key, fallback) {
@@ -43,4 +44,10 @@ export const storage = {
   // Гучність майстра (число 0..1)
   getMasterVolume: () => readJSON(KEYS.masterVolume, null),
   setMasterVolume: (v) => writeJSON(KEYS.masterVolume, v),
+
+  // Користувацькі перевизначення метаданих звуку (режим Edit, M4).
+  // Формат: { [soundId]: { baseVolume?, notes?, verified? } }.
+  // Каталог SOUNDS незмінний — правки живуть окремим шаром.
+  getSoundOverrides: () => readJSON(KEYS.soundOverrides, {}),
+  setSoundOverrides: (map) => writeJSON(KEYS.soundOverrides, map),
 };

@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { LangProvider } from '@/lib/LangContext';
+import { ModeProvider } from '@/lib/ModeContext';
 
 import Home from './pages/Home';
 import Soundboard from './pages/Soundboard';
@@ -53,6 +54,7 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <LangProvider>
+      <ModeProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
@@ -62,6 +64,7 @@ function App() {
           <Toaster />
         </QueryClientProvider>
       </AuthProvider>
+      </ModeProvider>
     </LangProvider>
   )
 }

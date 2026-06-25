@@ -9,11 +9,14 @@ import PanicButton from '@/components/keeper/PanicButton';
 import SceneCard from '@/components/keeper/SceneCard';
 import BottomNav from '@/components/keeper/BottomNav';
 import LangSelector from '@/components/keeper/LangSelector';
+import ModeToggle from '@/components/keeper/ModeToggle';
 import { useLang } from '@/lib/LangContext';
+import { useMode } from '@/lib/ModeContext';
 
 export default function Home() {
   const { activeSounds, stopAll } = useAudio();
   const { t } = useLang();
+  const { isEdit } = useMode();
   const activeCount = Object.keys(activeSounds).length;
   const [selectedScene, setSelectedScene] = useState(null);
 
@@ -29,6 +32,7 @@ export default function Home() {
             <p className="text-xs font-display italic text-parchment-dim mt-0.5">{t('appSubtitle')}</p>
           </div>
           <div className="flex items-center gap-2">
+            <ModeToggle />
             <LangSelector />
             {activeCount > 0 && (
               <motion.div
@@ -51,6 +55,14 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {isEdit && (
+        <div className="px-4 pb-2">
+          <p className="text-center text-[10px] font-display italic text-brass-dim border border-dashed border-brass-dim/30 rounded-lg py-2 px-3">
+            {t('editHint')}
+          </p>
+        </div>
+      )}
 
       <div className="px-4 space-y-4">
         {/* Panic Button */}
