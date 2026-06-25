@@ -24,10 +24,11 @@
 ├─────────────────────────────────────────────┤
 │ Domain (lib/soundData — моделі + SoT)         │  Чисті дані та функції
 ├─────────────────────────────────────────────┤
-│ Storage (storage/* — репозиторії)*            │  localStorage / хмара Base44 (замінне)
+│ Storage (lib/storage.js — єдина точка)        │  хмара Base44 (UserPrefs); міграція з localStorage
 └─────────────────────────────────────────────┘
-   * — заплановано в наступних Milestone
 ```
+
+> Процес розробки: **Scrum, спринт = 1 робочий день** — див. `SCRUM.md` (Product/Sprint Backlog, Review+Retro, DoD).
 
 ## 3. Єдине джерело правди (Single Source of Truth)
 
@@ -38,8 +39,14 @@
 ## 4. Аудіо-рушій
 
 - `lib/audioEngine.js` — singleton, побудований на Web Audio API.
-- Кожен звук генерується процедурно (фільтрований шум, осцилятори, LFO) — без зовнішніх аудіофайлів → offline-first.
-- React не звертається до рушія напряму — лише через хук `useAudio`.
+- Процедурні звуки генеруються «з нуля» (фільтрований шум, осцилятори, LFO) — offline-first.
+- Аудіо-файли (MP3): `playFile` (луп) і `triggerFile` (one-shot) через `<audio>` → masterGain. One-shot глушиться жорстко.
+- React не звертається до рушія напряму — лише через хуки `useAudio` / `useAudioActions` / `useIsSoundActive`.
+
+## 4.1 Дошка (drum-pad) та імпорт із Google Диска
+
+- UI: `PadDeck` (сторінки-свайп) → `PadPage` (сітка 3×3) → `Pad` (один пэд). Редактор — `PadEditDialog`.
+- Кастомні пэди й MP3 імпортуються з Google Диска через backend-функції (`importDriveAudio`, `importDriveFolder`, `listDriveAudio`, `listDriveFolders`) і зберігаються в `UserPrefs`.
 
 ## 5. Локалізація (i18n)
 

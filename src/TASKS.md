@@ -1,42 +1,44 @@
-# TASKS.md — поточні задачі
+# TASKS.md — Sprint Backlog + Журнал спринтів
 
-> Оновлюється на кожному Milestone.
+> **Спринт = 1 робочий день** (див. `SCRUM.md`).
+> Тут: задачі поточного спринту + короткі Review/Retro минулих спринтів.
+> Великі цілі — у `ROADMAP.md` (Product Backlog).
 
 ---
 
-## ✅ Milestone 1 — Фундамент
-- [x] Створити `getSoundIdByName` у `lib/soundData.js` (похідна від `SOUNDS`)
-- [x] Прибрати дубльовану мапу зі `SceneCard.jsx`
-- [x] Прибрати дубльовану мапу з `Director.jsx`
-- [x] Прибрати дубльовану мапу з `AIKeeper.jsx` (+ `AVAILABLE_SOUNDS` тепер похідна від `SOUNDS`)
-- [x] Документи: ARCHITECTURE.md, DECISIONS.md, ROADMAP.md, TASKS.md
+## 🎯 Sprint Backlog (поточний спринт)
 
-## ✅ Milestone 2 — Локалізація контенту
-- [x] Словник перекладів контенту `lib/contentI18n.js` (RU/UA; EN = з самого об'єкта)
-- [x] Хелпери `localizedSoundTitle`, `localizedSoundTitleByName`, `localizedSceneTitle`, `localizedSceneDescription`
-- [x] Підключено: SceneCard, SoundButton, MixerSlider, Director, AIKeeper (Home/Soundboard — через ці компоненти)
-- [x] Англ. `title` лишився стабільним ключем (SoT і мапа не зачеплені)
+> Обирається з Product Backlog на день. Кожна задача має пройти Definition of Done.
 
-## ✅ Milestone 3 — Розділення домену + шар сховища
-- [x] Ізольований шар сховища `lib/storage.js` (єдина точка доступу до localStorage)
-- [x] Хук `useFavorites` (синхронізація улюбленого між сторінками)
-- [x] Доменна модель `lib/domain.js`: `SoundFile` / `SoundButton` (розділені відповідальності)
-- [x] `Scenes` і `LangContext` переведені на шар storage (прямих localStorage більше немає)
-- [x] Персист гучності майстра через шар storage (бонус із M5)
+- [ ] (порожньо — PO обирає пункти з `ROADMAP.md` на наступний спринт)
 
-## ✅ Milestone 4 — Режими Gameplay / Edit
-- [x] Глобальний стан режиму `ModeContext` (Play / Edit)
-- [x] Перемикач `ModeToggle` + підказка режиму Edit
-- [x] Редактор метаданих звуку (гучність, нотатки, verified) через діалог
-- [x] Шар overrides у `storage` + хук `useSoundOverrides` (каталог незмінний)
-- [x] Застосування базової гучності з overrides при відтворенні
+---
 
-## ✅ Milestone 5 — Продуктивність і надійність
-- [x] Селекторна підписка `useIsSoundActive` (без перемалювання всієї дошки)
-- [x] Стабільні екшени `useAudioActions`
-- [x] Відновлення AudioContext із фону (`useAudioResume`)
+## 🗒️ Журнал спринтів (Sprint Review + Retro)
 
-## Беклог
-- [ ] Жести: довгий тап / drag-перевпорядкування
-- [ ] Редактор кнопок на базі SoundButton (M4+)
-- [ ] Офлайн-кеш (service worker), редактор сцен
+### Спринт — Жести дошки
+**Review (Demo):**
+- Long-press по пэду відкриває повний редактор (для вбудованих і Drive-пэдів).
+- Кнопка «Видалити пэд» — усередині редактора для кастомних (Drive) пэдів.
+- Свайп сторінки більше не запускає звук: рух пальця понад поріг скасовує тап і long-press.
+
+**Retro:**
+- 👍 Перенесли видалення з небезпечного long-press у явну дію в діалозі — менше випадкових видалень.
+- 🔧 Наступного разу: додати індикацію завантаження мережевого MP3 (інколи затримка перед грою).
+
+---
+
+### Спринт — Хмара + Drive + Drum-pad (історичний, зведено)
+**Review (Demo):**
+- Сховище переведено на хмару `UserPrefs` (Base44) з міграцією з localStorage.
+- Імпорт MP3 / папок із Google Диска; кастомні пэди як повноцінні звуки.
+- Drum-pad UI зі сторінками-свайпом; `playFile`/`triggerFile` з жорстким стопом.
+
+**Retro:**
+- 👍 Жорсткий стоп one-shot файлів прибрав «зависання» після STOP.
+- 🔧 Документація відставала від коду — звідси цей перехід на Scrum-журнал.
+
+---
+
+### ✅ Базис (історичні Milestone M1–M5)
+Зведено в `ROADMAP.md` → розділ «Зроблено». Деталі ADR — у `DECISIONS.md`.
