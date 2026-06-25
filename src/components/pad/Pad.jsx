@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { getIcon } from '@/lib/iconMap';
 import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
 import { usePadFiles } from '@/lib/usePadFiles';
+import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
 import PadEditDialog from './PadEditDialog';
 
@@ -13,6 +14,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const isActive = useIsSoundActive(sound?.id);
   const { toggle, trigger, stop } = useAudioActions();
   const { getFile } = usePadFiles();
+  const { getOverride } = useSoundOverrides();
   const [editOpen, setEditOpen] = useState(false);
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
@@ -23,11 +25,16 @@ export default function Pad({ sound, index, onRemoveCustom }) {
     return <div className="aspect-square rounded-xl bg-[#0c0c0c] border border-white/5" />;
   }
 
-  const Icon = getIcon(sound.icon);
+  // Накладываем пользовательские настройки пэда поверх каталога.
+  const ov = getOverride(sound.id);
+  const title = ov.title ?? sound.title;
+  const volume = typeof ov.volume === 'number' ? ov.volume : 0.6;
+  const Icon = getIcon(ov.icon ?? sound.icon);
+  const isLoopable = typeof ov.isLoopable === 'boolean' ? ov.isLoopable : !!sound.isLoopable;
   // Власний пэд з Google Диска несе свій url прямо в sound; інакше — MP3,
   // прив'язаний до вбудованого пэда через usePadFiles.
   const fileUrl = sound.url || getFile(sound.id)?.url || null;
-  const isOneShot = !sound.isLoopable;
+  const isOneShot = !isLoopable;
 
   const fire = () => {
     if (fileUrl) {
@@ -36,12 +43,12 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         audioEngine.triggerFile(sound.id, fileUrl);
       } else {
         if (audioEngine.isPlaying(sound.id)) stop(sound.id);
-        else audioEngine.playFile(sound.id, fileUrl, sound.title, 0.6, true);
+        else audioEngine.playFile(sound.id, fileUrl, title, volume, true);
       }
       return;
     }
-    if (isOneShot) trigger(sound.id, sound.title);
-    else toggle(sound.id, sound.title, 0.6, true);
+    if (isOneShot) trigger(sound.id, title);
+    else toggle(sound.id, title, volume, true);
   };
 
   const startPress = () => {
@@ -52,7 +59,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
       if (isCustom) {
         // Власний пэд з Drive — пропонуємо видалити.
         if (audioEngine.isPlaying(sound.id)) stop(sound.id);
-        if (window.confirm(`Удалить пэд «${sound.title}»?`)) onRemoveCustom?.(sound.id);
+        if (window.confirm(`Удалить пэд «${title}»?`)) onRemoveCustom?.(sound.id);
       } else {
         setEditOpen(true);
       }
@@ -95,7 +102,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         <Icon size={26} className={isActive ? 'text-orange-100' : 'text-white/70 group-hover:text-white'} strokeWidth={1.5} />
 
         <span className={`px-1 text-[10px] font-medium leading-tight text-center tracking-wide truncate max-w-full ${isActive ? 'text-orange-50' : 'text-white/55 group-hover:text-white/80'}`}>
-          {sound.title}
+          {title}
         </span>
       </button>
 
