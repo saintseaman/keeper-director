@@ -4,6 +4,8 @@ import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
 import { usePadFiles } from '@/lib/usePadFiles';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
+import { useLang } from '@/lib/LangContext';
+import { localizedSoundTitle } from '@/lib/contentI18n';
 import PadEditDialog from './PadEditDialog';
 
 const LONG_PRESS_MS = 500;
@@ -15,6 +17,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const { toggle, trigger, stop } = useAudioActions();
   const { getFile } = usePadFiles();
   const { getOverride } = useSoundOverrides();
+  const { lang } = useLang();
   const [editOpen, setEditOpen] = useState(false);
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
@@ -31,7 +34,9 @@ export default function Pad({ sound, index, onRemoveCustom }) {
 
   // Накладываем пользовательские настройки пэда поверх каталога.
   const ov = getOverride(sound.id);
-  const title = ov.title ?? sound.title;
+  // Пользовательский override → его, иначе локализованная (рус) подпись из каталога,
+  // а для Drive-пэдов (своего перевода нет) — их собственный title.
+  const title = ov.title ?? (isCustom ? sound.title : localizedSoundTitle(sound.id, lang, sound.title));
   const volume = typeof ov.volume === 'number' ? ov.volume : 0.6;
   const Icon = getIcon(ov.icon ?? sound.icon);
   const isLoopable = typeof ov.isLoopable === 'boolean' ? ov.isLoopable : !!sound.isLoopable;
