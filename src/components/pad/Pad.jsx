@@ -125,11 +125,13 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         )}
 
         {/* Крупная иконка-фон на весь пэд */}
-        <Icon
-          size={96}
-          strokeWidth={1.25}
-          className={`absolute inset-0 m-auto pointer-events-none ${isActive ? 'text-orange-200/30' : 'text-white/[0.12] group-hover:text-white/20'}`}
-        />
+        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <Icon
+            size={84}
+            strokeWidth={1.25}
+            className={isActive ? 'text-orange-200/30' : 'text-white/[0.12] group-hover:text-white/20'}
+          />
+        </span>
 
         {/* Название звука — крупнее и читаемее, поверх иконки */}
         <span className={`relative z-10 px-1.5 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-full [text-shadow:0_1px_3px_rgba(0,0,0,0.85)] ${isActive ? 'text-orange-50' : 'text-white/85 group-hover:text-white'}`}>
