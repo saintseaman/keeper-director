@@ -34,8 +34,19 @@ Deno.serve(async (req) => {
 
     // Пробрасуємо тіло потоком + ключові заголовки для <audio> (тип, розмір,
     // підтримка перемотки). Дозволяємо CORS, щоб плеєр у застосунку міг грати.
+    // Нормалізуємо MIME: Google віддає WAV як 'audio/vnd.wave', який Safari/iOS
+    // часто не розпізнає у <audio> і мовчки не грає. Приводимо до стандартних
+    // типів (audio/wav, audio/mpeg тощо), які надійно грають у браузері.
+    const driveCt = (driveRes.headers.get('content-type') || '').toLowerCase();
+    const name = (url.searchParams.get('name') || '').toLowerCase();
+    let outCt = driveRes.headers.get('content-type') || 'audio/mpeg';
+    if (driveCt.includes('wav') || name.endsWith('.wav')) outCt = 'audio/wav';
+    else if (driveCt.includes('mpeg') || driveCt.includes('mp3') || name.endsWith('.mp3')) outCt = 'audio/mpeg';
+    else if (driveCt.includes('ogg') || name.endsWith('.ogg')) outCt = 'audio/ogg';
+    else if (driveCt.includes('aac') || name.endsWith('.m4a') || name.endsWith('.aac')) outCt = 'audio/mp4';
+
     const respHeaders = new Headers();
-    respHeaders.set('Content-Type', driveRes.headers.get('content-type') || 'audio/mpeg');
+    respHeaders.set('Content-Type', outCt);
     respHeaders.set('Accept-Ranges', 'bytes');
     respHeaders.set('Cache-Control', 'public, max-age=31536000');
     respHeaders.set('Access-Control-Allow-Origin', '*');
