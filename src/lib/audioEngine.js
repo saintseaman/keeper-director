@@ -1029,6 +1029,9 @@ class AudioEngine {
   // Используем <audio> + MediaElementSource → masterGain. Проще и надёжнее,
   // чем декодировать в буфер, и работает потоково для длинных файлов.
   playFile(soundId, url, title, volume = 0.8, loop = true) {
+    // Розблоковуємо аудіо за жестом користувача: на мобільних без активного
+    // AudioContext браузер глушить навіть <audio>, тому resume обовʼязковий.
+    this._ensureContext();
     if (this.activeSounds.has(soundId)) {
       this.setVolume(soundId, volume);
       return;
@@ -1055,6 +1058,7 @@ class AudioEngine {
   // Регистрируем в activeSounds, чтобы счётчик «STOP» видел звук и его можно
   // было остановить вручную. По окончании — само-удаление из реестра.
   triggerFile(soundId, url, title = '', volume = 1.0) {
+    this._ensureContext();
     // Повторный тап по уже играющему one-shot — перезапуск с начала.
     if (this.activeSounds.has(soundId)) {
       this.stop(soundId, 0);
