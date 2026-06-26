@@ -20,7 +20,6 @@ export function useSmartTag(mergeOverrides) {
     setResult(null);
     setProgress({ done: 0, total: pads.length });
 
-    const patches = {};
     let tagged = 0;
 
     try {
@@ -28,15 +27,18 @@ export function useSmartTag(mergeOverrides) {
         const slice = pads.slice(i, i + CHUNK);
         const sounds = slice.map((p) => ({ id: p.id, title: p.title, url: p.url }));
         const res = await base44.functions.invoke('smartTagSounds', { sounds });
+        // Пишем результат каждого чанка сразу — так теги сохраняются по ходу
+        // прогона (видно в реальном времени) и не теряются при долгой обработке.
+        const chunkPatches = {};
         for (const r of res.data?.results || []) {
           if (r.axes && Object.keys(r.axes).length) {
-            patches[r.id] = { axes: r.axes };
+            chunkPatches[r.id] = { axes: r.axes };
             tagged += 1;
           }
         }
+        if (Object.keys(chunkPatches).length) mergeOverrides(chunkPatches);
         setProgress({ done: Math.min(i + CHUNK, pads.length), total: pads.length });
       }
-      if (Object.keys(patches).length) mergeOverrides(patches);
       setResult({ tagged });
     } finally {
       setRunning(false);
