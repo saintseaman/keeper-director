@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { getIcon } from '@/lib/iconMap';
+import { getCategoryImage } from '@/lib/categoryImages';
 import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
 import { usePadFiles } from '@/lib/usePadFiles';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
@@ -39,6 +40,8 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const title = ov.title ?? (isCustom ? sound.title : localizedSoundTitle(sound.id, lang, sound.title));
   const volume = typeof ov.volume === 'number' ? ov.volume : 0.6;
   const Icon = getIcon(ov.icon ?? sound.icon);
+  // Фоновая картинка по категории звука (встроенные и импортированные с Диска).
+  const bgImage = getCategoryImage(sound.category);
   const isLoopable = typeof ov.isLoopable === 'boolean' ? ov.isLoopable : !!sound.isLoopable;
   // Власний пэд з Google Диска несе свій url прямо в sound; інакше — MP3,
   // прив'язаний до вбудованого пэда через usePadFiles.
@@ -107,10 +110,10 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         onPointerCancel={cancelPress}
         onPointerLeave={cancelPress}
         onContextMenu={(e) => e.preventDefault()}
-        className={`group relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-1.5 select-none touch-none transition-all duration-100 active:scale-[0.96]
+        className={`group relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-1.5 select-none touch-none overflow-hidden transition-all duration-100 active:scale-[0.96]
           ${isActive
-            ? 'bg-gradient-to-b from-orange-500/30 to-orange-600/10 border-orange-400/70 shadow-[0_0_24px_-2px_rgba(249,115,22,0.55)]'
-            : 'bg-gradient-to-b from-[#1c1c1e] to-[#141414] border-white/10 hover:border-white/25'}
+            ? 'border-orange-400/70 shadow-[0_0_24px_-2px_rgba(249,115,22,0.55)]'
+            : 'border-white/10 hover:border-white/25'}
         `}
       >
         <span className={`absolute top-2 left-2.5 text-[9px] font-mono tracking-widest ${isActive ? 'text-orange-200/80' : 'text-white/25'}`}>
@@ -124,17 +127,21 @@ export default function Pad({ sound, index, onRemoveCustom }) {
           <span className="absolute bottom-2 left-2.5 text-[8px] font-mono tracking-widest text-orange-300/70 z-10">MP3</span>
         )}
 
-        {/* Крупная иконка-фон на весь пэд */}
-        <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Icon
-            size={84}
-            strokeWidth={1.25}
-            className={isActive ? 'text-orange-200/30' : 'text-white/[0.12] group-hover:text-white/20'}
-          />
-        </span>
+        {/* ИИ-арт фон на весь пэд */}
+        <img
+          src={bgImage}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+        />
+        {/* Затемнение для читаемости текста */}
+        <span className={`absolute inset-0 pointer-events-none bg-gradient-to-t from-black/85 via-black/45 to-black/30 ${isActive ? 'mix-blend-normal' : ''}`} />
+        {isActive && (
+          <span className="absolute inset-0 pointer-events-none bg-orange-500/25" />
+        )}
 
-        {/* Название звука — крупнее и читаемее, поверх иконки */}
-        <span className={`relative z-10 px-1.5 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-full [text-shadow:0_1px_3px_rgba(0,0,0,0.85)] ${isActive ? 'text-orange-50' : 'text-white/85 group-hover:text-white'}`}>
+        {/* Название звука — крупнее и читаемее, поверх фона */}
+        <span className={`relative z-10 px-1.5 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-full [text-shadow:0_1px_4px_rgba(0,0,0,0.95)] ${isActive ? 'text-orange-50' : 'text-white'}`}>
           {title}
         </span>
       </button>
