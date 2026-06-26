@@ -1,27 +1,27 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { segmentBg } from '@/lib/segmentBackgrounds';
 
 const LONG_PRESS_MS = 450;
 
-// Радиальное «колесо атмосферы».
-// Три кольца: локации (внешнее) → действия (среднее) → погода (внутреннее),
-// центр — кнопка запуска. Сегменты органично перестраиваются (framer-motion)
-// при добавлении/удалении. selection = { location, action, weather, ... }.
+// «Колесо атмосферы» с фокусом на одной оси за раз.
+// Сверху — табы осей (Локация / Действие / Погода). Активная ось
+// рисуется ОДНИМ большим кольцом крупных сегментов вокруг кнопки запуска,
+// поэтому сегменты читаемы и удобны для тапа. Выбранные значения других
+// осей видны как чипы под колесом. selection = { location, action, weather, ... }.
 
-const SIZE = 340;
+const SIZE = 360;
 const C = SIZE / 2;
-const R_OUTER = 166;
-const R_R2 = 118; // граница локация / действие
-const R_R3 = 76; // граница действие / погода
-const R_INNER = 40; // внутренний радиус кольца погоды
-const R_HUB = 34;
+const R_OUTER = 172;
+const R_INNER = 78; // внутренний радиус кольца (граница с хабом)
+const R_HUB = 66;
 
-const RING_DEFS = {
-  location: { r1: R_R2, r2: R_OUTER, fontSize: 11, accent: '#60a5fa', glow: 'rgba(96,165,250,0.55)' },
-  action: { r1: R_R3, r2: R_R2, fontSize: 10, accent: '#34d399', glow: 'rgba(52,211,153,0.55)' },
-  weather: { r1: R_INNER, r2: R_R3, fontSize: 9, accent: '#a78bfa', glow: 'rgba(167,139,250,0.55)' },
+const AXIS_META = {
+  location: { label: 'Локация', accent: '#60a5fa', glow: 'rgba(96,165,250,0.5)' },
+  action: { label: 'Действие', accent: '#34d399', glow: 'rgba(52,211,153,0.5)' },
+  weather: { label: 'Погода', accent: '#a78bfa', glow: 'rgba(167,139,250,0.5)' },
 };
+const AXIS_ORDER = ['location', 'action', 'weather'];
 
 function polar(cx, cy, r, deg) {
   const rad = ((deg - 90) * Math.PI) / 180;
@@ -56,15 +56,14 @@ function textArcPath(r, startDeg, endDeg) {
 
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
 
-// Один сегмент кольца. Анимирует свой путь при перестроении набора.
-function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, glow, active, onClick, onLongPress }) {
+// Один крупный сегмент активного кольца.
+function Segment({ axisId, value, start, end, rText, glow, active, onClick, onLongPress }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const arcId = `arc-${axisId}-${value.id}`;
   const clipId = `clip-${axisId}-${value.id}`;
   const bg = segmentBg(value.id);
-  const path = sectorPath(r1, r2, start, end);
-  const showLabel = end - start > 16; // прячем подпись на совсем узких
+  const path = sectorPath(R_INNER, R_OUTER, start, end);
 
   const startPress = () => {
     longFiredRef.current = false;
@@ -94,62 +93,51 @@ function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, g
         <motion.path animate={{ d: path }} transition={spring} d={path} />
       </clipPath>
 
-      {/* Базовая заливка */}
-      <motion.path
-        animate={{ d: path }}
-        transition={spring}
-        d={path}
-        fill="rgba(255,255,255,0.03)"
-      />
-      {/* Фон сегмента */}
+      <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(255,255,255,0.03)" />
+
       {bg && (
         <image
           href={bg}
-          x={C - r2}
-          y={C - r2}
-          width={r2 * 2}
-          height={r2 * 2}
+          x={C - R_OUTER}
+          y={C - R_OUTER}
+          width={R_OUTER * 2}
+          height={R_OUTER * 2}
           preserveAspectRatio="xMidYMid slice"
           clipPath={`url(#${clipId})`}
           opacity={active ? 1 : 0.42}
           className="transition-opacity duration-300 pointer-events-none"
         />
       )}
-      {/* Тонировка / подсветка активного */}
+
       <motion.path
         animate={{ d: path, fill: active ? glow : 'rgba(0,0,0,0.42)' }}
         transition={spring}
         d={path}
-        stroke={active ? '#ffffff' : 'rgba(255,255,255,0.07)'}
-        strokeWidth={active ? 1.6 : 1}
-        style={{ filter: active ? `drop-shadow(0 0 8px ${glow})` : 'none' }}
+        stroke={active ? '#ffffff' : 'rgba(255,255,255,0.08)'}
+        strokeWidth={active ? 1.8 : 1}
+        style={{ filter: active ? `drop-shadow(0 0 10px ${glow})` : 'none' }}
         className="pointer-events-none"
       />
 
-      {/* Подпись по дуге */}
-      {showLabel && (
-        <>
-          <path id={arcId} d={textArcPath(rText, start, end)} fill="none" />
-          <text
-            fontSize={fontSize}
-            fill={active ? '#fff' : 'rgba(255,255,255,0.9)'}
-            className="pointer-events-none select-none"
-            style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.75)', strokeWidth: 3, fontWeight: 600, letterSpacing: '0.02em' }}
-          >
-            <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
-              {value.label}
-            </textPath>
-          </text>
-        </>
-      )}
+      <path id={arcId} d={textArcPath(rText, start, end)} fill="none" />
+      <text
+        fontSize={13}
+        fill={active ? '#fff' : 'rgba(255,255,255,0.92)'}
+        className="pointer-events-none select-none"
+        style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.8)', strokeWidth: 3.5, fontWeight: 600, letterSpacing: '0.02em' }}
+      >
+        <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
+          {value.label}
+        </textPath>
+      </text>
     </g>
   );
 }
 
-// Кнопка-сегмент «+» в конце кольца — добавить новый сегмент.
-function AddSegment({ axisId, start, end, r1, r2, accent, onAdd }) {
-  const path = sectorPath(r1, r2, start, end);
-  const pos = polar(C, C, (r1 + r2) / 2, (start + end) / 2);
+// Сегмент «+» в конце кольца — добавить новый сегмент.
+function AddSegment({ axisId, start, end, accent, onAdd }) {
+  const path = sectorPath(R_INNER, R_OUTER, start, end);
+  const pos = polar(C, C, (R_INNER + R_OUTER) / 2, (start + end) / 2);
   return (
     <g onClick={() => onAdd(axisId)} className="cursor-pointer select-none">
       <motion.path
@@ -162,65 +150,59 @@ function AddSegment({ axisId, start, end, r1, r2, accent, onAdd }) {
         strokeDasharray="3 3"
       />
       <g transform={`translate(${pos.x}, ${pos.y})`} className="pointer-events-none">
-        <line x1={-6} y1={0} x2={6} y2={0} stroke={accent} strokeWidth={2} strokeLinecap="round" />
-        <line x1={0} y1={-6} x2={0} y2={6} stroke={accent} strokeWidth={2} strokeLinecap="round" />
+        <line x1={-8} y1={0} x2={8} y2={0} stroke={accent} strokeWidth={2.5} strokeLinecap="round" />
+        <line x1={0} y1={-8} x2={0} y2={8} stroke={accent} strokeWidth={2.5} strokeLinecap="round" />
       </g>
     </g>
   );
 }
 
-function Ring({ axisId, values, selectedId, onSelect, onLongPress, onAdd }) {
-  const def = RING_DEFS[axisId];
-  const slots = values.length + 1; // +1 под кнопку «добавить»
-  const step = 360 / slots;
-  const rText = (def.r1 + def.r2) / 2;
-
-  return (
-    <g>
-      {values.map((v, i) => {
-        const start = i * step;
-        return (
-          <Segment
-            key={v.id}
-            axisId={axisId}
-            value={v}
-            start={start}
-            end={start + step}
-            r1={def.r1}
-            r2={def.r2}
-            rText={rText}
-            fontSize={def.fontSize}
-            accent={def.accent}
-            glow={def.glow}
-            active={selectedId === v.id}
-            onClick={(id) => onSelect(axisId, id)}
-            onLongPress={onLongPress}
-          />
-        );
-      })}
-      <AddSegment
-        axisId={axisId}
-        start={values.length * step}
-        end={slots * step}
-        r1={def.r1}
-        r2={def.r2}
-        accent={def.accent}
-        onAdd={onAdd}
-      />
-    </g>
-  );
-}
-
 export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCount, onSegmentLongPress, onAddSegment }) {
-  const ringOrder = ['location', 'action', 'weather'];
+  const [activeAxis, setActiveAxis] = useState('location');
+  const axis = axes.find((a) => a.id === activeAxis);
+  const values = axis?.values || [];
+  const meta = AXIS_META[activeAxis];
+
+  const slots = values.length + 1; // +1 под «добавить»
+  const step = 360 / slots;
+  const rText = (R_INNER + R_OUTER) / 2;
+
+  // Чипы выбранных значений по неактивным осям.
+  const otherChips = AXIS_ORDER.filter((id) => id !== activeAxis).map((id) => {
+    const ax = axes.find((a) => a.id === id);
+    const v = ax?.values.find((x) => x.id === selection[id]);
+    return { id, label: AXIS_META[id].label, value: v?.label || null, accent: AXIS_META[id].accent };
+  });
 
   return (
-    <div className="flex justify-center">
-      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} className="max-w-[380px]">
+    <div className="flex flex-col items-center">
+      {/* Табы осей */}
+      <div className="flex items-center gap-1.5 mb-3 w-full">
+        {AXIS_ORDER.map((id) => {
+          const m = AXIS_META[id];
+          const on = activeAxis === id;
+          const chosen = !!selection[id];
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveAxis(id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-mono tracking-wider uppercase border transition-all ${
+                on ? 'bg-white/10 text-white' : 'bg-white/[0.03] text-white/45 border-white/10'
+              }`}
+              style={on ? { borderColor: m.accent, color: m.accent } : undefined}
+            >
+              {chosen && <span className="w-1.5 h-1.5 rounded-full" style={{ background: m.accent }} />}
+              {m.label}
+            </button>
+          );
+        })}
+      </div>
+
+      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} className="max-w-[400px]">
         <defs>
           <radialGradient id="wheelGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(167,139,250,0.28)" />
-            <stop offset="70%" stopColor="rgba(96,165,250,0.08)" />
+            <stop offset="0%" stopColor="rgba(167,139,250,0.22)" />
+            <stop offset="70%" stopColor="rgba(96,165,250,0.06)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0)" />
           </radialGradient>
           <radialGradient id="hubGrad" cx="50%" cy="40%" r="70%">
@@ -229,27 +211,33 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCou
           </radialGradient>
         </defs>
 
-        {/* Подсветка под колесом */}
         <circle cx={C} cy={C} r={R_OUTER + 6} fill="url(#wheelGlow)" />
-        {/* Декоративные обручи */}
         <circle cx={C} cy={C} r={R_OUTER + 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-        <circle cx={C} cy={C} r={R_INNER - 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
 
-        {ringOrder.map((axisId) => {
-          const axis = axes.find((a) => a.id === axisId);
-          if (!axis) return null;
+        {values.map((v, i) => {
+          const start = i * step;
           return (
-            <Ring
-              key={axisId}
-              axisId={axisId}
-              values={axis.values}
-              selectedId={selection[axisId]}
-              onSelect={onSelect}
+            <Segment
+              key={v.id}
+              axisId={activeAxis}
+              value={v}
+              start={start}
+              end={start + step}
+              rText={rText}
+              glow={meta.glow}
+              active={selection[activeAxis] === v.id}
+              onClick={(id) => onSelect(activeAxis, id)}
               onLongPress={onSegmentLongPress}
-              onAdd={onAddSegment}
             />
           );
         })}
+        <AddSegment
+          axisId={activeAxis}
+          start={values.length * step}
+          end={slots * step}
+          accent={meta.accent}
+          onAdd={onAddSegment}
+        />
 
         {/* Центральная кнопка запуска */}
         <g onClick={onPlay} className="cursor-pointer">
@@ -260,28 +248,36 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCou
             fill="url(#hubGrad)"
             stroke={matchCount > 0 ? 'rgba(249,115,22,0.85)' : 'rgba(255,255,255,0.18)'}
             strokeWidth={2}
-            style={{ filter: matchCount > 0 ? 'drop-shadow(0 0 10px rgba(249,115,22,0.45))' : 'none' }}
+            style={{ filter: matchCount > 0 ? 'drop-shadow(0 0 12px rgba(249,115,22,0.45))' : 'none' }}
             className="transition-all"
           />
           <path
-            d={`M ${C - 8} ${C - 12} L ${C + 13} ${C} L ${C - 8} ${C + 12} Z`}
+            d={`M ${C - 13} ${C - 18} L ${C + 20} ${C} L ${C - 13} ${C + 18} Z`}
             fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.35)'}
             className="transition-all"
           />
           {matchCount > 0 && (
-            <text
-              x={C}
-              y={C + 26}
-              fontSize={9}
-              fill="#fb923c"
-              textAnchor="middle"
-              className="font-mono pointer-events-none"
-            >
+            <text x={C} y={C + 40} fontSize={11} fill="#fb923c" textAnchor="middle" className="font-mono pointer-events-none">
               {matchCount}
             </text>
           )}
         </g>
       </svg>
+
+      {/* Чипы выбора по неактивным осям */}
+      <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
+        {otherChips.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setActiveAxis(c.id)}
+            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] text-white/55"
+          >
+            <span className="w-1.5 h-1.5 rounded-full" style={{ background: c.value ? c.accent : 'rgba(255,255,255,0.2)' }} />
+            <span className="text-white/40">{c.label}:</span>
+            <span className={c.value ? 'text-white/80' : 'text-white/30'}>{c.value || '—'}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
