@@ -2,17 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Plus } from 'lucide-react';
-import { AXIS_ICON_CHOICES, SCENE_AXES } from '@/lib/sceneAxes';
-
-const ICON_NAMES = Object.keys(AXIS_ICON_CHOICES);
+import { SCENE_AXES } from '@/lib/sceneAxes';
 
 // Диалог добавления нового сегмента в выбранное кольцо колеса.
 export default function AddSegmentDialog({ axisId, open, onClose, onAdd }) {
   const [label, setLabel] = useState('');
-  const [icon, setIcon] = useState('Star');
 
   useEffect(() => {
-    if (open) { setLabel(''); setIcon('Star'); }
+    if (open) setLabel('');
   }, [open]);
 
   const axis = SCENE_AXES.find((a) => a.id === axisId);
@@ -20,7 +17,7 @@ export default function AddSegmentDialog({ axisId, open, onClose, onAdd }) {
   const submit = () => {
     const name = label.trim();
     if (!name) return;
-    onAdd(axisId, { label: name, icon });
+    onAdd(axisId, { label: name, icon: 'Star' });
     onClose();
   };
 
@@ -44,27 +41,6 @@ export default function AddSegmentDialog({ axisId, open, onClose, onAdd }) {
               placeholder="Например: Подземный город"
               className="bg-white/5 border-white/10 text-sm text-white"
             />
-          </div>
-
-          <div>
-            <label className="text-[11px] text-white/40 mb-1.5 block">Иконка</label>
-            <div className="grid grid-cols-7 gap-1.5 max-h-44 overflow-y-auto">
-              {ICON_NAMES.map((name) => {
-                const Ico = AXIS_ICON_CHOICES[name];
-                const sel = icon === name;
-                return (
-                  <button
-                    key={name}
-                    onClick={() => setIcon(name)}
-                    className={`flex items-center justify-center aspect-square rounded-lg border transition-colors ${
-                      sel ? 'bg-orange-500/25 border-orange-400/70 text-orange-200' : 'border-white/10 text-white/50 hover:border-white/30'
-                    }`}
-                  >
-                    <Ico size={16} />
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           <button

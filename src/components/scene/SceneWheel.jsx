@@ -58,13 +58,12 @@ const spring = { type: 'spring', stiffness: 220, damping: 26 };
 
 // Один сегмент кольца. Анимирует свой путь при перестроении набора.
 function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, glow, active, onClick, onLongPress }) {
-  const Icon = value.icon;
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const arcId = `arc-${axisId}-${value.id}`;
   const clipId = `clip-${axisId}-${value.id}`;
   const bg = segmentBg(value.id);
-  const path = sectorPath(r1, r2, start + 1.4, end - 1.4);
+  const path = sectorPath(r1, r2, start, end);
   const showLabel = end - start > 16; // прячем подпись на совсем узких
 
   const startPress = () => {
@@ -80,9 +79,6 @@ function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, g
     if (longFiredRef.current) { longFiredRef.current = false; return; }
     onClick(active ? null : value.id);
   };
-
-  // Точка для иконки: на середине сектора, ближе к внешнему краю.
-  const iconPos = polar(C, C, r2 - (r2 - r1) * 0.32, (start + end) / 2);
 
   return (
     <g
@@ -130,11 +126,6 @@ function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, g
         className="pointer-events-none"
       />
 
-      {/* Иконка */}
-      <g transform={`translate(${iconPos.x - 7}, ${iconPos.y - 7})`} className="pointer-events-none">
-        <Icon size={14} color={active ? '#fff' : 'rgba(255,255,255,0.85)'} strokeWidth={2} />
-      </g>
-
       {/* Подпись по дуге */}
       {showLabel && (
         <>
@@ -157,7 +148,7 @@ function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, g
 
 // Кнопка-сегмент «+» в конце кольца — добавить новый сегмент.
 function AddSegment({ axisId, start, end, r1, r2, accent, onAdd }) {
-  const path = sectorPath(r1, r2, start + 1.4, end - 1.4);
+  const path = sectorPath(r1, r2, start, end);
   const pos = polar(C, C, (r1 + r2) / 2, (start + end) / 2);
   return (
     <g onClick={() => onAdd(axisId)} className="cursor-pointer select-none">
