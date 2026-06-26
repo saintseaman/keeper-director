@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X } from 'lucide-react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
@@ -92,6 +92,15 @@ export default function Tags() {
             <span className="flex items-center gap-1 text-emerald-300/80">
               <CheckCircle2 size={12} /> {done.length}
             </span>
+            <button
+              onClick={scary.resync}
+              disabled={scary.syncing}
+              title="Синхронизировать с папкой Scary_sounds"
+              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/55 hover:text-orange-300 hover:border-orange-400/40 disabled:opacity-50 transition-colors"
+            >
+              <RefreshCw size={12} className={scary.syncing ? 'animate-spin' : ''} />
+              {scary.syncing ? 'СИНХР…' : 'СИНХР'}
+            </button>
           </div>
         )}
       </div>
@@ -104,6 +113,18 @@ export default function Tags() {
             onImport={scary.importNew}
             onDismiss={scary.dismiss}
           />
+        )}
+
+        {!selectMode && scary.lastSync && (
+          <div
+            className={`rounded-lg border px-3 py-2 text-[12px] ${
+              scary.lastSync.added > 0
+                ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
+                : 'border-white/10 bg-white/5 text-white/55'
+            }`}
+          >
+            {scary.lastSync.message}
+          </div>
         )}
 
         {pads.length === 0 ? (

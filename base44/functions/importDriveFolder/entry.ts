@@ -132,38 +132,60 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const folderId = body && body.folderId;
+    // recursive=true — обходимо й вкладені підпапки (напр. Scary_sounds/Sounds…).
+    const recursive = body && body.recursive === true;
     if (!folderId) return Response.json({ error: 'folderId is required' }, { status: 400 });
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
-    // 1) Список аудіофайлів у папці. Аудіо за mime АБО за розширенням —
-    // Drive іноді тегує wav/m4a/flac як video/* чи application/octet-stream.
-    const extQ = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.flac', '.opus', '.webm', '.aiff', '.aif', '.wma']
-      .map((ext) => `name contains '${ext}'`)
-      .join(' or ');
-    const params = new URLSearchParams({
-      q: `'${folderId}' in parents and (mimeType contains 'audio/' or ${extQ}) and trashed = false`,
-      fields: 'files(id,name,mimeType)',
-      orderBy: 'name',
-      pageSize: '200',
-      spaces: 'drive',
-    });
-    const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!listRes.ok) {
-      const text = await listRes.text();
-      return Response.json({ error: 'Drive list error', details: text }, { status: 502 });
-    }
-    const listData = await listRes.json();
-    // Лишаємо лише справжнє аудіо (mime audio/* або розширення В КІНЦІ імені)
-    // і відсіюємо плейлисти/контейнери.
+    const FOLDER_MIME = 'application/vnd.google-apps.folder';
     const audioExt = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
-    const driveFiles = (listData.files || []).filter(
-      (f) =>
-        ((f.mimeType || '').includes('audio/') || audioExt.test(f.name || '')) &&
-        !/\.(m3u|m3u8|pls|cue|wpl|xspf)$/i.test(f.name || '')
-    );
+    const playlistExt = /\.(m3u|m3u8|pls|cue|wpl|xspf)$/i;
+
+    // Перелічити всіх прямих дітей папки (з пагінацією).
+    async function listChildren(parentId) {
+      const out = [];
+      let pageToken = '';
+      do {
+        const p = new URLSearchParams({
+          q: `'${parentId}' in parents and trashed = false`,
+          fields: 'nextPageToken, files(id,name,mimeType)',
+          orderBy: 'name',
+          pageSize: '300',
+          spaces: 'drive',
+        });
+        if (pageToken) p.set('pageToken', pageToken);
+        const r = await fetch(`https://www.googleapis.com/drive/v3/files?${p}`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!r.ok) throw new Error(`Drive list error: ${await r.text()}`);
+        const d = await r.json();
+        out.push(...(d.files || []));
+        pageToken = d.nextPageToken || '';
+      } while (pageToken);
+      return out;
+    }
+
+    // 1) Зібрати аудіофайли — лише з папки, або рекурсивно з підпапок.
+    const driveFiles = [];
+    const queue = [folderId];
+    const seen = new Set();
+    while (queue.length) {
+      const parentId = queue.shift();
+      if (seen.has(parentId)) continue;
+      seen.add(parentId);
+      const children = await listChildren(parentId);
+      for (const c of children) {
+        if (c.mimeType === FOLDER_MIME) {
+          if (recursive) queue.push(c.id);
+        } else if (
+          ((c.mimeType || '').includes('audio/') || audioExt.test(c.name || '')) &&
+          !playlistExt.test(c.name || '')
+        ) {
+          driveFiles.push(c);
+        }
+      }
+    }
 
     // 2) Завантажити кожен файл і перекласти у сховище застосунку.
     const sounds = [];
