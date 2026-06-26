@@ -10,6 +10,7 @@ import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
 import DriveImportDialog from './DriveImportDialog';
 import IconPicker from './IconPicker';
+import PadAxesEditor from '@/components/scene/PadAxesEditor';
 
 export default function PadEditDialog({ sound, open, onClose, onRemove }) {
   const { getFile, setFile, removeFile } = usePadFiles();
@@ -125,6 +126,15 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
           {/* Иконка */}
           <Section label="Иконка">
             <IconPicker value={icon} onChange={(name) => setOverride(sound.id, { icon: name })} />
+          </Section>
+
+          {/* Теги сцены (оси) */}
+          <Section label="Теги сцены">
+            <PadAxesEditor
+              pad={sound}
+              override={ov}
+              onChange={(axes) => setOverride(sound.id, { axes })}
+            />
           </Section>
 
           {/* Свой звук (MP3 / Drive) */}

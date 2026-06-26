@@ -26,6 +26,7 @@ const DEFAULTS = {
   sound_overrides: {},
   pad_files: {},
   custom_pads: [],
+  scenes: [],
   migrated_from_local: false,
 };
 
@@ -95,6 +96,7 @@ export const storage = {
           sound_overrides: r.sound_overrides ?? DEFAULTS.sound_overrides,
           pad_files: r.pad_files ?? DEFAULTS.pad_files,
           custom_pads: r.custom_pads ?? DEFAULTS.custom_pads,
+          scenes: r.scenes ?? DEFAULTS.scenes,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -159,4 +161,8 @@ export const storage = {
   // Власні пэди, імпортовані з Google Диска (масив звуків з url)
   getCustomPads: () => cache.custom_pads || [],
   setCustomPads: (list) => set('custom_pads', list),
+
+  // Збережені сцени (масив наборів пэдів з осями фільтра)
+  getScenes: () => cache.scenes || [],
+  setScenes: (list) => set('scenes', list),
 };

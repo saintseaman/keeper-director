@@ -54,6 +54,32 @@
       "default": [],
       "description": "Custom pads imported from Google Drive (each is a playable sound)"
     },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "selection": {
+            "type": "object",
+            "description": "Chosen value per axis: location/action/weather/mood"
+          },
+          "padIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "default": [],
+      "description": "Saved scenes \u2014 sets of pads with axis filter selection"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,
