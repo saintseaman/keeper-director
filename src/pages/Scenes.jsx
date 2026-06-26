@@ -13,7 +13,7 @@ import SavedScenes from '@/components/scene/SavedScenes';
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
 export default function Scenes() {
-  const { pads } = useCustomPads();
+  const { pads, removePad } = useCustomPads();
   const { overrides } = useSoundOverrides();
   const { scenes, addScene, removeScene } = useScenes();
   const { activeSounds, stopAll } = useAudio();
@@ -123,7 +123,7 @@ export default function Scenes() {
                     </div>
                   </div>
 
-                  <SceneMatchList pads={matches} />
+                  <SceneMatchList pads={matches} onRemoveCustom={removePad} />
 
                   {matches.length > 0 && (
                     <div className="flex items-center gap-2 pt-1">
