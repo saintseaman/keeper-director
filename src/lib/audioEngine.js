@@ -1178,7 +1178,7 @@ class AudioEngine {
   setMasterVolume(volume) {
     this.masterVolume = volume;
     storage.setMasterVolume(volume); // персист через шар storage
-    if (this.masterGain) {
+    if (this.masterGain && this.audioContext) {
       this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
     this._applyMasterToFiles();
@@ -1188,7 +1188,7 @@ class AudioEngine {
   // Застосувати гучність із хмари без зворотного запису (уникаємо циклу збереження).
   setMasterVolumeFromCloud(volume) {
     this.masterVolume = volume;
-    if (this.masterGain) {
+    if (this.masterGain && this.audioContext) {
       this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
     this._applyMasterToFiles();

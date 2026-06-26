@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Square, Disc3, FolderDown, SlidersHorizontal } from 'lucide-react';
+import { Square, Dices, FolderDown, SlidersHorizontal } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
@@ -44,8 +44,7 @@ export default function Home() {
       {/* Top bar — минимальная "рейка" как у Pioneer */}
       <div className="flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-3 border-b border-white/10">
         <div className="flex items-center gap-2">
-          <Disc3 size={18} className={`text-orange-400 ${activeCount > 0 ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-          <span className="text-[13px] font-mono tracking-[0.25em] text-white/80 uppercase">Drumpad</span>
+          <Dices size={20} className={`text-orange-400 ${activeCount > 0 ? 'animate-pulse' : ''}`} />
         </div>
 
         <div className="flex items-center gap-3">
