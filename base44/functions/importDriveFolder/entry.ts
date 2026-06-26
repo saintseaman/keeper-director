@@ -35,6 +35,68 @@ const CATEGORY_ICON = {
   jumpscare: 'AlertTriangle',
 };
 
+// Точніше: підбираємо конкретну іконку під зміст назви (перший збіг виграє),
+// щоб пэд був зрозумілий з першого погляду, а не лише за категорією.
+const ICON_RULES = [
+  [['rain', 'дожд', 'злив'], 'CloudRain'],
+  [['storm', 'thunder', 'lightning', 'гром', 'буря', 'молни'], 'CloudLightning'],
+  [['wind', 'gale', 'breeze', 'ветер', 'вітер'], 'Wind'],
+  [['ocean', 'wave', 'sea', 'water', 'море', 'волн', 'вод'], 'Waves'],
+  [['drip', 'drop', 'капл', 'крап'], 'Droplets'],
+  [['fire', 'flame', 'crackle', 'burn', 'огон', 'плам', 'костёр', 'костер'], 'Flame'],
+  [['forest', 'jungle', 'wood', 'tree', 'лес', 'дерев'], 'TreePine'],
+  [['snow', 'arctic', 'ice', 'cold', 'frost', 'снег', 'лёд', 'лед', 'холод'], 'Snowflake'],
+  [['mountain', 'cliff', 'гор', 'скал'], 'Mountain'],
+  [['fog', 'mist', 'туман', 'мгл'], 'CloudFog'],
+  [['night', 'moon', 'ночь', 'ноч', 'лун'], 'Moon'],
+  [['sun', 'day', 'dawn', 'солнц', 'сонц', 'день'], 'Sun'],
+  [['bird', 'crow', 'raven', 'owl', 'птиц', 'ворон', 'сов'], 'Bird'],
+  [['clock', 'tick', 'час', 'тикан'], 'Clock'],
+  [['bell', 'toll', 'gong', 'колокол', 'дзвін'], 'Bell'],
+  [['train', 'поезд', 'потяг'], 'Train'],
+  [['ship', 'boat', 'harbor', 'dock', 'корабл', 'судн', 'порт', 'гавань'], 'Ship'],
+  [['church', 'temple', 'cathedral', 'церков', 'храм', 'собор'], 'Church'],
+  [['library', 'book', 'библиотек', 'бібліотек', 'книг'], 'BookOpen'],
+  [['city', 'town', 'street', 'market', 'tavern', 'inn', 'город', 'улиц', 'таверн', 'рынок', 'місто'], 'Building2'],
+  [['key', 'lock', 'ключ', 'замок'], 'KeyRound'],
+  [['door', 'дверь', 'двер'], 'DoorOpen'],
+  [['footstep', 'step', 'walk', 'шаг', 'крок', 'ход'], 'Footprints'],
+  [['knock', 'стук'], 'Hand'],
+  [['glass', 'break', 'shatter', 'стекл', 'скл', 'разбит'], 'GlassWater'],
+  [['explosion', 'blast', 'bomb', 'взрыв', 'вибух'], 'Bomb'],
+  [['gun', 'shot', 'выстрел', 'постріл'], 'Crosshair'],
+  [['sword', 'blade', 'knife', 'stab', 'меч', 'клинок', 'нож'], 'Swords'],
+  [['ritual', 'summon', 'spell', 'incantation', 'sacrifice', 'ритуал', 'закл', 'жертв'], 'Hexagon'],
+  [['drum', 'барабан'], 'Music'],
+  [['heart', 'heartbeat', 'pulse', 'сердц', 'серц', 'пульс'], 'HeartPulse'],
+  [['whisper', 'шёпот', 'шепот', 'шепіт'], 'Ear'],
+  [['breath', 'breathing', 'дыхан', 'дихан'], 'Wind'],
+  [['scream', 'shriek', 'screech', 'крик', 'вопл'], 'Megaphone'],
+  [['laugh', 'cackle', 'смех', 'регіт'], 'Laugh'],
+  [['cry', 'sob', 'moan', 'groan', 'плач', 'стон', 'рыдан'], 'Megaphone'],
+  [['ghost', 'spirit', 'phantom', 'haunt', 'призрак', 'дух', 'привид'], 'Ghost'],
+  [['blood', 'gore', 'flesh', 'bone', 'corpse', 'кровь', 'кров', 'плоть', 'кост', 'труп'], 'Skull'],
+  [['rat', 'mouse', 'крыс', 'мыш', 'миш'], 'Bug'],
+  [['bat', 'bats', 'летуч', 'кажан'], 'Bird'],
+  [['bee', 'insect', 'swarm', 'насеком', 'рой', 'пчёл', 'пчел'], 'Bug'],
+  [['wolf', 'howl', 'волк', 'вой', 'виття'], 'Skull'],
+  [['fish', 'deep one', 'dagon', 'hydra', 'рыб', 'риб'], 'Fish'],
+  [['tentacle', 'cthulhu', 'eldritch', 'spawn', 'щупаль', 'ктулху'], 'Orbit'],
+  [['cult', 'chant', 'chanting', 'культ', 'песнопен'], 'Users'],
+  [['eye', 'watch', 'stare', 'глаз', 'око', 'взгляд'], 'Eye'],
+  [['cosmic', 'void', 'abyss', 'dimension', 'warp', 'космос', 'бездн', 'пустот', 'измерен'], 'Orbit'],
+  [['dream', 'nightmare', 'hallucinat', 'сон', 'кошмар', 'галлюцин'], 'Brain'],
+  [['drone', 'tinnitus', 'dissonan', 'дрон', 'звон', 'диссонанс'], 'Volume2'],
+  [['jumpscare', 'jump', 'scare', 'sting', 'shock', 'startle', 'лякал', 'испуг', 'пугал'], 'AlertTriangle'],
+];
+
+function guessIcon(lower, fallback) {
+  for (const [keywords, icon] of ICON_RULES) {
+    if (keywords.some((k) => lower.includes(k))) return icon;
+  }
+  return fallback;
+}
+
 function cleanTitle(name) {
   // Прибрати розширення та службові символи.
   let base = name.replace(/\.[a-z0-9]+$/i, '').replace(/[_\-]+/g, ' ').replace(/\s+/g, ' ').trim();
@@ -48,12 +110,18 @@ function cleanTitle(name) {
 
 function guessCategory(name) {
   const lower = name.toLowerCase();
-  for (const [keywords, category, icon] of KEYWORD_RULES) {
+  let category = 'atmosphere';
+  let catIcon = CATEGORY_ICON.atmosphere;
+  for (const [keywords, cat, icon] of KEYWORD_RULES) {
     if (keywords.some((k) => lower.includes(k))) {
-      return { category, icon };
+      category = cat;
+      catIcon = icon;
+      break;
     }
   }
-  return { category: 'atmosphere', icon: CATEGORY_ICON.atmosphere };
+  // Спершу пробуємо конкретну іконку за змістом, інакше — іконку категорії.
+  const icon = guessIcon(lower, catIcon);
+  return { category, icon };
 }
 
 Deno.serve(async (req) => {

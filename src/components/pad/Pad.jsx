@@ -121,12 +121,18 @@ export default function Pad({ sound, index, onRemoveCustom }) {
 
         {/* Метка пользовательского MP3 */}
         {fileUrl && (
-          <span className="absolute bottom-2 left-2.5 text-[8px] font-mono tracking-widest text-orange-300/70">MP3</span>
+          <span className="absolute bottom-2 left-2.5 text-[8px] font-mono tracking-widest text-orange-300/70 z-10">MP3</span>
         )}
 
-        <Icon size={26} className={isActive ? 'text-orange-100' : 'text-white/70 group-hover:text-white'} strokeWidth={1.5} />
+        {/* Крупная иконка-фон на весь пэд */}
+        <Icon
+          size={96}
+          strokeWidth={1.25}
+          className={`absolute inset-0 m-auto pointer-events-none ${isActive ? 'text-orange-200/30' : 'text-white/[0.12] group-hover:text-white/20'}`}
+        />
 
-        <span className={`px-1 text-[10px] font-medium leading-tight text-center tracking-wide truncate max-w-full ${isActive ? 'text-orange-50' : 'text-white/55 group-hover:text-white/80'}`}>
+        {/* Название звука — крупнее и читаемее, поверх иконки */}
+        <span className={`relative z-10 px-1.5 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-full [text-shadow:0_1px_3px_rgba(0,0,0,0.85)] ${isActive ? 'text-orange-50' : 'text-white/85 group-hover:text-white'}`}>
           {title}
         </span>
       </button>
