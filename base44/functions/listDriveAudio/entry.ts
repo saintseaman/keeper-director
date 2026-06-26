@@ -16,8 +16,12 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
-    // Тільки аудіо, не у кошику; за потреби — фільтр по назві.
-    let q = "mimeType contains 'audio/' and trashed = false";
+    // Аудіо за mime АБО за розширенням (Drive іноді тегує wav/m4a/flac
+    // як video/* чи application/octet-stream). Не у кошику; за потреби — фільтр по назві.
+    const extQ = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.flac', '.opus', '.webm', '.aiff', '.aif', '.wma']
+      .map((ext) => `name contains '${ext}'`)
+      .join(' or ');
+    let q = `(mimeType contains 'audio/' or ${extQ}) and trashed = false`;
     if (search) {
       const safe = search.replace(/'/g, "\\'");
       q += ` and name contains '${safe}'`;
@@ -39,7 +43,14 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Drive API error', details: text }, { status: 502 });
     }
     const data = await res.json();
-    return Response.json({ files: data.files || [] });
+    // Подстрахуемся: Drive query (name contains) может зацепить лишнее
+    // (например таблицы). Оставляем только настоящее аудио — по mime
+    // или по расширению В КОНЦЕ имени.
+    const audioExt = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
+    const files = (data.files || []).filter(
+      (f) => (f.mimeType || '').includes('audio/') || audioExt.test(f.name || '')
+    );
+    return Response.json({ files });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -68,9 +68,13 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
-    // 1) Список аудіофайлів у папці.
+    // 1) Список аудіофайлів у папці. Аудіо за mime АБО за розширенням —
+    // Drive іноді тегує wav/m4a/flac як video/* чи application/octet-stream.
+    const extQ = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.flac', '.opus', '.webm', '.aiff', '.aif', '.wma']
+      .map((ext) => `name contains '${ext}'`)
+      .join(' or ');
     const params = new URLSearchParams({
-      q: `'${folderId}' in parents and mimeType contains 'audio/' and trashed = false`,
+      q: `'${folderId}' in parents and (mimeType contains 'audio/' or ${extQ}) and trashed = false`,
       fields: 'files(id,name,mimeType)',
       orderBy: 'name',
       pageSize: '200',
@@ -84,9 +88,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Drive list error', details: text }, { status: 502 });
     }
     const listData = await listRes.json();
-    // Відсіюємо плейлисти та не-аудіо контейнери (Drive іноді тегує їх як audio/*).
+    // Лишаємо лише справжнє аудіо (mime audio/* або розширення В КІНЦІ імені)
+    // і відсіюємо плейлисти/контейнери.
+    const audioExt = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
     const driveFiles = (listData.files || []).filter(
-      (f) => !/\.(m3u|m3u8|pls|cue|wpl|xspf)$/i.test(f.name || '')
+      (f) =>
+        ((f.mimeType || '').includes('audio/') || audioExt.test(f.name || '')) &&
+        !/\.(m3u|m3u8|pls|cue|wpl|xspf)$/i.test(f.name || '')
     );
 
     // 2) Завантажити кожен файл і перекласти у сховище застосунку.
