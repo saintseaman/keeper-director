@@ -52,26 +52,18 @@ export function useScaryFolderScan() {
     return () => { cancelled = true; };
   }, [scan]);
 
-  // Імпорт списку нових файлів ПОРЦІЯМИ по 5 — імпорт усієї папки одним
-  // викликом упирається в таймаут (>180с на ~50 файлів). Кожна порція
-  // додає свої звуки одразу, тож прогрес не губиться. Повертає к-сть доданих.
+  // Миттєвий імпорт усіх файлів ОДНИМ викликом: importDriveAll повертає лише
+  // метадані + посилання на публічний стрімер (streamDriveAudio), нічого не
+  // завантажуючи у сховище. Тому навіть сотні файлів додаються за секунди.
   const importFiles = useCallback(async (files) => {
-    const BATCH = 5;
-    let added = 0;
     setProgress({ done: 0, total: files.length });
-    for (let i = 0; i < files.length; i += BATCH) {
-      const chunk = files.slice(i, i + BATCH);
-      const res = await base44.functions.invoke('importDriveBatch', { files: chunk });
-      const sounds = res.data?.sounds || [];
-      const existing = new Set(padsRef.current.map((p) => p.id));
-      const toAdd = sounds.filter((s) => !existing.has(s.id));
-      if (toAdd.length) {
-        addPads(toAdd);
-        added += toAdd.length;
-      }
-      setProgress({ done: Math.min(i + BATCH, files.length), total: files.length });
-    }
-    return added;
+    const res = await base44.functions.invoke('importDriveAll', { files });
+    const sounds = res.data?.sounds || [];
+    const existing = new Set(padsRef.current.map((p) => p.id));
+    const toAdd = sounds.filter((s) => !existing.has(s.id));
+    if (toAdd.length) addPads(toAdd);
+    setProgress({ done: files.length, total: files.length });
+    return toAdd.length;
   }, [addPads]);
 
   // Кнопка плашки: імпортувати знайдені нові файли.
