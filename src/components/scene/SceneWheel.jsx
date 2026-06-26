@@ -43,12 +43,18 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-// Радиальный путь подписи: от внешнего края сектора к центру (вдоль середины).
+// Радиальный путь подписи вдоль середины сектора.
+// На правой половине колеса (mid 0..180) текст «снизу вверх» читается
+// перевёрнутым, поэтому там разворачиваем путь (центр -> край),
+// на левой — оставляем (край -> центр). Так все подписи читаются ровно.
 function textRadialPath(startDeg, endDeg, rOuter, rInner) {
-  const mid = (startDeg + endDeg) / 2;
+  const mid = ((startDeg + endDeg) / 2) % 360;
   const pOuter = polar(C, C, rOuter, mid);
   const pInner = polar(C, C, rInner, mid);
-  return `M ${pOuter.x} ${pOuter.y} L ${pInner.x} ${pInner.y}`;
+  const flip = mid > 0 && mid < 180;
+  return flip
+    ? `M ${pInner.x} ${pInner.y} L ${pOuter.x} ${pOuter.y}`
+    : `M ${pOuter.x} ${pOuter.y} L ${pInner.x} ${pInner.y}`;
 }
 
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
