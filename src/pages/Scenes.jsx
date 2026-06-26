@@ -6,7 +6,8 @@ import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
 import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
 import { audioEngine } from '@/lib/audioEngine';
-import AxisFilter from '@/components/scene/AxisFilter';
+import SceneWheel from '@/components/scene/SceneWheel';
+import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
 import SavedScenes from '@/components/scene/SavedScenes';
 
@@ -86,17 +87,26 @@ export default function Scenes() {
           </div>
         ) : (
           <>
-            {/* Конструктор */}
+            {/* Колесо атмосферы */}
             <section>
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-2">
                 <Sparkles size={15} className="text-orange-400" />
                 <h2 className="text-xs font-mono tracking-[0.2em] text-white/60 uppercase">Собрать атмосферу</h2>
               </div>
 
-              <AxisFilter selection={selection} onSelect={onSelect} />
+              <SceneWheel
+                selection={selection}
+                onSelect={onSelect}
+                onPlay={playMatches}
+                matchCount={matches.length}
+              />
+
+              <div className="mt-2">
+                <SceneSliders selection={selection} onSelect={onSelect} />
+              </div>
 
               {hasFilter && (
-                <div className="mt-4 space-y-3">
+                <div className="mt-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-white/40">
                       Подходит: <span className="text-orange-300 font-medium">{matches.length}</span>
