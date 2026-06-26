@@ -8,8 +8,26 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // Повертає: { folderId, folderName, files: [{ id, name }] }
 // Якщо папку не знайдено — { folderId: null, files: [] }.
 
-const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
+const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma|mp2|ape|wv|mka|caf|3gp|amr)$/i;
 const PLAYLIST_EXT = /\.(m3u|m3u8|pls|cue|wpl|xspf)$/i;
+// Розширення явно НЕ-аудіо: документи, архіви, зображення, відео тощо.
+// Усе інше (включно з файлами без розширення та octet-stream) вважаємо аудіо —
+// у папці «Scary_sounds» так зберігаються звуки без розширення (Scary Sounds.p01…).
+const NON_AUDIO_EXT = /\.(jpg|jpeg|png|gif|bmp|webp|svg|tiff?|pdf|docx?|xlsx?|pptx?|txt|rtf|csv|json|xml|html?|zip|rar|7z|tar|gz|exe|dmg|iso|mp4|mov|avi|mkv|wmv|flv|m4v|par|par2|sfv|nfo|md5|p\d{2,3}|r\d{2,3})$/i;
+
+// Чи вважати файл аудіо: явне аудіо-розширення або audio/* mime, АБО файл без
+// явного не-аудіо розширення (octet-stream / без розширення), окрім плейлистів.
+function isAudio(c) {
+  const name = c.name || '';
+  const mime = c.mimeType || '';
+  if (PLAYLIST_EXT.test(name)) return false;
+  if (NON_AUDIO_EXT.test(name)) return false;
+  if (mime.includes('audio/') || AUDIO_EXT.test(name)) return true;
+  // Файли без аудіо-розширення: приймаємо octet-stream та файли без крапки в назві.
+  if (mime === 'application/octet-stream') return true;
+  if (!/\.[a-z0-9]{1,5}$/i.test(name)) return true;
+  return false;
+}
 
 async function listChildren(accessToken, parentId) {
   const out = [];
@@ -61,25 +79,30 @@ Deno.serve(async (req) => {
     if (!folder) return Response.json({ folderId: null, folderName: null, files: [] });
 
     // 2) Рекурсивно зібрати всі аудіофайли з папки та її підпапок.
+    // Обхід ПОРІВНЯМИ (BFS): увесь поточний рівень папок скануємо паралельно
+    // (Promise.all), що в рази швидше за послідовний обхід на дереві з десятків
+    // вкладених бібліотек. Без цього скан упирається в таймаут функції.
     const FOLDER_MIME = 'application/vnd.google-apps.folder';
     const files = [];
-    const queue = [folder.id];
     const seen = new Set();
-    while (queue.length) {
-      const parentId = queue.shift();
-      if (seen.has(parentId)) continue;
-      seen.add(parentId);
-      const children = await listChildren(accessToken, parentId);
-      for (const c of children) {
-        if (c.mimeType === FOLDER_MIME) {
-          queue.push(c.id);
-        } else if (
-          ((c.mimeType || '').includes('audio/') || AUDIO_EXT.test(c.name || '')) &&
-          !PLAYLIST_EXT.test(c.name || '')
-        ) {
-          files.push({ id: c.id, name: c.name });
+    let level = [folder.id];
+    seen.add(folder.id);
+    while (level.length) {
+      const results = await Promise.all(level.map((id) => listChildren(accessToken, id)));
+      const nextLevel = [];
+      for (const children of results) {
+        for (const c of children) {
+          if (c.mimeType === FOLDER_MIME) {
+            if (!seen.has(c.id)) {
+              seen.add(c.id);
+              nextLevel.push(c.id);
+            }
+          } else if (isAudio(c)) {
+            files.push({ id: c.id, name: c.name });
+          }
         }
       }
+      level = nextLevel;
     }
 
     return Response.json({ folderId: folder.id, folderName: folder.name, files });
