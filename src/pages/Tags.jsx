@@ -12,7 +12,7 @@ import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
 // Показывает звуки, у которых не проставлены теги по осям («нужно починить»),
 // и даёт доразметить прямо здесь — поштучно или массово (режим выделения).
 export default function Tags() {
-  const { pads } = useCustomPads();
+  const { pads, removePad } = useCustomPads();
   const { overrides, setOverride } = useSoundOverrides();
   const scary = useScaryFolderScan();
   const [showDone, setShowDone] = useState(false);
@@ -191,6 +191,7 @@ export default function Tags() {
                   selectable={selectMode}
                   selected={selected.has(pad.id)}
                   onToggleSelect={toggleSelect}
+                  onRemove={removePad}
                 />
               ))
             )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2 } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { SCENE_AXES } from '@/lib/sceneAxes';
 import { useIsSoundActive } from '@/lib/useAudio';
@@ -9,7 +9,7 @@ import PadAxesEditor from './PadAxesEditor';
 // Строка звука в панели «Теги»: показывает, по каким осям нет тегов,
 // и по тапу разворачивает редактор для проставки прямо здесь.
 // В режиме выделения (selectable) слева — чекбокс, а тап по строке переключает выбор.
-export default function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect }) {
+export default function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove }) {
   const [open, setOpen] = useState(false);
   const Icon = getIcon(pad.icon);
   const missingLabels = missing.map((id) => SCENE_AXES.find((a) => a.id === id)?.label).filter(Boolean);
@@ -24,6 +24,13 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
     } else if (pad.url) {
       audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
     }
+  };
+
+  const handleRemove = (e) => {
+    e.stopPropagation();
+    if (!window.confirm(`Удалить звук «${pad.title}»?`)) return;
+    if (audioEngine.isPlaying(pad.id)) audioEngine.stop(pad.id, 0);
+    onRemove?.(pad.id);
   };
 
   return (
@@ -69,7 +76,21 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
             )}
           </div>
         </div>
-        {!selectable && (open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />)}
+        {!selectable && (
+          <span className="shrink-0 flex items-center gap-1">
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={handleRemove}
+              onPointerDown={(e) => e.stopPropagation()}
+              title="Удалить звук"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+            >
+              <Trash2 size={15} />
+            </span>
+            {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+          </span>
+        )}
       </button>
 
       {!selectable && open && (
