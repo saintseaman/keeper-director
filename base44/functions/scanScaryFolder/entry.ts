@@ -1,11 +1,39 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Шукає папку «scary sounds» на Google Диску і повертає список її
-// аудіофайлів (легко, без завантаження вмісту), щоб застосунок міг
-// порівняти з уже імпортованими пэдами й запропонувати додати нові.
+// Шукає папку «Scary_sounds» на Google Диску і повертає список усіх її
+// аудіофайлів — включно з файлами у вкладених підпапках (Sounds, Sounds2…) —
+// легко, без завантаження вмісту, щоб застосунок міг порівняти з уже
+// імпортованими пэдами й запропонувати додати нові.
 //
 // Повертає: { folderId, folderName, files: [{ id, name }] }
 // Якщо папку не знайдено — { folderId: null, files: [] }.
+
+const AUDIO_EXT = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
+const PLAYLIST_EXT = /\.(m3u|m3u8|pls|cue|wpl|xspf)$/i;
+
+async function listChildren(accessToken, parentId) {
+  const out = [];
+  let pageToken = '';
+  do {
+    const params = new URLSearchParams({
+      q: `'${parentId}' in parents and trashed = false`,
+      fields: 'nextPageToken, files(id,name,mimeType)',
+      orderBy: 'name',
+      pageSize: '300',
+      spaces: 'drive',
+    });
+    if (pageToken) params.set('pageToken', pageToken);
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) throw new Error(`Drive list error: ${await res.text()}`);
+    const data = await res.json();
+    out.push(...(data.files || []));
+    pageToken = data.nextPageToken || '';
+  } while (pageToken);
+  return out;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -14,9 +42,9 @@ Deno.serve(async (req) => {
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
-    // 1) Знайти папку за назвою «scary sounds» (без врахування регістру).
+    // 1) Знайти папку за назвою «Scary_sounds» (Google `name =` нечутливий до регістру).
     const folderParams = new URLSearchParams({
-      q: "mimeType = 'application/vnd.google-apps.folder' and name = 'scary sounds' and trashed = false",
+      q: "mimeType = 'application/vnd.google-apps.folder' and name = 'Scary_sounds' and trashed = false",
       fields: 'files(id,name)',
       pageSize: '5',
       spaces: 'drive',
@@ -29,52 +57,30 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'Drive folder lookup error', details: text }, { status: 502 });
     }
     const folderData = await folderRes.json();
-    // Google `name =` нечутливий до регістру, але підстрахуємось і за «contains».
-    let folder = (folderData.files || [])[0];
-    if (!folder) {
-      const altParams = new URLSearchParams({
-        q: "mimeType = 'application/vnd.google-apps.folder' and name contains 'scary' and trashed = false",
-        fields: 'files(id,name)',
-        pageSize: '10',
-        spaces: 'drive',
-      });
-      const altRes = await fetch(`https://www.googleapis.com/drive/v3/files?${altParams}`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      if (altRes.ok) {
-        const altData = await altRes.json();
-        folder = (altData.files || []).find((f) => /scary\s*sounds?/i.test(f.name || ''));
-      }
-    }
+    const folder = (folderData.files || [])[0];
     if (!folder) return Response.json({ folderId: null, folderName: null, files: [] });
 
-    // 2) Перелічити аудіофайли у папці (за mime або розширенням).
-    const extQ = ['.mp3', '.wav', '.ogg', '.oga', '.m4a', '.aac', '.flac', '.opus', '.webm', '.aiff', '.aif', '.wma']
-      .map((ext) => `name contains '${ext}'`)
-      .join(' or ');
-    const params = new URLSearchParams({
-      q: `'${folder.id}' in parents and (mimeType contains 'audio/' or ${extQ}) and trashed = false`,
-      fields: 'files(id,name,mimeType)',
-      orderBy: 'name',
-      pageSize: '300',
-      spaces: 'drive',
-    });
-    const listRes = await fetch(`https://www.googleapis.com/drive/v3/files?${params}`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!listRes.ok) {
-      const text = await listRes.text();
-      return Response.json({ error: 'Drive list error', details: text }, { status: 502 });
+    // 2) Рекурсивно зібрати всі аудіофайли з папки та її підпапок.
+    const FOLDER_MIME = 'application/vnd.google-apps.folder';
+    const files = [];
+    const queue = [folder.id];
+    const seen = new Set();
+    while (queue.length) {
+      const parentId = queue.shift();
+      if (seen.has(parentId)) continue;
+      seen.add(parentId);
+      const children = await listChildren(accessToken, parentId);
+      for (const c of children) {
+        if (c.mimeType === FOLDER_MIME) {
+          queue.push(c.id);
+        } else if (
+          ((c.mimeType || '').includes('audio/') || AUDIO_EXT.test(c.name || '')) &&
+          !PLAYLIST_EXT.test(c.name || '')
+        ) {
+          files.push({ id: c.id, name: c.name });
+        }
+      }
     }
-    const listData = await listRes.json();
-    const audioExt = /\.(mp3|wav|ogg|oga|m4a|aac|flac|opus|webm|aiff|aif|wma)$/i;
-    const files = (listData.files || [])
-      .filter(
-        (f) =>
-          ((f.mimeType || '').includes('audio/') || audioExt.test(f.name || '')) &&
-          !/\.(m3u|m3u8|pls|cue|wpl|xspf)$/i.test(f.name || '')
-      )
-      .map((f) => ({ id: f.id, name: f.name }));
 
     return Response.json({ folderId: folder.id, folderName: folder.name, files });
   } catch (error) {
