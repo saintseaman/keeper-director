@@ -51,28 +51,37 @@ export function useScaryFolderScan() {
     return () => { cancelled = true; };
   }, [scan]);
 
-  // Імпорт усієї папки (рекурсивно по підпапках). addPads дедуплицирует —
-  // тож додаються лише нові звуки. Повертає кількість доданих.
-  const importFolder = useCallback(async (fid) => {
-    const res = await base44.functions.invoke('importDriveFolder', { folderId: fid, recursive: true });
-    const sounds = res.data?.sounds || [];
-    const existing = new Set(padsRef.current.map((p) => p.id));
-    const toAdd = sounds.filter((s) => !existing.has(s.id));
-    if (toAdd.length) addPads(toAdd);
-    return toAdd.length;
+  // Імпорт списку нових файлів ПОРЦІЯМИ по 5 — імпорт усієї папки одним
+  // викликом упирається в таймаут (>180с на ~50 файлів). Кожна порція
+  // додає свої звуки одразу, тож прогрес не губиться. Повертає к-сть доданих.
+  const importFiles = useCallback(async (files) => {
+    const BATCH = 5;
+    let added = 0;
+    for (let i = 0; i < files.length; i += BATCH) {
+      const chunk = files.slice(i, i + BATCH);
+      const res = await base44.functions.invoke('importDriveBatch', { files: chunk });
+      const sounds = res.data?.sounds || [];
+      const existing = new Set(padsRef.current.map((p) => p.id));
+      const toAdd = sounds.filter((s) => !existing.has(s.id));
+      if (toAdd.length) {
+        addPads(toAdd);
+        added += toAdd.length;
+      }
+    }
+    return added;
   }, [addPads]);
 
   // Кнопка плашки: імпортувати знайдені нові файли.
   const importNew = useCallback(async () => {
-    if (!folderId || importing) return;
+    if (importing || newFiles.length === 0) return;
     setImporting(true);
     try {
-      await importFolder(folderId);
+      await importFiles(newFiles);
       setNewFiles([]);
     } finally {
       setImporting(false);
     }
-  }, [folderId, importing, importFolder]);
+  }, [importing, newFiles, importFiles]);
 
   // Ручна синхронізація: пересканувати Диск і одразу додати всі нові звуки.
   const resync = useCallback(async () => {
@@ -91,7 +100,7 @@ export function useScaryFolderScan() {
         setLastSync({ added: 0, message: 'Новых звуков нет — всё уже добавлено' });
         return;
       }
-      const added = await importFolder(fid);
+      const added = await importFiles(fresh);
       setNewFiles([]);
       setLastSync({ added, message: added ? `Добавлено новых звуков: ${added}` : 'Новых звуков нет' });
     } catch {
@@ -99,7 +108,7 @@ export function useScaryFolderScan() {
     } finally {
       setSyncing(false);
     }
-  }, [syncing, scan, importFolder]);
+  }, [syncing, scan, importFiles]);
 
   const dismiss = useCallback(() => setNewFiles([]), []);
 
