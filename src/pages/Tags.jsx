@@ -3,8 +3,10 @@ import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X } from 'luc
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
+import { useScaryFolderScan } from '@/lib/useScaryFolderScan';
 import TagFixRow from '@/components/scene/TagFixRow';
 import BulkTagDialog from '@/components/scene/BulkTagDialog';
+import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
 
 // Панель «Теги» — аналитика разметки звуков.
 // Показывает звуки, у которых не проставлены теги по осям («нужно починить»),
@@ -12,6 +14,7 @@ import BulkTagDialog from '@/components/scene/BulkTagDialog';
 export default function Tags() {
   const { pads } = useCustomPads();
   const { overrides, setOverride } = useSoundOverrides();
+  const scary = useScaryFolderScan();
   const [showDone, setShowDone] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -94,6 +97,15 @@ export default function Tags() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
+        {!selectMode && (
+          <ScaryScanBanner
+            count={scary.newFiles.length}
+            importing={scary.importing}
+            onImport={scary.importNew}
+            onDismiss={scary.dismiss}
+          />
+        )}
+
         {pads.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <TagsIcon size={40} className="text-white/15" strokeWidth={1.2} />
