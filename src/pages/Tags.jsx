@@ -17,7 +17,7 @@ export default function Tags() {
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
   const scary = useScaryFolderScan();
   const smart = useSmartTag(mergeOverrides);
-  const [showDone, setShowDone] = useState(false);
+  const [showDone, setShowDone] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
