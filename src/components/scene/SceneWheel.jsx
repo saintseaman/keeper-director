@@ -43,21 +43,18 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-function textArcPath(r, startDeg, endDeg) {
+// Радиальный путь подписи: от внешнего края сектора к центру (вдоль середины).
+function textRadialPath(startDeg, endDeg, rOuter, rInner) {
   const mid = (startDeg + endDeg) / 2;
-  const flip = mid > 90 && mid < 270;
-  const a = flip ? endDeg : startDeg;
-  const b = flip ? startDeg : endDeg;
-  const p1 = polar(C, C, r, a);
-  const p2 = polar(C, C, r, b);
-  const sweep = flip ? 0 : 1;
-  return `M ${p1.x} ${p1.y} A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`;
+  const pOuter = polar(C, C, rOuter, mid);
+  const pInner = polar(C, C, rInner, mid);
+  return `M ${pOuter.x} ${pOuter.y} L ${pInner.x} ${pInner.y}`;
 }
 
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
 
 // Один крупный сегмент активного кольца.
-function Segment({ axisId, value, start, end, rText, glow, active, onClick, onLongPress }) {
+function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const arcId = `arc-${axisId}-${value.id}`;
@@ -119,7 +116,7 @@ function Segment({ axisId, value, start, end, rText, glow, active, onClick, onLo
         className="pointer-events-none"
       />
 
-      <path id={arcId} d={textArcPath(rText, start, end)} fill="none" />
+      <path id={arcId} d={textRadialPath(start, end, R_OUTER - 12, R_INNER + 12)} fill="none" />
       <text
         fontSize={13}
         fill={active ? '#fff' : 'rgba(255,255,255,0.92)'}
@@ -165,7 +162,6 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCou
 
   const slots = values.length + 1; // +1 под «добавить»
   const step = 360 / slots;
-  const rText = (R_INNER + R_OUTER) / 2;
 
   // Чипы выбранных значений по неактивным осям.
   const otherChips = AXIS_ORDER.filter((id) => id !== activeAxis).map((id) => {
@@ -223,7 +219,6 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCou
               value={v}
               start={start}
               end={start + step}
-              rText={rText}
               glow={meta.glow}
               active={selection[activeAxis] === v.id}
               onClick={(id) => onSelect(activeAxis, id)}
