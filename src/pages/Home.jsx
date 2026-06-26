@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Square, Disc3, FolderDown, SlidersHorizontal } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
+import { padCategory } from '@/lib/padCategories';
 import PadDeck from '@/components/pad/PadDeck';
+import CategoryTabs from '@/components/pad/CategoryTabs';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 
@@ -19,11 +21,23 @@ export default function Home() {
   const { pads: customPads, addPads, removePad } = useCustomPads();
   const [folderOpen, setFolderOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
+  const [activeCat, setActiveCat] = useState(null); // null = «Все»
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
-  // Тільки власні пэди, імпортовані з Google Диска.
-  const decks = paginate(customPads, 9);
+  // Счётчики пэдов по категориям (для вкладок).
+  const counts = useMemo(() => {
+    const acc = {};
+    for (const p of customPads) { const c = padCategory(p); acc[c] = (acc[c] || 0) + 1; }
+    return acc;
+  }, [customPads]);
+
+  // Пэды выбранной категории (или все). Затем режем на страницы по 9.
+  const filtered = useMemo(
+    () => (activeCat ? customPads.filter((p) => padCategory(p) === activeCat) : customPads),
+    [customPads, activeCat]
+  );
+  const decks = paginate(filtered, 9);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -82,6 +96,13 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* Вкладки категорий */}
+      {customPads.length > 0 && (
+        <div className="px-4 pt-3">
+          <CategoryTabs active={activeCat} onChange={setActiveCat} counts={counts} total={customPads.length} />
+        </div>
+      )}
 
       {/* Дека */}
       <div className="flex-1 min-h-0 px-4 pt-4 pb-3">
