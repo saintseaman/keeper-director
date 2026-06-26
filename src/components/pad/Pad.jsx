@@ -140,8 +140,8 @@ export default function Pad({ sound, index, onRemoveCustom }) {
           <span className="absolute inset-0 pointer-events-none bg-orange-500/25" />
         )}
 
-        {/* Название звука — крупнее и читаемее, поверх фона */}
-        <span className={`relative z-10 px-1.5 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-full [text-shadow:0_1px_4px_rgba(0,0,0,0.95)] ${isActive ? 'text-orange-50' : 'text-white'}`}>
+        {/* Название звука — на тёмной плашке для читаемости на любом фоне */}
+        <span className={`relative z-10 mx-1.5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm ring-1 ring-white/10 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-[calc(100%-0.75rem)] [text-shadow:0_1px_3px_rgba(0,0,0,0.95)] ${isActive ? 'text-orange-50' : 'text-white'}`}>
           {title}
         </span>
       </button>
