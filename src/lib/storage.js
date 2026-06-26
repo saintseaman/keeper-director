@@ -29,6 +29,8 @@ const DEFAULTS = {
   custom_axis_values: {},
   removed_axis_values: {},
   scenes: [],
+  recent_pads: [],
+  pad_favorites: [],
   migrated_from_local: false,
 };
 
@@ -41,6 +43,17 @@ const listeners = new Set();
 function notify() {
   for (const fn of listeners) fn(cache);
 }
+
+// ── Статус синхронизации с облаком (для индикатора в UI) ──
+// 'idle' | 'saving' | 'saved' | 'error'. Подписка отдельная от данных,
+// чтобы перерисовывался только индикатор, а не потребители данных.
+let saveStatus = 'idle';
+const statusListeners = new Set();
+function setStatus(s) {
+  saveStatus = s;
+  for (const fn of statusListeners) fn(s);
+}
+let savedResetTimer = null;
 
 // ── Debounced запис у хмару ──
 let saveTimer = null;
@@ -55,6 +68,7 @@ async function flush() {
   const data = pending;
   pending = {};
   if (Object.keys(data).length === 0) return;
+  setStatus('saving');
   try {
     if (recordId) {
       await base44.entities.UserPrefs.update(recordId, data);
@@ -62,8 +76,17 @@ async function flush() {
       const created = await base44.entities.UserPrefs.create({ ...cache });
       recordId = created.id;
     }
+    setStatus('saved');
+    // Через пару секунд гасим индикатор «сохранено».
+    if (savedResetTimer) clearTimeout(savedResetTimer);
+    savedResetTimer = setTimeout(() => setStatus('idle'), 2000);
   } catch {
-    /* офлайн / помилка мережі — кеш лишається актуальним локально */
+    // Офлайн / ошибка сети — кеш актуален локально, но пользователь должен
+    // знать, что изменения ещё не в облаке. Возвращаем данные в очередь и ретраим.
+    pending = { ...data, ...pending };
+    setStatus('error');
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, 5000);
   }
 }
 
@@ -101,6 +124,8 @@ export const storage = {
           custom_axis_values: r.custom_axis_values ?? DEFAULTS.custom_axis_values,
           removed_axis_values: r.removed_axis_values ?? DEFAULTS.removed_axis_values,
           scenes: r.scenes ?? DEFAULTS.scenes,
+          recent_pads: r.recent_pads ?? DEFAULTS.recent_pads,
+          pad_favorites: r.pad_favorites ?? DEFAULTS.pad_favorites,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -142,6 +167,13 @@ export const storage = {
 
   isReady: () => ready,
 
+  // Статус синхронизации с облаком + подписка (для индикатора в UI).
+  getSaveStatus: () => saveStatus,
+  subscribeSaveStatus(fn) {
+    statusListeners.add(fn);
+    return () => statusListeners.delete(fn);
+  },
+
   // Улюблені сцени (масив id)
   getFavorites: () => cache.favorites,
   setFavorites: (ids) => set('favorites', ids),
@@ -177,4 +209,12 @@ export const storage = {
   // Збережені сцени (масив наборів пэдів з осями фільтра)
   getScenes: () => cache.scenes || [],
   setScenes: (list) => set('scenes', list),
+
+  // Недавно запущені пэди — масив id, найновіший першим (макс 24).
+  getRecentPads: () => cache.recent_pads || [],
+  setRecentPads: (ids) => set('recent_pads', ids),
+
+  // Улюблені пэди — масив id.
+  getPadFavorites: () => cache.pad_favorites || [],
+  setPadFavorites: (ids) => set('pad_favorites', ids),
 };

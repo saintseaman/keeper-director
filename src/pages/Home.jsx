@@ -8,6 +8,7 @@ import PadDeck from '@/components/pad/PadDeck';
 import CategoryTabs from '@/components/pad/CategoryTabs';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
+import QuickAccessBar from '@/components/pad/QuickAccessBar';
 
 // Розбити масив звуків на сторінки по 9 пэдів.
 function paginate(list, size = 9) {
@@ -95,6 +96,9 @@ export default function Home() {
           </button>
         </div>
       </div>
+
+      {/* Полоса быстрого доступа: избранное + недавние */}
+      {customPads.length > 0 && <QuickAccessBar pads={customPads} />}
 
       {/* Вкладки категорий */}
       {customPads.length > 0 && (

@@ -14,6 +14,23 @@ class AudioEngine {
     // вытесняется самый старый. _seq — монотонный счётчик порядка запуска.
     this.maxVoices = 16;
     this._seq = 0;
+    // Кэш згенерованих буферів шуму за ключем `${type}:${duration}`.
+    // Шум статистично однаковий від запуску до запуску, тож пере생енерація
+    // на кожен play() — марна трата CPU у момент старту (а старт має
+    // бути миттєвим). Буфери імутабельні й можуть переюзатись багатьма source.
+    this._noiseCache = new Map();
+  }
+
+  _cachedNoise(type, duration) {
+    const key = `${type}:${duration}`;
+    let buf = this._noiseCache.get(key);
+    if (!buf) {
+      if (type === 'white') buf = this._whiteNoise(duration);
+      else if (type === 'pink') buf = this._pinkNoise(duration);
+      else buf = this._brownNoise(duration);
+      this._noiseCache.set(key, buf);
+    }
+    return buf;
   }
 
   // C3: если активных лупов >= лимита, останавливаем самый ранний запущенный.
@@ -121,9 +138,7 @@ class AudioEngine {
     const noise = (type, dur) => {
       const src = ctx.createBufferSource();
       src.loop = true;
-      if (type==='white') src.buffer = this._whiteNoise(dur||3);
-      else if (type==='pink') src.buffer = this._pinkNoise(dur||3);
-      else src.buffer = this._brownNoise(dur||3);
+      src.buffer = this._cachedNoise(type, dur || 3);
       return src;
     };
     const lfo = (freq, amount, target) => {
@@ -1025,6 +1040,26 @@ class AudioEngine {
     return { sourceNode: src2, gainNode, extraNodes: [lp2] };
   }
 
+  // Предзагрузка файла в кэш браузера, чтобы первый запуск был мгновенным.
+  // Держим скрытый <audio preload="auto"> по url; повторные вызовы — no-op.
+  preloadFile(url) {
+    if (!url) return;
+    if (!this._preloaded) this._preloaded = new Map();
+    if (this._preloaded.has(url)) return;
+    const el = new Audio();
+    el.preload = 'auto';
+    el.src = url;
+    try { el.load(); } catch (e) {}
+    this._preloaded.set(url, el);
+    // Ограничиваем кэш предзагрузки, чтобы не плодить элементы без меры.
+    if (this._preloaded.size > 32) {
+      const firstKey = this._preloaded.keys().next().value;
+      const old = this._preloaded.get(firstKey);
+      try { old.src = ''; old.load(); } catch (e) {}
+      this._preloaded.delete(firstKey);
+    }
+  }
+
   // ── Воспроизведение загруженного аудиофайла (MP3) ──
   // Используем <audio> + MediaElementSource → masterGain. Проще и надёжнее,
   // чем декодировать в буфер, и работает потоково для длинных файлов.
@@ -1141,8 +1176,7 @@ class AudioEngine {
       try { source.stop(); } catch (e) {}
       try { if (lfo) lfo.stop(); } catch (e) {}
       extraNodes.forEach(n => { try { if (n.stop) n.stop(); } catch (e) {} });
-      // Полностью освобождаем граф (и для файловых лупов — сам <audio>).
-      if (mediaEl) { try { mediaEl.pause(); mediaEl.src = ''; mediaEl.load(); } catch (e) {} }
+      // Полностью освобождаем граф (файлы обработаны выше и сюда не доходят).
       try { gainNode.disconnect(); } catch (e) {}
       this.activeSounds.delete(soundId);
       this._notify();

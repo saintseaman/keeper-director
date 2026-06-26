@@ -7,6 +7,7 @@ import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
 import { useLang } from '@/lib/LangContext';
 import { localizedSoundTitle } from '@/lib/contentI18n';
+import { recordRecentPad } from '@/lib/usePadLibrary';
 import PadEditDialog from './PadEditDialog';
 
 const LONG_PRESS_MS = 500;
@@ -54,6 +55,7 @@ export default function Pad({ sound, index, onRemoveCustom }) {
       stop(sound.id, 0);
       return;
     }
+    recordRecentPad(sound.id); // запоминаем запуск для «Недавних»
     if (fileUrl) {
       // У пэда свой MP3 (загруженный или импортированный из Drive).
       if (isOneShot) {
@@ -132,6 +134,8 @@ export default function Pad({ sound, index, onRemoveCustom }) {
           src={bgImage}
           alt=""
           aria-hidden="true"
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
         {/* Затемнение для читаемости текста */}

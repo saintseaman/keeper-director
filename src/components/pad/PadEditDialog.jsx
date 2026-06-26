@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, Trash2, Music, Loader2, Play, HardDrive, RotateCcw, Repeat, Zap } from 'lucide-react';
+import { Upload, Trash2, Music, Loader2, Play, HardDrive, RotateCcw, Repeat, Zap, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Slider } from '@/components/ui/slider';
 import { base44 } from '@/api/base44Client';
 import { usePadFiles } from '@/lib/usePadFiles';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
+import { usePadLibrary } from '@/lib/usePadLibrary';
 import { audioEngine } from '@/lib/audioEngine';
 import DriveImportDialog from './DriveImportDialog';
 import IconPicker from './IconPicker';
@@ -15,6 +16,7 @@ import PadAxesEditor from '@/components/scene/PadAxesEditor';
 export default function PadEditDialog({ sound, open, onClose, onRemove }) {
   const { getFile, setFile, removeFile } = usePadFiles();
   const { getOverride, setOverride, resetOverride } = useSoundOverrides();
+  const { isFavorite, toggleFavorite } = usePadLibrary();
   const inputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -72,9 +74,18 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
         <DialogHeader>
           <DialogTitle className="font-mono tracking-wider text-sm text-white/80 uppercase flex items-center justify-between gap-2">
             <span className="truncate">Пэд · {title}</span>
-            <button onClick={handlePreview} className="shrink-0 text-white/50 hover:text-orange-400 transition-colors" title="Прослушать">
-              <Play size={16} />
-            </button>
+            <span className="shrink-0 flex items-center gap-3">
+              <button
+                onClick={() => toggleFavorite(sound.id)}
+                className={`transition-colors ${isFavorite(sound.id) ? 'text-orange-400' : 'text-white/40 hover:text-orange-400'}`}
+                title="В избранное"
+              >
+                <Star size={16} className={isFavorite(sound.id) ? 'fill-orange-400' : ''} />
+              </button>
+              <button onClick={handlePreview} className="text-white/50 hover:text-orange-400 transition-colors" title="Прослушать">
+                <Play size={16} />
+              </button>
+            </span>
           </DialogTitle>
         </DialogHeader>
 

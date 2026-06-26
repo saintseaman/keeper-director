@@ -12,6 +12,10 @@ const CATEGORY_IMAGES = {
 };
 
 // Фон по категории звука. Фолбэк — atmosphere.
-export function getCategoryImage(category) {
-  return CATEGORY_IMAGES[category] || CATEGORY_IMAGES.atmosphere;
+// width — целевая ширина для CDN-ресайза (пэд на экране ~150–220px,
+// с учётом retina берём 320px по умолчанию). Это кратно уменьшает вес
+// картинки и отдаёт webp вместо тяжёлого PNG, не трогая исходники.
+export function getCategoryImage(category, width = 320) {
+  const base = CATEGORY_IMAGES[category] || CATEGORY_IMAGES.atmosphere;
+  return `${base}?width=${width}&format=webp`;
 }
