@@ -26,6 +26,8 @@ const DEFAULTS = {
   sound_overrides: {},
   pad_files: {},
   custom_pads: [],
+  custom_axis_values: {},
+  removed_axis_values: {},
   scenes: [],
   migrated_from_local: false,
 };
@@ -96,6 +98,8 @@ export const storage = {
           sound_overrides: r.sound_overrides ?? DEFAULTS.sound_overrides,
           pad_files: r.pad_files ?? DEFAULTS.pad_files,
           custom_pads: r.custom_pads ?? DEFAULTS.custom_pads,
+          custom_axis_values: r.custom_axis_values ?? DEFAULTS.custom_axis_values,
+          removed_axis_values: r.removed_axis_values ?? DEFAULTS.removed_axis_values,
           scenes: r.scenes ?? DEFAULTS.scenes,
           migrated_from_local: !!r.migrated_from_local,
         };
@@ -161,6 +165,14 @@ export const storage = {
   // Власні пэди, імпортовані з Google Диска (масив звуків з url)
   getCustomPads: () => cache.custom_pads || [],
   setCustomPads: (list) => set('custom_pads', list),
+
+  // Користувацькі сегменти колеса: { [axisId]: [{ id, label, icon, kw }] }
+  getCustomAxisValues: () => cache.custom_axis_values || {},
+  setCustomAxisValues: (map) => set('custom_axis_values', map),
+
+  // Прибрані вбудовані сегменти: { [axisId]: [ids] }
+  getRemovedAxisValues: () => cache.removed_axis_values || {},
+  setRemovedAxisValues: (map) => set('removed_axis_values', map),
 
   // Збережені сцени (масив наборів пэдів з осями фільтра)
   getScenes: () => cache.scenes || [],

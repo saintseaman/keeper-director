@@ -12,7 +12,18 @@ import {
   Compass, Swords, MessageCircle, Footprints, Hexagon, Coffee,
   CloudRain, Sun, CloudLightning, Moon, CloudFog,
   Smile, Flame, Ghost, HelpCircle,
+  BookOpen, Eye, Microscope, Ship, Library, Brain,
+  Anchor, Fish, Pentagon, Tornado, Snowflake, Star,
 } from 'lucide-react';
+
+// Иконки, доступные для пользовательских сегментов (имя → компонент).
+export const AXIS_ICON_CHOICES = {
+  Skull, Ghost, Eye, Brain, Star, Pentagon, Hexagon, Flame,
+  Building2, Home, Trees, Mountain, Waves, Anchor, Ship, Fish,
+  Landmark, Library, BookOpen, Microscope, Compass, Swords,
+  MessageCircle, Footprints, Coffee, Beer, CloudRain, CloudLightning,
+  CloudFog, Moon, Sun, Snowflake, Tornado, Smile, HelpCircle,
+};
 
 // Каждая ось: id, label, иконка-«заголовок», и список значений.
 // value.kw — ключевые слова (EN + RU/UA) для авто-определения по названию.
@@ -29,6 +40,11 @@ export const SCENE_AXES = [
       { id: 'dungeon', label: 'Подземелье', icon: Mountain, kw: ['dungeon', 'cave', 'crypt', 'tomb', 'cellar', 'basement', 'underground', 'подземель', 'пещер', 'склеп', 'подвал'] },
       { id: 'sea', label: 'Море', icon: Waves, kw: ['sea', 'ocean', 'ship', 'harbor', 'dock', 'beach', 'море', 'океан', 'корабл', 'порт', 'пляж'] },
       { id: 'temple', label: 'Храм', icon: Landmark, kw: ['church', 'temple', 'cathedral', 'shrine', 'церков', 'храм', 'собор'] },
+      { id: 'asylum', label: 'Лечебница', icon: Brain, kw: ['asylum', 'sanatorium', 'hospital', 'madhouse', 'лечебниц', 'психиатр', 'больниц', 'санатор'] },
+      { id: 'library', label: 'Библиотека', icon: Library, kw: ['library', 'archive', 'study', 'arkham', 'miskatonic', 'библиотек', 'архив', 'кабинет'] },
+      { id: 'university', label: 'Университет', icon: BookOpen, kw: ['university', 'college', 'academy', 'miskatonic', 'университет', 'академ', 'колледж'] },
+      { id: 'ruins', label: 'Руины', icon: Pentagon, kw: ['ruins', 'rlyeh', 'cyclopean', 'ancient city', 'руин', 'рльех', 'развалин', 'древн'] },
+      { id: 'ship_deck', label: 'Корабль', icon: Ship, kw: ['ship', 'vessel', 'boat', 'deck', 'корабл', 'судно', 'палуб'] },
     ],
   },
   {
@@ -42,6 +58,10 @@ export const SCENE_AXES = [
       { id: 'travel', label: 'Путешествие', icon: Footprints, kw: ['travel', 'journey', 'road', 'walk', 'march', 'путешеств', 'дорог', 'поход', 'марш'] },
       { id: 'ritual', label: 'Ритуал', icon: Hexagon, kw: ['ritual', 'summon', 'spell', 'incantation', 'sacrifice', 'chant', 'ритуал', 'призыв', 'закл', 'жертв'] },
       { id: 'rest', label: 'Отдых', icon: Coffee, kw: ['rest', 'calm', 'peace', 'sleep', 'camp', 'отдых', 'покой', 'привал', 'лагерь', 'сон'] },
+      { id: 'investigate', label: 'Расследование', icon: Eye, kw: ['investigate', 'clue', 'search', 'detective', 'расследов', 'улик', 'поиск', 'обыск'] },
+      { id: 'research', label: 'Исследование тайн', icon: Microscope, kw: ['research', 'lore', 'tome', 'study', 'occult', 'исследован тайн', 'фолиант', 'оккульт', 'манускрипт'] },
+      { id: 'sanity', label: 'Безумие', icon: Brain, kw: ['sanity', 'madness', 'insanity', 'panic', 'безуми', 'рассудок', 'паник', 'помешат'] },
+      { id: 'summon', label: 'Призыв', icon: Star, kw: ['summon', 'awaken', 'great old one', 'cthulhu', 'призыв', 'пробужд', 'ктулху', 'древн'] },
     ],
   },
   {
@@ -54,6 +74,9 @@ export const SCENE_AXES = [
       { id: 'storm', label: 'Гроза', icon: CloudLightning, kw: ['storm', 'thunder', 'lightning', 'гроза', 'гром', 'буря', 'молни'] },
       { id: 'night', label: 'Ночь', icon: Moon, kw: ['night', 'dark', 'moon', 'ночь', 'ноч', 'тьма', 'лун'] },
       { id: 'fog', label: 'Туман', icon: CloudFog, kw: ['fog', 'mist', 'wind', 'туман', 'мгл', 'ветер', 'вітер'] },
+      { id: 'underwater', label: 'Под водой', icon: Fish, kw: ['underwater', 'deep', 'abyss', 'submerged', 'под вод', 'глубин', 'бездн', 'затоплен'] },
+      { id: 'cosmic', label: 'Космос', icon: Star, kw: ['cosmic', 'void', 'stars', 'space', 'космос', 'пустот', 'звёзд', 'звезд', 'бездн'] },
+      { id: 'snow', label: 'Снег', icon: Snowflake, kw: ['snow', 'blizzard', 'ice', 'arctic', 'снег', 'метел', 'лёд', 'лед', 'арктик'] },
     ],
   },
   {
@@ -77,10 +100,28 @@ export const AXIS_CHIP_CLASS = {
   rose:    { on: 'bg-rose-500/25 border-rose-400/70 text-rose-100',       off: 'border-white/10 text-rose-300/50 hover:border-rose-400/40' },
 };
 
-// Быстрый доступ к значению оси по id.
+// Реестр пользовательских сегментов { [axisId]: [{ id, label, icon, kw }] }.
+// useAxes держит его в синхроне со storage, чтобы axisValue() резолвил и кастомные.
+let customRegistry = {};
+export function setCustomRegistry(map) {
+  customRegistry = map || {};
+}
+
+// Резолвер иконки: built-in хранят компонент, кастомные — имя (строку) Lucide.
+export function resolveAxisIcon(icon) {
+  if (!icon) return HelpCircle;
+  if (typeof icon !== 'string') return icon; // уже компонент
+  return AXIS_ICON_CHOICES[icon] || HelpCircle;
+}
+
+// Быстрый доступ к значению оси по id (built-in + кастомные).
 export function axisValue(axisId, valueId) {
   const axis = SCENE_AXES.find((a) => a.id === axisId);
-  return axis?.values.find((v) => v.id === valueId) || null;
+  const builtIn = axis?.values.find((v) => v.id === valueId);
+  if (builtIn) return builtIn;
+  const custom = (customRegistry[axisId] || []).find((v) => v.id === valueId);
+  if (custom) return { ...custom, icon: resolveAxisIcon(custom.icon) };
+  return null;
 }
 
 // Авто-определение тегов пэда по его названию (+ старая category как подсказка).
@@ -89,8 +130,9 @@ export function autoAxes(pad) {
   const text = `${pad?.title || ''} ${pad?.category || ''}`.toLowerCase();
   const result = {};
   for (const axis of SCENE_AXES) {
-    const hits = axis.values
-      .filter((v) => v.kw.some((k) => text.includes(k)))
+    const all = [...axis.values, ...(customRegistry[axis.id] || [])];
+    const hits = all
+      .filter((v) => (v.kw || []).some((k) => text.includes(k)))
       .map((v) => v.id);
     if (hits.length) result[axis.id] = hits;
   }

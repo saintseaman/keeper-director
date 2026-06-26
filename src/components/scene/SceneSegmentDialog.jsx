@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Check, Pencil, Trash2, Plus, Music } from 'lucide-react';
+import { Check, Pencil, Trash2, Plus, Music, XCircle } from 'lucide-react';
 import { axisValue, padAxes } from '@/lib/sceneAxes';
 import { segmentBg } from '@/lib/segmentBackgrounds';
 import { audioEngine } from '@/lib/audioEngine';
@@ -20,6 +20,7 @@ export default function SceneSegmentDialog({
   updatePad,
   removePad,
   setOverride,
+  onRemoveSegment,
 }) {
   const [driveOpen, setDriveOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -130,6 +131,16 @@ export default function SceneSegmentDialog({
                 ))
               )}
             </div>
+
+            {onRemoveSegment && (
+              <button
+                onClick={() => { onRemoveSegment(axisId, valueId); onClose(); }}
+                className="w-full flex items-center justify-center gap-2 rounded-lg border border-rose-500/30 px-3 py-2 text-[11px] font-mono tracking-wider text-rose-300/80 hover:bg-rose-500/10 hover:text-rose-300 transition-colors"
+              >
+                <XCircle size={14} />
+                УДАЛИТЬ СЕГМЕНТ С КОЛЕСА
+              </button>
+            )}
           </div>
         </DialogContent>
       </Dialog>

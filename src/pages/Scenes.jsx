@@ -6,12 +6,14 @@ import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
 import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
+import { useAxes } from '@/lib/useAxes';
 import { audioEngine } from '@/lib/audioEngine';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
 import SavedScenes from '@/components/scene/SavedScenes';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
+import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
@@ -20,11 +22,13 @@ export default function Scenes() {
   const { overrides, setOverride } = useSoundOverrides();
   const { scenes, addScene, removeScene } = useScenes();
   const { activeSounds, stopAll } = useAudio();
+  const { axes, addValue, removeValue } = useAxes();
   const { toast } = useToast();
 
   const [selection, setSelection] = useState(EMPTY);
   const [name, setName] = useState('');
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
+  const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
@@ -108,11 +112,13 @@ export default function Scenes() {
               </div>
 
               <SceneWheel
+                axes={axes}
                 selection={selection}
                 onSelect={onSelect}
                 onPlay={playMatches}
                 matchCount={matches.length}
                 onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
+                onAddSegment={(axisId) => setAddAxis(axisId)}
               />
 
               <div className="mt-2">

@@ -54,6 +54,16 @@
       "default": [],
       "description": "Custom pads imported from Google Drive (each is a playable sound)"
     },
+    "custom_axis_values": {
+      "type": "object",
+      "default": {},
+      "description": "User-added wheel segments keyed by axis id: { location: [{id,label,icon,kw}], action: [...], weather: [...] }"
+    },
+    "removed_axis_values": {
+      "type": "object",
+      "default": {},
+      "description": "Built-in wheel segment ids the user removed, keyed by axis id: { location: [ids], ... }"
+    },
     "scenes": {
       "type": "array",
       "items": {

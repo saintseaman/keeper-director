@@ -1,27 +1,33 @@
 import React, { useRef } from 'react';
-import { SCENE_AXES } from '@/lib/sceneAxes';
+import { motion } from 'framer-motion';
 import { segmentBg } from '@/lib/segmentBackgrounds';
 
 const LONG_PRESS_MS = 450;
 
-// Радиальное «колесо атмосферы» в стиле TableTone.
-// Внешнее кольцо — локации, внутреннее — действия, центр — кнопка запуска.
-// selection = { location, action, ... }; onSelect(axisId, valueId|null).
+// Радиальное «колесо атмосферы».
+// Три кольца: локации (внешнее) → действия (среднее) → погода (внутреннее),
+// центр — кнопка запуска. Сегменты органично перестраиваются (framer-motion)
+// при добавлении/удалении. selection = { location, action, weather, ... }.
 
-const SIZE = 320;
-const C = SIZE / 2; // центр
-const R_OUTER = 156; // внешний радиус кольца локаций
-const R_MID = 96; // граница локации / действия
-const R_INNER = 54; // внутренний радиус кольца действий (начало центра)
-const R_HUB = 30; // радиус центральной кнопки
+const SIZE = 340;
+const C = SIZE / 2;
+const R_OUTER = 166;
+const R_R2 = 118; // граница локация / действие
+const R_R3 = 76; // граница действие / погода
+const R_INNER = 40; // внутренний радиус кольца погоды
+const R_HUB = 34;
 
-// Полярные → декартовы координаты (0° сверху, по часовой).
+const RING_DEFS = {
+  location: { r1: R_R2, r2: R_OUTER, fontSize: 11, accent: '#60a5fa', glow: 'rgba(96,165,250,0.55)' },
+  action: { r1: R_R3, r2: R_R2, fontSize: 10, accent: '#34d399', glow: 'rgba(52,211,153,0.55)' },
+  weather: { r1: R_INNER, r2: R_R3, fontSize: 9, accent: '#a78bfa', glow: 'rgba(167,139,250,0.55)' },
+};
+
 function polar(cx, cy, r, deg) {
   const rad = ((deg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-// Path сектора-«кольца» между r1 и r2 от startDeg до endDeg.
 function sectorPath(r1, r2, startDeg, endDeg) {
   const p1 = polar(C, C, r2, startDeg);
   const p2 = polar(C, C, r2, endDeg);
@@ -37,9 +43,7 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-// Дуга для текста вдоль сектора (на среднем радиусе).
-// Для нижней половины колеса разворачиваем дугу, чтобы текст не шёл вверх ногами.
-function textArcPath(r, startDeg, endDeg, id) {
+function textArcPath(r, startDeg, endDeg) {
   const mid = (startDeg + endDeg) / 2;
   const flip = mid > 90 && mid < 270;
   const a = flip ? endDeg : startDeg;
@@ -50,138 +54,211 @@ function textArcPath(r, startDeg, endDeg, id) {
   return `M ${p1.x} ${p1.y} A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`;
 }
 
-function Ring({ values, selectedId, onSelect, onLongPress, axisId, r1, r2, fontSize, accent }) {
-  const n = values.length;
-  const step = 360 / n;
-  const rText = (r1 + r2) / 2;
+const spring = { type: 'spring', stiffness: 220, damping: 26 };
+
+// Один сегмент кольца. Анимирует свой путь при перестроении набора.
+function Segment({ axisId, value, start, end, r1, r2, rText, fontSize, accent, glow, active, onClick, onLongPress }) {
+  const Icon = value.icon;
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
+  const arcId = `arc-${axisId}-${value.id}`;
+  const clipId = `clip-${axisId}-${value.id}`;
+  const bg = segmentBg(value.id);
+  const path = sectorPath(r1, r2, start + 1.4, end - 1.4);
+  const showLabel = end - start > 16; // прячем подпись на совсем узких
 
-  const startPress = (valueId) => {
+  const startPress = () => {
     longFiredRef.current = false;
     timerRef.current = setTimeout(() => {
       longFiredRef.current = true;
       if (navigator.vibrate) navigator.vibrate(15);
-      onLongPress?.(axisId, valueId);
+      onLongPress?.(axisId, value.id);
     }, LONG_PRESS_MS);
   };
-  const endPress = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-  };
-  const handleClick = (valueId, active) => {
+  const endPress = () => timerRef.current && clearTimeout(timerRef.current);
+  const handleClick = () => {
     if (longFiredRef.current) { longFiredRef.current = false; return; }
-    onSelect(axisId, active ? null : valueId);
+    onClick(active ? null : value.id);
   };
+
+  // Точка для иконки: на середине сектора, ближе к внешнему краю.
+  const iconPos = polar(C, C, r2 - (r2 - r1) * 0.32, (start + end) / 2);
+
+  return (
+    <g
+      onClick={handleClick}
+      onPointerDown={startPress}
+      onPointerUp={endPress}
+      onPointerLeave={endPress}
+      onPointerCancel={endPress}
+      onContextMenu={(e) => { e.preventDefault(); onLongPress?.(axisId, value.id); }}
+      className="cursor-pointer select-none"
+    >
+      <clipPath id={clipId}>
+        <motion.path animate={{ d: path }} transition={spring} d={path} />
+      </clipPath>
+
+      {/* Базовая заливка */}
+      <motion.path
+        animate={{ d: path }}
+        transition={spring}
+        d={path}
+        fill="rgba(255,255,255,0.03)"
+      />
+      {/* Фон сегмента */}
+      {bg && (
+        <image
+          href={bg}
+          x={C - r2}
+          y={C - r2}
+          width={r2 * 2}
+          height={r2 * 2}
+          preserveAspectRatio="xMidYMid slice"
+          clipPath={`url(#${clipId})`}
+          opacity={active ? 1 : 0.42}
+          className="transition-opacity duration-300 pointer-events-none"
+        />
+      )}
+      {/* Тонировка / подсветка активного */}
+      <motion.path
+        animate={{ d: path, fill: active ? glow : 'rgba(0,0,0,0.42)' }}
+        transition={spring}
+        d={path}
+        stroke={active ? '#ffffff' : 'rgba(255,255,255,0.07)'}
+        strokeWidth={active ? 1.6 : 1}
+        style={{ filter: active ? `drop-shadow(0 0 8px ${glow})` : 'none' }}
+        className="pointer-events-none"
+      />
+
+      {/* Иконка */}
+      <g transform={`translate(${iconPos.x - 7}, ${iconPos.y - 7})`} className="pointer-events-none">
+        <Icon size={14} color={active ? '#fff' : 'rgba(255,255,255,0.85)'} strokeWidth={2} />
+      </g>
+
+      {/* Подпись по дуге */}
+      {showLabel && (
+        <>
+          <path id={arcId} d={textArcPath(rText, start, end)} fill="none" />
+          <text
+            fontSize={fontSize}
+            fill={active ? '#fff' : 'rgba(255,255,255,0.9)'}
+            className="pointer-events-none select-none"
+            style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.75)', strokeWidth: 3, fontWeight: 600, letterSpacing: '0.02em' }}
+          >
+            <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
+              {value.label}
+            </textPath>
+          </text>
+        </>
+      )}
+    </g>
+  );
+}
+
+// Кнопка-сегмент «+» в конце кольца — добавить новый сегмент.
+function AddSegment({ axisId, start, end, r1, r2, accent, onAdd }) {
+  const path = sectorPath(r1, r2, start + 1.4, end - 1.4);
+  const pos = polar(C, C, (r1 + r2) / 2, (start + end) / 2);
+  return (
+    <g onClick={() => onAdd(axisId)} className="cursor-pointer select-none">
+      <motion.path
+        animate={{ d: path }}
+        transition={spring}
+        d={path}
+        fill="rgba(255,255,255,0.05)"
+        stroke="rgba(255,255,255,0.18)"
+        strokeWidth={1}
+        strokeDasharray="3 3"
+      />
+      <g transform={`translate(${pos.x}, ${pos.y})`} className="pointer-events-none">
+        <line x1={-6} y1={0} x2={6} y2={0} stroke={accent} strokeWidth={2} strokeLinecap="round" />
+        <line x1={0} y1={-6} x2={0} y2={6} stroke={accent} strokeWidth={2} strokeLinecap="round" />
+      </g>
+    </g>
+  );
+}
+
+function Ring({ axisId, values, selectedId, onSelect, onLongPress, onAdd }) {
+  const def = RING_DEFS[axisId];
+  const slots = values.length + 1; // +1 под кнопку «добавить»
+  const step = 360 / slots;
+  const rText = (def.r1 + def.r2) / 2;
 
   return (
     <g>
       {values.map((v, i) => {
         const start = i * step;
-        const end = start + step;
-        const active = selectedId === v.id;
-        const arcId = `arc-${axisId}-${v.id}`;
-        const clipId = `clip-${axisId}-${v.id}`;
-        const bg = segmentBg(v.id);
         return (
-          <g
+          <Segment
             key={v.id}
-            onClick={() => handleClick(v.id, active)}
-            onPointerDown={() => startPress(v.id)}
-            onPointerUp={endPress}
-            onPointerLeave={endPress}
-            onPointerCancel={endPress}
-            onContextMenu={(e) => { e.preventDefault(); onLongPress?.(axisId, v.id); }}
-            className="cursor-pointer select-none"
-          >
-            <clipPath id={clipId}>
-              <path d={sectorPath(r1, r2, start + 1.2, end - 1.2)} />
-            </clipPath>
-            <path
-              d={sectorPath(r1, r2, start + 1.2, end - 1.2)}
-              fill="rgba(255,255,255,0.04)"
-              stroke={active ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)'}
-              strokeWidth={1}
-            />
-            {bg && (
-              <image
-                href={bg}
-                x={C - r2}
-                y={C - r2}
-                width={r2 * 2}
-                height={r2 * 2}
-                preserveAspectRatio="xMidYMid slice"
-                clipPath={`url(#${clipId})`}
-                opacity={active ? 0.95 : 0.5}
-                className="transition-opacity duration-200 pointer-events-none"
-              />
-            )}
-            <path
-              d={sectorPath(r1, r2, start + 1.2, end - 1.2)}
-              fill={active ? accent : 'rgba(0,0,0,0.35)'}
-              stroke={active ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)'}
-              strokeWidth={1}
-              className="transition-all duration-200 pointer-events-none"
-            />
-            <path id={arcId} d={textArcPath(rText, start, end, arcId)} fill="none" />
-            <text
-              fontSize={fontSize}
-              fill="#fff"
-              className="pointer-events-none select-none font-medium"
-              style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.6)', strokeWidth: 2.5 }}
-            >
-              <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
-                {v.label}
-              </textPath>
-            </text>
-          </g>
+            axisId={axisId}
+            value={v}
+            start={start}
+            end={start + step}
+            r1={def.r1}
+            r2={def.r2}
+            rText={rText}
+            fontSize={def.fontSize}
+            accent={def.accent}
+            glow={def.glow}
+            active={selectedId === v.id}
+            onClick={(id) => onSelect(axisId, id)}
+            onLongPress={onLongPress}
+          />
         );
       })}
+      <AddSegment
+        axisId={axisId}
+        start={values.length * step}
+        end={slots * step}
+        r1={def.r1}
+        r2={def.r2}
+        accent={def.accent}
+        onAdd={onAdd}
+      />
     </g>
   );
 }
 
-export default function SceneWheel({ selection, onSelect, onPlay, matchCount, onSegmentLongPress }) {
-  const locationAxis = SCENE_AXES.find((a) => a.id === 'location');
-  const actionAxis = SCENE_AXES.find((a) => a.id === 'action');
+export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCount, onSegmentLongPress, onAddSegment }) {
+  const ringOrder = ['location', 'action', 'weather'];
 
   return (
     <div className="flex justify-center">
-      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} className="max-w-[360px]">
+      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} className="max-w-[380px]">
         <defs>
           <radialGradient id="wheelGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(168,85,247,0.25)" />
-            <stop offset="100%" stopColor="rgba(168,85,247,0)" />
+            <stop offset="0%" stopColor="rgba(167,139,250,0.28)" />
+            <stop offset="70%" stopColor="rgba(96,165,250,0.08)" />
+            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+          </radialGradient>
+          <radialGradient id="hubGrad" cx="50%" cy="40%" r="70%">
+            <stop offset="0%" stopColor="#1f1f26" />
+            <stop offset="100%" stopColor="#0c0c10" />
           </radialGradient>
         </defs>
 
         {/* Подсветка под колесом */}
-        <circle cx={C} cy={C} r={R_OUTER} fill="url(#wheelGlow)" />
+        <circle cx={C} cy={C} r={R_OUTER + 6} fill="url(#wheelGlow)" />
+        {/* Декоративные обручи */}
+        <circle cx={C} cy={C} r={R_OUTER + 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+        <circle cx={C} cy={C} r={R_INNER - 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
 
-        {/* Внешнее кольцо — локации */}
-        <Ring
-          values={locationAxis.values}
-          selectedId={selection.location}
-          onSelect={onSelect}
-          onLongPress={onSegmentLongPress}
-          axisId="location"
-          r1={R_MID}
-          r2={R_OUTER}
-          fontSize={11}
-          accent="rgba(96,165,250,0.45)"
-        />
-
-        {/* Внутреннее кольцо — действия */}
-        <Ring
-          values={actionAxis.values}
-          selectedId={selection.action}
-          onSelect={onSelect}
-          onLongPress={onSegmentLongPress}
-          axisId="action"
-          r1={R_INNER}
-          r2={R_MID}
-          fontSize={10}
-          accent="rgba(52,211,153,0.45)"
-        />
+        {ringOrder.map((axisId) => {
+          const axis = axes.find((a) => a.id === axisId);
+          if (!axis) return null;
+          return (
+            <Ring
+              key={axisId}
+              axisId={axisId}
+              values={axis.values}
+              selectedId={selection[axisId]}
+              onSelect={onSelect}
+              onLongPress={onSegmentLongPress}
+              onAdd={onAddSegment}
+            />
+          );
+        })}
 
         {/* Центральная кнопка запуска */}
         <g onClick={onPlay} className="cursor-pointer">
@@ -189,16 +266,29 @@ export default function SceneWheel({ selection, onSelect, onPlay, matchCount, on
             cx={C}
             cy={C}
             r={R_HUB}
-            fill="rgba(20,20,24,0.95)"
-            stroke={matchCount > 0 ? 'rgba(249,115,22,0.7)' : 'rgba(255,255,255,0.15)'}
+            fill="url(#hubGrad)"
+            stroke={matchCount > 0 ? 'rgba(249,115,22,0.85)' : 'rgba(255,255,255,0.18)'}
             strokeWidth={2}
+            style={{ filter: matchCount > 0 ? 'drop-shadow(0 0 10px rgba(249,115,22,0.45))' : 'none' }}
             className="transition-all"
           />
           <path
-            d={`M ${C - 7} ${C - 11} L ${C + 12} ${C} L ${C - 7} ${C + 11} Z`}
-            fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.3)'}
+            d={`M ${C - 8} ${C - 12} L ${C + 13} ${C} L ${C - 8} ${C + 12} Z`}
+            fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.35)'}
             className="transition-all"
           />
+          {matchCount > 0 && (
+            <text
+              x={C}
+              y={C + 26}
+              fontSize={9}
+              fill="#fb923c"
+              textAnchor="middle"
+              className="font-mono pointer-events-none"
+            >
+              {matchCount}
+            </text>
+          )}
         </g>
       </svg>
     </div>
