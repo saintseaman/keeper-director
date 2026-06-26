@@ -11,18 +11,20 @@ import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
 import SavedScenes from '@/components/scene/SavedScenes';
+import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
 export default function Scenes() {
-  const { pads, removePad } = useCustomPads();
-  const { overrides } = useSoundOverrides();
+  const { pads, addPads, updatePad, removePad } = useCustomPads();
+  const { overrides, setOverride } = useSoundOverrides();
   const { scenes, addScene, removeScene } = useScenes();
   const { activeSounds, stopAll } = useAudio();
   const { toast } = useToast();
 
   const [selection, setSelection] = useState(EMPTY);
   const [name, setName] = useState('');
+  const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
@@ -110,6 +112,7 @@ export default function Scenes() {
                 onSelect={onSelect}
                 onPlay={playMatches}
                 matchCount={matches.length}
+                onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
               />
 
               <div className="mt-2">
@@ -175,6 +178,19 @@ export default function Scenes() {
           </>
         )}
       </div>
+
+      <SceneSegmentDialog
+        axisId={segment?.axisId}
+        valueId={segment?.valueId}
+        open={!!segment}
+        onClose={() => setSegment(null)}
+        pads={pads}
+        overrides={overrides}
+        addPads={addPads}
+        updatePad={updatePad}
+        removePad={removePad}
+        setOverride={setOverride}
+      />
     </div>
   );
 }

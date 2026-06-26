@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { SCENE_AXES } from '@/lib/sceneAxes';
+import { segmentBg } from '@/lib/segmentBackgrounds';
+
+const LONG_PRESS_MS = 450;
 
 // Радиальное «колесо атмосферы» в стиле TableTone.
 // Внешнее кольцо — локации, внутреннее — действия, центр — кнопка запуска.
@@ -47,10 +50,29 @@ function textArcPath(r, startDeg, endDeg, id) {
   return `M ${p1.x} ${p1.y} A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`;
 }
 
-function Ring({ values, selectedId, onSelect, axisId, r1, r2, fontSize, accent }) {
+function Ring({ values, selectedId, onSelect, onLongPress, axisId, r1, r2, fontSize, accent }) {
   const n = values.length;
   const step = 360 / n;
   const rText = (r1 + r2) / 2;
+  const timerRef = useRef(null);
+  const longFiredRef = useRef(false);
+
+  const startPress = (valueId) => {
+    longFiredRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longFiredRef.current = true;
+      if (navigator.vibrate) navigator.vibrate(15);
+      onLongPress?.(axisId, valueId);
+    }, LONG_PRESS_MS);
+  };
+  const endPress = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
+  const handleClick = (valueId, active) => {
+    if (longFiredRef.current) { longFiredRef.current = false; return; }
+    onSelect(axisId, active ? null : valueId);
+  };
+
   return (
     <g>
       {values.map((v, i) => {
@@ -58,20 +80,54 @@ function Ring({ values, selectedId, onSelect, axisId, r1, r2, fontSize, accent }
         const end = start + step;
         const active = selectedId === v.id;
         const arcId = `arc-${axisId}-${v.id}`;
+        const clipId = `clip-${axisId}-${v.id}`;
+        const bg = segmentBg(v.id);
         return (
-          <g key={v.id} onClick={() => onSelect(axisId, active ? null : v.id)} className="cursor-pointer">
+          <g
+            key={v.id}
+            onClick={() => handleClick(v.id, active)}
+            onPointerDown={() => startPress(v.id)}
+            onPointerUp={endPress}
+            onPointerLeave={endPress}
+            onPointerCancel={endPress}
+            onContextMenu={(e) => { e.preventDefault(); onLongPress?.(axisId, v.id); }}
+            className="cursor-pointer select-none"
+          >
+            <clipPath id={clipId}>
+              <path d={sectorPath(r1, r2, start + 1.2, end - 1.2)} />
+            </clipPath>
             <path
               d={sectorPath(r1, r2, start + 1.2, end - 1.2)}
-              fill={active ? accent : 'rgba(255,255,255,0.04)'}
-              stroke={active ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.08)'}
+              fill="rgba(255,255,255,0.04)"
+              stroke={active ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)'}
               strokeWidth={1}
-              className="transition-all duration-200"
+            />
+            {bg && (
+              <image
+                href={bg}
+                x={C - r2}
+                y={C - r2}
+                width={r2 * 2}
+                height={r2 * 2}
+                preserveAspectRatio="xMidYMid slice"
+                clipPath={`url(#${clipId})`}
+                opacity={active ? 0.95 : 0.5}
+                className="transition-opacity duration-200 pointer-events-none"
+              />
+            )}
+            <path
+              d={sectorPath(r1, r2, start + 1.2, end - 1.2)}
+              fill={active ? accent : 'rgba(0,0,0,0.35)'}
+              stroke={active ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.08)'}
+              strokeWidth={1}
+              className="transition-all duration-200 pointer-events-none"
             />
             <path id={arcId} d={textArcPath(rText, start, end, arcId)} fill="none" />
             <text
               fontSize={fontSize}
-              fill={active ? '#fff' : 'rgba(255,255,255,0.6)'}
+              fill="#fff"
               className="pointer-events-none select-none font-medium"
+              style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.6)', strokeWidth: 2.5 }}
             >
               <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
                 {v.label}
@@ -84,7 +140,7 @@ function Ring({ values, selectedId, onSelect, axisId, r1, r2, fontSize, accent }
   );
 }
 
-export default function SceneWheel({ selection, onSelect, onPlay, matchCount }) {
+export default function SceneWheel({ selection, onSelect, onPlay, matchCount, onSegmentLongPress }) {
   const locationAxis = SCENE_AXES.find((a) => a.id === 'location');
   const actionAxis = SCENE_AXES.find((a) => a.id === 'action');
 
@@ -106,6 +162,7 @@ export default function SceneWheel({ selection, onSelect, onPlay, matchCount }) 
           values={locationAxis.values}
           selectedId={selection.location}
           onSelect={onSelect}
+          onLongPress={onSegmentLongPress}
           axisId="location"
           r1={R_MID}
           r2={R_OUTER}
@@ -118,6 +175,7 @@ export default function SceneWheel({ selection, onSelect, onPlay, matchCount }) 
           values={actionAxis.values}
           selectedId={selection.action}
           onSelect={onSelect}
+          onLongPress={onSegmentLongPress}
           axisId="action"
           r1={R_INNER}
           r2={R_MID}

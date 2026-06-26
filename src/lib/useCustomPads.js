@@ -32,6 +32,14 @@ export function useCustomPads() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
+  // Оновити поля одного пэда (наприклад, перейменування).
+  const updatePad = useCallback((id, patch) => {
+    const next = storage.getCustomPads().map((p) => (p.id === id ? { ...p, ...patch } : p));
+    storage.setCustomPads(next);
+    setPads(next);
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
   const removePad = useCallback((id) => {
     const next = storage.getCustomPads().filter((p) => p.id !== id);
     storage.setCustomPads(next);
@@ -45,5 +53,5 @@ export function useCustomPads() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
-  return { pads, addPads, removePad, clearAll };
+  return { pads, addPads, updatePad, removePad, clearAll };
 }
