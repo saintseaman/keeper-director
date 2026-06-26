@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Layers, Sparkles, Play, Square, Save } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { useScenes } from '@/lib/useScenes';
@@ -18,6 +19,7 @@ export default function Scenes() {
   const { overrides } = useSoundOverrides();
   const { scenes, addScene, removeScene } = useScenes();
   const { activeSounds, stopAll } = useAudio();
+  const { toast } = useToast();
 
   const [selection, setSelection] = useState(EMPTY);
   const [name, setName] = useState('');
@@ -43,8 +45,17 @@ export default function Scenes() {
 
   // Запустить все подходящие пэды как микс.
   const playMatches = () => {
-    for (const pad of matches) {
-      if (!pad.url) continue;
+    const playable = matches.filter((p) => p.url);
+    if (playable.length === 0) {
+      toast({
+        title: hasFilter ? 'Нет звуков под этот выбор' : 'Сначала выберите сегменты',
+        description: hasFilter
+          ? 'У импортированных звуков не проставлены теги. Откройте звук (зажатие) и задайте локацию/действие.'
+          : 'Выберите локацию и действие на колесе.',
+      });
+      return;
+    }
+    for (const pad of playable) {
       const loop = pad.isLoopable !== false;
       if (loop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
       else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.8);
