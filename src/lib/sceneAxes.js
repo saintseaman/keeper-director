@@ -154,6 +154,12 @@ export function padAxes(pad, override) {
   return merged;
 }
 
+// Список осей, по которым у пэда НЕТ ни одного тега (ни ручного, ни авто).
+// Используется в панели «Теги» для подсветки звуков, которые надо доразметить.
+export function missingAxes(axes) {
+  return SCENE_AXES.filter((axis) => !(axes[axis.id] || []).length).map((axis) => axis.id);
+}
+
 // Подходит ли пэд под выбранный фильтр (по одному значению на ось, AND между осями).
 // selection = { location: 'city'|null, action: ..., ... }. Пустые оси игнорируются.
 export function padMatchesSelection(axes, selection) {

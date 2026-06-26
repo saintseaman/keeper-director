@@ -1,11 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Grid3x3, Search, Layers, Settings } from 'lucide-react';
+import { Grid3x3, Search, Layers, Tags, Settings } from 'lucide-react';
 
 const ITEMS = [
   { to: '/', label: 'Звуки', icon: Grid3x3, end: true },
   { to: '/search', label: 'Поиск', icon: Search },
   { to: '/scenes', label: 'Сцены', icon: Layers },
+  { to: '/tags', label: 'Теги', icon: Tags },
   { to: '/settings', label: 'Настройки', icon: Settings },
 ];
 

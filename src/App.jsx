@@ -15,6 +15,7 @@ import PadLayout from './components/pad/PadLayout';
 import Home from './pages/Home.jsx';
 import Search from './pages/Search';
 import Scenes from './pages/Scenes';
+import Tags from './pages/Tags';
 import Settings from './pages/Settings';
 
 const AuthenticatedApp = () => {
@@ -65,6 +66,7 @@ const PrefsGate = () => {
         <Route path="/" element={<Home />} />
         <Route path="/search" element={<Search />} />
         <Route path="/scenes" element={<Scenes />} />
+        <Route path="/tags" element={<Tags />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
