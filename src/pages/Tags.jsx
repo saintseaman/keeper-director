@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw } from 'lucide-react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
 import { useScaryFolderScan } from '@/lib/useScaryFolderScan';
+import { useSmartTag } from '@/lib/useSmartTag';
 import TagFixRow from '@/components/scene/TagFixRow';
 import BulkTagDialog from '@/components/scene/BulkTagDialog';
 import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
@@ -13,8 +14,9 @@ import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
 // и даёт доразметить прямо здесь — поштучно или массово (режим выделения).
 export default function Tags() {
   const { pads, removePad } = useCustomPads();
-  const { overrides, setOverride } = useSoundOverrides();
+  const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
   const scary = useScaryFolderScan();
+  const smart = useSmartTag(mergeOverrides);
   const [showDone, setShowDone] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -93,6 +95,17 @@ export default function Tags() {
               <CheckCircle2 size={12} /> {done.length}
             </span>
             <button
+              onClick={() => smart.run(pads)}
+              disabled={smart.running || pads.length === 0}
+              title="Умная разметка всех звуков через ИИ"
+              className="flex items-center gap-1 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2 py-1.5 text-violet-200 hover:bg-violet-500/20 hover:border-violet-400/50 disabled:opacity-50 transition-colors"
+            >
+              <Sparkles size={12} className={smart.running ? 'animate-pulse' : ''} />
+              {smart.running
+                ? (smart.progress ? `${smart.progress.done} / ${smart.progress.total}` : 'ИИ…')
+                : 'ИИ-ТЕГИ'}
+            </button>
+            <button
               onClick={scary.resync}
               disabled={scary.syncing}
               title="Синхронизировать с папкой Scary_sounds"
@@ -115,6 +128,19 @@ export default function Tags() {
             onImport={scary.importNew}
             onDismiss={scary.dismiss}
           />
+        )}
+
+        {!selectMode && smart.running && (
+          <div className="rounded-lg border border-violet-400/40 bg-violet-500/10 px-3 py-2 text-[12px] text-violet-200 flex items-center gap-2">
+            <Sparkles size={13} className="animate-pulse" />
+            ИИ размечает звуки…{smart.progress ? ` ${smart.progress.done} / ${smart.progress.total}` : ''}
+          </div>
+        )}
+
+        {!selectMode && !smart.running && smart.result && (
+          <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
+            ИИ-разметка завершена. Размечено звуков: {smart.result.tagged}
+          </div>
         )}
 
         {!selectMode && scary.lastSync && (

@@ -35,6 +35,18 @@ export function useSoundOverrides() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
+  // Массовое слияние правок: patches = { soundId: patch, ... } — один write.
+  const mergeOverrides = useCallback((patches) => {
+    const map = storage.getSoundOverrides();
+    const next = { ...map };
+    for (const [id, patch] of Object.entries(patches)) {
+      next[id] = { ...(next[id] || {}), ...patch };
+    }
+    storage.setSoundOverrides(next);
+    setOverrides(next);
+    window.dispatchEvent(new Event(EVENT));
+  }, []);
+
   const resetOverride = useCallback((soundId) => {
     const map = storage.getSoundOverrides();
     if (!map[soundId]) return;
@@ -45,5 +57,5 @@ export function useSoundOverrides() {
     window.dispatchEvent(new Event(EVENT));
   }, []);
 
-  return { overrides, getOverride, setOverride, resetOverride };
+  return { overrides, getOverride, setOverride, mergeOverrides, resetOverride };
 }
