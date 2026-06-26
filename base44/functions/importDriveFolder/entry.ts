@@ -1,9 +1,14 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
-// Імпорт цілої папки з Google Диска.
-// payload: { folderId }  → завантажує всі аудіофайли з папки у сховище
-// застосунку та повертає [{ title, url, category, icon }] з категорією/іконкою,
-// вгаданою за назвою файлу.
+// Імпорт цілої папки з Google Диска (МИТТЄВО, без завантаження файлів).
+// payload: { folderId, recursive? }  → перелічує всі аудіофайли (за замовч.
+// рекурсивно, включно з підпапками) і повертає [{ id, title, url, category,
+// icon, isLoopable }], де url — посилання на публічний стрімер streamDriveAudio.
+// Раніше функція качала кожен файл у сховище, що для великих папок (десятки
+// файлів) перевищувало ліміт часу й давало 500 «Не удалось импортировать папку».
+
+const APP_ID = Deno.env.get('BASE44_APP_ID');
+const STREAM_BASE = `https://base44.app/api/apps/${APP_ID}/functions/streamDriveAudio?fileId=`;
 //
 // Аналіз назви — проста система ключових слів, що відповідає категоріям
 // застосунку (atmosphere / events / creatures / horror / madness / jumpscare).
@@ -132,8 +137,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const folderId = body && body.folderId;
-    // recursive=true — обходимо й вкладені підпапки (напр. Scary_sounds/Sounds…).
-    const recursive = body && body.recursive === true;
+    // За замовчуванням обходимо й вкладені підпапки (напр. Scary_sounds/Sounds…).
+    // Передайте recursive:false, щоб узяти лише прямі файли папки.
+    const recursive = !(body && body.recursive === false);
     if (!folderId) return Response.json({ error: 'folderId is required' }, { status: 400 });
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
@@ -187,33 +193,21 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 2) Завантажити кожен файл і перекласти у сховище застосунку.
+    // 2) Чисті метадані пэда — без завантаження файлів. Звук грається через
+    // публічний стрімер streamDriveAudio за id, тож імпорт миттєвий.
     const sounds = [];
     for (const f of driveFiles) {
-      try {
-        const dl = await fetch(
-          `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`,
-          { headers: { Authorization: `Bearer ${accessToken}` } }
-        );
-        if (!dl.ok) continue;
-        const contentType = dl.headers.get('content-type') || 'audio/mpeg';
-        const blob = await dl.blob();
-        const file = new File([blob], f.name, { type: contentType });
-        const { file_url } = await base44.integrations.Core.UploadFile({ file });
-        const { category, icon } = guessCategory(f.name);
-        // Атмосфера/істоти/безумство — зацикленi; події/jumpscare — одноразові.
-        const isLoopable = !['events', 'jumpscare'].includes(category);
-        sounds.push({
-          id: `custom_${f.id}`,
-          title: cleanTitle(f.name),
-          url: file_url,
-          category,
-          icon,
-          isLoopable,
-        });
-      } catch {
-        /* пропускаємо проблемний файл, продовжуємо інші */
-      }
+      const { category, icon } = guessCategory(f.name || '');
+      // Атмосфера/істоти/безумство — зацикленi; події/jumpscare — одноразові.
+      const isLoopable = !['events', 'jumpscare'].includes(category);
+      sounds.push({
+        id: `custom_${f.id}`,
+        title: cleanTitle(f.name || 'Sound'),
+        url: `${STREAM_BASE}${f.id}`,
+        category,
+        icon,
+        isLoopable,
+      });
     }
 
     return Response.json({ sounds, total: driveFiles.length, imported: sounds.length });
