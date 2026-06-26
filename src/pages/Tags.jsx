@@ -16,7 +16,7 @@ export default function Tags() {
   const { pads, removePad } = useCustomPads();
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
   const scary = useScaryFolderScan();
-  const smart = useSmartTag(mergeOverrides);
+  const smart = useSmartTag(mergeOverrides, overrides);
   const [showDone, setShowDone] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
