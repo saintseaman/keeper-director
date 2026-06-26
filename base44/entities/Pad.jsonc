@@ -1,0 +1,31 @@
+{
+  "name": "Pad",
+  "type": "object",
+  "properties": {
+    "pad_id": {
+      "type": "string",
+      "description": "App-level stable id of the pad (e.g. custom_<driveFileId>)"
+    },
+    "title": {
+      "type": "string",
+      "description": "Display name of the sound"
+    },
+    "url": {
+      "type": "string",
+      "description": "Playable audio URL (streamer or uploaded file)"
+    },
+    "category": {
+      "type": "string",
+      "description": "Primary category (atmosphere, events, creatures, horror, madness, jumpscare, ...)"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Lucide icon name"
+    }
+  },
+  "required": [
+    "pad_id",
+    "title",
+    "url"
+  ]
+}

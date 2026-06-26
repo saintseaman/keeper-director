@@ -26,6 +26,7 @@ const DEFAULTS = {
   sound_overrides: {},
   pad_files: {},
   custom_pads: [],
+  custom_pads_migrated: false,
   custom_axis_values: {},
   removed_axis_values: {},
   scenes: [],
@@ -38,6 +39,20 @@ const DEFAULTS = {
 let cache = { ...DEFAULTS };
 let recordId = null;
 let ready = false;
+
+// Бібліотека пэдів живе в окремій сущності Pad (один запис = один звук),
+// а не в полі custom_pads документа UserPrefs. Це дає часткові оновлення,
+// індексацію й масштаб на тисячі звуків без перезапису величезного масиву.
+// У памʼяті тримаємо ту саму форму { id, title, url, category, icon },
+// тож усі споживачі (getCustomPads / useCustomPads) лишаються незмінними.
+// padRecordId зіставляє app-level id пэда з id запису сущності Pad.
+const padRecordId = new Map();
+function toCachePad(rec) {
+  return { id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon };
+}
+function toEntityPad(p) {
+  return { pad_id: p.id, title: p.title || '', url: p.url || '', category: p.category || '', icon: p.icon || '' };
+}
 
 const listeners = new Set();
 function notify() {
@@ -121,6 +136,7 @@ export const storage = {
           sound_overrides: r.sound_overrides ?? DEFAULTS.sound_overrides,
           pad_files: r.pad_files ?? DEFAULTS.pad_files,
           custom_pads: r.custom_pads ?? DEFAULTS.custom_pads,
+          custom_pads_migrated: !!r.custom_pads_migrated,
           custom_axis_values: r.custom_axis_values ?? DEFAULTS.custom_axis_values,
           removed_axis_values: r.removed_axis_values ?? DEFAULTS.removed_axis_values,
           scenes: r.scenes ?? DEFAULTS.scenes,
@@ -129,6 +145,28 @@ export const storage = {
           migrated_from_local: !!r.migrated_from_local,
         };
       }
+      // ── Бібліотека пэдів: завантаження із сущності Pad (+ одноразова міграція) ──
+      try {
+        let padRecs = await base44.entities.Pad.list('-created_date', 1000);
+        // Якщо записів Pad немає, але в старому полі custom_pads щось є —
+        // переносимо у нову сущність (раз) і працюємо далі вже з нею.
+        if ((!padRecs || padRecs.length === 0) && (cache.custom_pads || []).length && !cache.custom_pads_migrated) {
+          const toCreate = cache.custom_pads.map(toEntityPad);
+          for (let i = 0; i < toCreate.length; i += 100) {
+            await base44.entities.Pad.bulkCreate(toCreate.slice(i, i + 100));
+          }
+          padRecs = await base44.entities.Pad.list('-created_date', 1000);
+          if (recordId) {
+            try { await base44.entities.UserPrefs.update(recordId, { custom_pads_migrated: true }); } catch { /* ignore */ }
+          }
+        }
+        padRecordId.clear();
+        for (const rec of padRecs || []) padRecordId.set(rec.pad_id, rec.id);
+        cache.custom_pads = (padRecs || []).map(toCachePad);
+      } catch {
+        // Не вдалося — лишаємо те, що було в custom_pads (read-only режим).
+      }
+
       // Одноразова міграція з localStorage у хмарний документ.
       if (!cache.migrated_from_local) {
         const legacy = {
@@ -194,9 +232,89 @@ export const storage = {
   getPadFiles: () => cache.pad_files,
   setPadFiles: (map) => set('pad_files', map),
 
-  // Власні пэди, імпортовані з Google Диска (масив звуків з url)
+  // Власні пэди — тепер живуть у сущності Pad. Геттер віддає кеш у тій
+  // самій формі { id, title, url, category, icon }, тож споживачі незмінні.
   getCustomPads: () => cache.custom_pads || [],
-  setCustomPads: (list) => set('custom_pads', list),
+
+  // Додати/оновити пэди (часткові записи в сущність Pad, без перезапису масиву).
+  async addPadsCloud(incoming) {
+    const byId = new Map((cache.custom_pads || []).map((p) => [p.id, p]));
+    const toCreate = [];
+    for (const p of incoming) {
+      if (!byId.has(p.id)) toCreate.push(p);
+      byId.set(p.id, { ...byId.get(p.id), ...p });
+    }
+    cache = { ...cache, custom_pads: Array.from(byId.values()) };
+    notify();
+    if (toCreate.length) {
+      setStatus('saving');
+      try {
+        for (let i = 0; i < toCreate.length; i += 100) {
+          const chunk = toCreate.slice(i, i + 100);
+          const created = await base44.entities.Pad.bulkCreate(chunk.map(toEntityPad));
+          (created || []).forEach((rec) => padRecordId.set(rec.pad_id, rec.id));
+        }
+        setStatus('saved');
+        if (savedResetTimer) clearTimeout(savedResetTimer);
+        savedResetTimer = setTimeout(() => setStatus('idle'), 2000);
+      } catch {
+        setStatus('error');
+      }
+    }
+  },
+
+  // Оновити поля одного пэда (наприклад, перейменування).
+  async updatePadCloud(id, patch) {
+    cache = { ...cache, custom_pads: (cache.custom_pads || []).map((p) => (p.id === id ? { ...p, ...patch } : p)) };
+    notify();
+    const rid = padRecordId.get(id);
+    if (!rid) return;
+    const entityPatch = {};
+    if ('title' in patch) entityPatch.title = patch.title;
+    if ('url' in patch) entityPatch.url = patch.url;
+    if ('category' in patch) entityPatch.category = patch.category;
+    if ('icon' in patch) entityPatch.icon = patch.icon;
+    if (Object.keys(entityPatch).length === 0) return;
+    setStatus('saving');
+    try {
+      await base44.entities.Pad.update(rid, entityPatch);
+      setStatus('saved');
+      if (savedResetTimer) clearTimeout(savedResetTimer);
+      savedResetTimer = setTimeout(() => setStatus('idle'), 2000);
+    } catch { setStatus('error'); }
+  },
+
+  // Видалити один пэд.
+  async removePadCloud(id) {
+    cache = { ...cache, custom_pads: (cache.custom_pads || []).filter((p) => p.id !== id) };
+    notify();
+    const rid = padRecordId.get(id);
+    if (!rid) return;
+    padRecordId.delete(id);
+    setStatus('saving');
+    try {
+      await base44.entities.Pad.delete(rid);
+      setStatus('saved');
+      if (savedResetTimer) clearTimeout(savedResetTimer);
+      savedResetTimer = setTimeout(() => setStatus('idle'), 2000);
+    } catch { setStatus('error'); }
+  },
+
+  // Видалити всі пэди.
+  async clearPadsCloud() {
+    const ids = Array.from(padRecordId.values());
+    cache = { ...cache, custom_pads: [] };
+    padRecordId.clear();
+    notify();
+    if (!ids.length) return;
+    setStatus('saving');
+    try {
+      for (const rid of ids) { try { await base44.entities.Pad.delete(rid); } catch { /* ignore */ } }
+      setStatus('saved');
+      if (savedResetTimer) clearTimeout(savedResetTimer);
+      savedResetTimer = setTimeout(() => setStatus('idle'), 2000);
+    } catch { setStatus('error'); }
+  },
 
   // Користувацькі сегменти колеса: { [axisId]: [{ id, label, icon, kw }] }
   getCustomAxisValues: () => cache.custom_axis_values || {},
