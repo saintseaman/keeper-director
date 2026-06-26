@@ -20,6 +20,7 @@ export function useScaryFolderScan() {
   const [newFiles, setNewFiles] = useState([]); // [{ id, name }] — яких ще немає
   const [importing, setImporting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState(null); // { done, total } під час імпорту
   const [lastSync, setLastSync] = useState(null); // { added, message } після ресинку
 
   // Один скан: повертає folderId і список нових файлів (без імпорту).
@@ -57,6 +58,7 @@ export function useScaryFolderScan() {
   const importFiles = useCallback(async (files) => {
     const BATCH = 5;
     let added = 0;
+    setProgress({ done: 0, total: files.length });
     for (let i = 0; i < files.length; i += BATCH) {
       const chunk = files.slice(i, i + BATCH);
       const res = await base44.functions.invoke('importDriveBatch', { files: chunk });
@@ -67,6 +69,7 @@ export function useScaryFolderScan() {
         addPads(toAdd);
         added += toAdd.length;
       }
+      setProgress({ done: Math.min(i + BATCH, files.length), total: files.length });
     }
     return added;
   }, [addPads]);
@@ -107,10 +110,11 @@ export function useScaryFolderScan() {
       setLastSync({ added: 0, message: 'Не удалось синхронизироваться с Google Диском' });
     } finally {
       setSyncing(false);
+      setProgress(null);
     }
   }, [syncing, scan, importFiles]);
 
   const dismiss = useCallback(() => setNewFiles([]), []);
 
-  return { newFiles, importing, importNew, dismiss, resync, syncing, lastSync };
+  return { newFiles, importing, importNew, dismiss, resync, syncing, progress, lastSync };
 }
