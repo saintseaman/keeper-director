@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles } from 'lucide-react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles, Square } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
+import { useAudio } from '@/lib/useAudio';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
 import { useScaryFolderScan } from '@/lib/useScaryFolderScan';
@@ -14,6 +15,8 @@ import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
 // и даёт доразметить прямо здесь — поштучно или массово (режим выделения).
 export default function Tags() {
   const { pads, removePad } = useCustomPads();
+  const { activeSounds, stopAll } = useAudio();
+  const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
   const scary = useScaryFolderScan();
   const smart = useSmartTag(mergeOverrides, overrides);
@@ -88,6 +91,16 @@ export default function Tags() {
           </button>
         ) : (
           <div className="flex items-center gap-3 text-[11px] font-mono">
+            <button
+              onClick={() => stopAll(0.4)}
+              disabled={activeCount === 0}
+              title="Остановить все звуки"
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 tracking-wider transition-all
+                ${activeCount > 0 ? 'bg-rose-600/20 border border-rose-500/50 text-rose-300' : 'bg-white/5 border border-white/10 text-white/25'}`}
+            >
+              <Square size={12} className={activeCount > 0 ? 'fill-rose-400' : ''} />
+              {activeCount > 0 ? activeCount : 'STOP'}
+            </button>
             <span className="flex items-center gap-1 text-orange-300/80">
               <AlertCircle size={12} /> {needFix.length}
             </span>
