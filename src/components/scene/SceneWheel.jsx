@@ -160,7 +160,8 @@ function AddSegment({ axisId, start, end, accent, onAdd }) {
   );
 }
 
-export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCount, onSegmentLongPress, onAddSegment }) {
+export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, activeCount = 0, matchCount, onSegmentLongPress, onAddSegment }) {
+  const isPlaying = activeCount > 0;
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
@@ -240,27 +241,51 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, matchCou
           onAdd={onAddSegment}
         />
 
-        {/* Центральная кнопка запуска */}
-        <g onClick={onPlay} className="cursor-pointer">
+        {/* Центральная кнопка: запуск, либо пауза/стоп когда что-то играет */}
+        <g onClick={() => (isPlaying ? onStop?.() : onPlay())} className="cursor-pointer">
           <circle
             cx={C}
             cy={C}
             r={R_HUB}
             fill="url(#hubGrad)"
-            stroke={matchCount > 0 ? 'rgba(249,115,22,0.85)' : 'rgba(255,255,255,0.18)'}
+            stroke={isPlaying ? 'rgba(244,63,94,0.85)' : matchCount > 0 ? 'rgba(249,115,22,0.85)' : 'rgba(255,255,255,0.18)'}
             strokeWidth={2}
-            style={{ filter: matchCount > 0 ? 'drop-shadow(0 0 12px rgba(249,115,22,0.45))' : 'none' }}
+            style={{
+              filter: isPlaying
+                ? 'drop-shadow(0 0 12px rgba(244,63,94,0.45))'
+                : matchCount > 0
+                ? 'drop-shadow(0 0 12px rgba(249,115,22,0.45))'
+                : 'none',
+            }}
             className="transition-all"
           />
-          <path
-            d={`M ${C - 13} ${C - 18} L ${C + 20} ${C} L ${C - 13} ${C + 18} Z`}
-            fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.35)'}
-            className="transition-all"
-          />
-          {matchCount > 0 && (
-            <text x={C} y={C + 40} fontSize={11} fill="#fb923c" textAnchor="middle" className="font-mono pointer-events-none">
-              {matchCount}
+          {isPlaying ? (
+            <rect
+              x={C - 16}
+              y={C - 16}
+              width={32}
+              height={32}
+              rx={4}
+              fill="#fb7185"
+              className="transition-all"
+            />
+          ) : (
+            <path
+              d={`M ${C - 13} ${C - 18} L ${C + 20} ${C} L ${C - 13} ${C + 18} Z`}
+              fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.35)'}
+              className="transition-all"
+            />
+          )}
+          {isPlaying ? (
+            <text x={C} y={C + 40} fontSize={11} fill="#fb7185" textAnchor="middle" className="font-mono pointer-events-none">
+              {activeCount}
             </text>
+          ) : (
+            matchCount > 0 && (
+              <text x={C} y={C + 40} fontSize={11} fill="#fb923c" textAnchor="middle" className="font-mono pointer-events-none">
+                {matchCount}
+              </text>
+            )
           )}
         </g>
       </svg>

@@ -116,6 +116,8 @@ export default function Scenes() {
                 selection={selection}
                 onSelect={onSelect}
                 onPlay={playMatches}
+                onStop={() => stopAll(0.4)}
+                activeCount={activeCount}
                 matchCount={matches.length}
                 onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
                 onAddSegment={(axisId) => setAddAxis(axisId)}
