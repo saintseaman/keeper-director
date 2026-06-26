@@ -196,6 +196,17 @@ export default function Scenes() {
         updatePad={updatePad}
         removePad={removePad}
         setOverride={setOverride}
+        onRemoveSegment={(axisId, valueId) => {
+          removeValue(axisId, valueId);
+          setSelection((prev) => (prev[axisId] === valueId ? { ...prev, [axisId]: null } : prev));
+        }}
+      />
+
+      <AddSegmentDialog
+        axisId={addAxis}
+        open={!!addAxis}
+        onClose={() => setAddAxis(null)}
+        onAdd={addValue}
       />
     </div>
   );
