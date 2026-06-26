@@ -34,21 +34,30 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-// Подпись по центру сектора (на среднем радиусе).
-function labelPos(r, startDeg, endDeg) {
-  return polar(C, C, r, (startDeg + endDeg) / 2);
+// Дуга для текста вдоль сектора (на среднем радиусе).
+// Для нижней половины колеса разворачиваем дугу, чтобы текст не шёл вверх ногами.
+function textArcPath(r, startDeg, endDeg, id) {
+  const mid = (startDeg + endDeg) / 2;
+  const flip = mid > 90 && mid < 270;
+  const a = flip ? endDeg : startDeg;
+  const b = flip ? startDeg : endDeg;
+  const p1 = polar(C, C, r, a);
+  const p2 = polar(C, C, r, b);
+  const sweep = flip ? 0 : 1;
+  return `M ${p1.x} ${p1.y} A ${r} ${r} 0 0 ${sweep} ${p2.x} ${p2.y}`;
 }
 
 function Ring({ values, selectedId, onSelect, axisId, r1, r2, fontSize, accent }) {
   const n = values.length;
   const step = 360 / n;
+  const rText = (r1 + r2) / 2;
   return (
     <g>
       {values.map((v, i) => {
         const start = i * step;
         const end = start + step;
         const active = selectedId === v.id;
-        const lp = labelPos((r1 + r2) / 2, start, end);
+        const arcId = `arc-${axisId}-${v.id}`;
         return (
           <g key={v.id} onClick={() => onSelect(axisId, active ? null : v.id)} className="cursor-pointer">
             <path
@@ -58,16 +67,15 @@ function Ring({ values, selectedId, onSelect, axisId, r1, r2, fontSize, accent }
               strokeWidth={1}
               className="transition-all duration-200"
             />
+            <path id={arcId} d={textArcPath(rText, start, end, arcId)} fill="none" />
             <text
-              x={lp.x}
-              y={lp.y}
-              textAnchor="middle"
-              dominantBaseline="middle"
               fontSize={fontSize}
               fill={active ? '#fff' : 'rgba(255,255,255,0.6)'}
               className="pointer-events-none select-none font-medium"
             >
-              {v.label}
+              <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
+                {v.label}
+              </textPath>
             </text>
           </g>
         );

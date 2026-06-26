@@ -4,8 +4,9 @@ import React from 'react';
 // Каждый управляет одной осью сцены через дискретные значения.
 
 function StepSlider({ label, value, steps, gradient, onChange }) {
-  const idx = Math.max(0, steps.findIndex((s) => s.id === value));
-  const safeIdx = idx === -1 ? 1 : idx;
+  // Индекс активного шага. Если значение не выбрано (нет совпадения) —
+  // активного шага нет (-1), ничего не подсвечиваем.
+  const activeIdx = steps.findIndex((s) => s.id === value);
 
   return (
     <div>
@@ -17,14 +18,14 @@ function StepSlider({ label, value, steps, gradient, onChange }) {
         <div className="relative w-full flex justify-between">
           {steps.map((s, i) => (
             <button
-              key={s.id}
+              key={s.id ?? 'neutral'}
               onClick={() => onChange(s.id)}
               className="relative flex items-center justify-center"
               style={{ width: 20, height: 20 }}
             >
               <span
                 className={`rounded-full border-2 transition-all ${
-                  i === safeIdx
+                  i === activeIdx
                     ? 'w-5 h-5 bg-violet-400 border-white shadow-[0_0_12px_rgba(168,85,247,0.7)]'
                     : 'w-3 h-3 bg-white/20 border-white/30'
                 }`}
@@ -36,8 +37,8 @@ function StepSlider({ label, value, steps, gradient, onChange }) {
       <div className="flex justify-between mt-1">
         {steps.map((s, i) => (
           <span
-            key={s.id}
-            className={`text-xs ${i === safeIdx ? 'text-white font-semibold' : 'text-white/40'}`}
+            key={s.id ?? 'neutral'}
+            className={`text-xs ${i === activeIdx ? 'text-white font-semibold' : 'text-white/40'}`}
           >
             {s.label}
           </span>
