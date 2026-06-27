@@ -75,10 +75,10 @@ export default function Tags() {
     });
   }, []);
 
-  const exitSelect = () => {
+  const exitSelect = useCallback(() => {
     setSelectMode(false);
     setSelected(new Set());
-  };
+  }, []);
 
   const selectAllVisible = () => setSelected(new Set(visible.map((r) => r.pad.id)));
 
@@ -120,8 +120,9 @@ export default function Tags() {
         </div>
         {selectMode ? (
           <button
+            type="button"
             onClick={exitSelect}
-            className="flex items-center gap-1 text-[11px] font-mono text-white/50 hover:text-white/80 transition-colors"
+            className="flex items-center gap-1 -mr-2 px-2 py-2 text-[11px] font-mono text-white/50 hover:text-white/80 transition-colors"
           >
             <X size={13} /> Отмена
           </button>

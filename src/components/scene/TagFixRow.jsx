@@ -56,9 +56,11 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
     <div className={`rounded-xl border bg-white/[0.03] overflow-hidden transition-colors ${
       broken ? 'border-rose-500/60 bg-rose-500/[0.04]' : selectable && selected ? 'border-orange-400/60' : 'border-white/10'
     }`}>
-      <button
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => (selectable ? onToggleSelect(pad.id) : setOpen((v) => !v))}
-        className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
+        className="w-full flex items-center gap-3 px-3 py-2.5 text-left cursor-pointer"
       >
         {selectable && (
           <span className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-colors ${selected ? 'bg-orange-500/80 border-orange-400' : 'border-white/20'}`}>
@@ -177,7 +179,7 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
             {open ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
           </span>
         )}
-      </button>
+      </div>
 
       {!selectable && open && (
         <div className="px-3 pb-3 pt-1 border-t border-white/10">
