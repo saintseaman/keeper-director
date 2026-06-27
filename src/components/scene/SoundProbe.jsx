@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { Clock } from 'lucide-react';
 
 // Диагностическая проба звука для панели «Теги».
 // Самостоятельно (мимо общего audioEngine) грузит файл по url через скрытый
@@ -17,17 +17,15 @@ export default function SoundProbe({ url, playing }) {
   const analyserRef = useRef(null);
   const srcRef = useRef(null);
 
-  const [duration, setDuration] = useState(null); // секунды
-  const [state, setState] = useState('loading');  // loading | ready | error
+  const [duration, setDuration] = useState(null); // секунды, либо null если не удалось прочитать
 
-  // Метаданные: длина файла + статус доступности.
+  // Пытаемся узнать длину файла. Это лишь справочная метрика — если браузер
+  // (особенно iOS Safari на .wav) не отдаёт метаданные, просто показываем
+  // прочерк. НИКАКОЙ красной тревоги «не загружается»: реальное
+  // воспроизведение идёт через движок отдельно и работает.
   useEffect(() => {
-    if (!url) { setState('error'); return; }
-    setState('loading');
+    if (!url) { setDuration(null); return; }
     setDuration(null);
-    // Без crossOrigin: файлы лежат на base44.app (другой поддомен) без CORS,
-    // и crossOrigin='anonymous' ложно валит загрузку. Для длины метаданных
-    // CORS не нужен — грузим так же, как реальный движок воспроизведения.
     const el = new Audio();
     el.preload = 'metadata';
     el.src = url;
@@ -35,16 +33,14 @@ export default function SoundProbe({ url, playing }) {
 
     const onMeta = () => {
       if (isFinite(el.duration) && el.duration > 0) setDuration(el.duration);
-      setState('ready');
     };
-    const onErr = () => setState('error');
     el.addEventListener('loadedmetadata', onMeta);
-    el.addEventListener('error', onErr);
+    el.addEventListener('durationchange', onMeta);
     el.load();
 
     return () => {
       el.removeEventListener('loadedmetadata', onMeta);
-      el.removeEventListener('error', onErr);
+      el.removeEventListener('durationchange', onMeta);
       try { el.pause(); el.src = ''; } catch (e) {}
     };
   }, [url]);
@@ -128,21 +124,11 @@ export default function SoundProbe({ url, playing }) {
 
   return (
     <div className="flex items-center gap-2 mt-1.5">
-      {/* Длительность / статус */}
-      {state === 'loading' ? (
-        <span className="flex items-center gap-1 text-[11px] text-white/40">
-          <Loader2 size={11} className="animate-spin" /> длительность…
-        </span>
-      ) : state === 'error' ? (
-        <span className="flex items-center gap-1 text-[11px] text-rose-300/90" title="Файл недоступен или не загружается">
-          <AlertTriangle size={11} /> не загружается
-        </span>
-      ) : (
-        <span className="flex items-center gap-1 text-[11px] text-white/50 tabular-nums">
-          <Clock size={11} />
-          {duration != null ? `${duration.toFixed(1)} с` : 'длина ?'}
-        </span>
-      )}
+      {/* Длительность звука в секундах (или прочерк, если браузер не отдал её) */}
+      <span className="flex items-center gap-1 text-[11px] text-white/50 tabular-nums">
+        <Clock size={11} />
+        {duration != null ? `${duration.toFixed(1)} с` : '—'}
+      </span>
 
       {/* Audio Visualizer — спектр во время превью */}
       <canvas
