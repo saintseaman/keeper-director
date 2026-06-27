@@ -1,8 +1,9 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Search, Layers, Tags, Settings } from 'lucide-react';
+import { LayoutGrid, Search, Layers, Tags, Settings } from 'lucide-react';
 
 const ITEMS = [
+  { to: '/app', label: 'Главная', icon: LayoutGrid, end: true },
   { to: '/app/search', label: 'Поиск', icon: Search },
   { to: '/app/scenes', label: 'Сцены', icon: Layers },
   { to: '/app/tags', label: 'Теги', icon: Tags },
