@@ -25,9 +25,11 @@ export default function SoundProbe({ url, playing }) {
     if (!url) { setState('error'); return; }
     setState('loading');
     setDuration(null);
+    // Без crossOrigin: файлы лежат на base44.app (другой поддомен) без CORS,
+    // и crossOrigin='anonymous' ложно валит загрузку. Для длины метаданных
+    // CORS не нужен — грузим так же, как реальный движок воспроизведения.
     const el = new Audio();
     el.preload = 'metadata';
-    el.crossOrigin = 'anonymous';
     el.src = url;
     audioRef.current = el;
 
