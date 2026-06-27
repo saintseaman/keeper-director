@@ -70,10 +70,10 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#141414] border-white/10 text-white max-w-sm max-h-[88vh] overflow-y-auto">
+      <DialogContent className="bg-[#141414] border-white/10 text-white w-[calc(100vw-1.5rem)] max-w-sm max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="font-mono tracking-wider text-sm text-white/80 uppercase flex items-center justify-between gap-2">
-            <span className="truncate">Пэд · {title}</span>
+          <DialogTitle className="font-mono tracking-wider text-sm text-white/80 uppercase flex items-center justify-between gap-2 pr-6 min-w-0">
+            <span className="truncate min-w-0">Пэд · {title}</span>
             <span className="shrink-0 flex items-center gap-3">
               <button
                 onClick={() => toggleFavorite(sound.id)}
@@ -89,7 +89,7 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-5 pt-1">
+        <div className="space-y-4 pt-1">
           {/* Название */}
           <Section label="Название">
             <Input
