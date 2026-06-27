@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2, Pencil, X } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { SCENE_AXES } from '@/lib/sceneAxes';
 import { useIsSoundActive } from '@/lib/useAudio';
@@ -9,8 +9,10 @@ import PadAxesEditor from './PadAxesEditor';
 // Строка звука в панели «Теги»: показывает, по каким осям нет тегов,
 // и по тапу разворачивает редактор для проставки прямо здесь.
 // В режиме выделения (selectable) слева — чекбокс, а тап по строке переключает выбор.
-export default function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove }) {
+export default function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove, onRename }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(pad.title);
   const Icon = getIcon(pad.icon);
   const missingLabels = missing.map((id) => SCENE_AXES.find((a) => a.id === id)?.label).filter(Boolean);
   const done = missing.length === 0;
@@ -31,6 +33,18 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
     if (!window.confirm(`Удалить звук «${pad.title}»?`)) return;
     if (audioEngine.isPlaying(pad.id)) audioEngine.stop(pad.id, 0);
     onRemove?.(pad.id);
+  };
+
+  const startEdit = (e) => {
+    e.stopPropagation();
+    setDraft(pad.title);
+    setEditing(true);
+  };
+
+  const saveEdit = () => {
+    const title = draft.trim();
+    if (title && title !== pad.title) onRename?.(pad.id, title);
+    setEditing(false);
   };
 
   return (
@@ -63,7 +77,44 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
           <Icon size={17} className={done ? 'text-emerald-300' : 'text-orange-300'} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="text-sm text-white/85 truncate">{pad.title}</div>
+          {editing ? (
+            <div
+              className="flex items-center gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <input
+                autoFocus
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveEdit();
+                  if (e.key === 'Escape') setEditing(false);
+                }}
+                className="min-w-0 flex-1 bg-white/5 border border-orange-400/40 rounded-md px-2 py-1 text-sm text-white/90 focus:outline-none focus:border-orange-400/70"
+              />
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={saveEdit}
+                title="Сохранить"
+                className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-emerald-300 hover:bg-emerald-500/10"
+              >
+                <Check size={14} />
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={() => setEditing(false)}
+                title="Отмена"
+                className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center text-white/40 hover:bg-white/10"
+              >
+                <X size={14} />
+              </span>
+            </div>
+          ) : (
+            <div className="text-sm text-white/85 truncate">{pad.title}</div>
+          )}
           <div className="flex items-center gap-1.5 mt-0.5">
             {done ? (
               <span className="flex items-center gap-1 text-[11px] text-emerald-300/80">
@@ -76,8 +127,18 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
             )}
           </div>
         </div>
-        {!selectable && (
+        {!selectable && !editing && (
           <span className="shrink-0 flex items-center gap-1">
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={startEdit}
+              onPointerDown={(e) => e.stopPropagation()}
+              title="Переименовать"
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-white/35 hover:text-orange-300 hover:bg-orange-500/10 transition-colors"
+            >
+              <Pencil size={14} />
+            </span>
             <span
               role="button"
               tabIndex={0}
