@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { Square } from 'lucide-react';
 import { PAD_CATEGORIES } from '@/lib/padCategories';
-import WheelSoundArc from './WheelSoundArc';
+import WheelSoundSheet from './WheelSoundSheet';
 
 // Палитра секторов по категориям (заливка / обводка / акцент активного).
 const SECTOR_FILL = {
@@ -19,8 +19,8 @@ const SECTOR_FILL = {
 
 const SIZE = 300;
 const C = SIZE / 2;
-const R_OUT = 142;
-const R_IN = 64;
+const R_OUT = 144;
+const R_IN = 62;
 
 // Точка на окружности (deg: 0° сверху, по часовой).
 function pt(cx, cy, r, deg) {
@@ -40,59 +40,65 @@ function sectorPath(a0, a1) {
 
 // Радиальное колесо категорий в стиле кругового меню Dota 2.
 // catCounts: { [catId]: number } — категории без звуков скрыты.
-// padsByCat: { [catId]: pad[] } — для раскрытия веера.
+// padsByCat: { [catId]: pad[] } — звуки для выезжающей панели.
 // activeCount, onStop — для центра колеса.
 export default function CategoryWheel({ catCounts, padsByCat, activeCount, onStop }) {
   const [openCat, setOpenCat] = useState(null);
 
   const cats = PAD_CATEGORIES.filter((c) => (catCounts[c.id] || 0) > 0);
   const seg = cats.length > 0 ? 360 / cats.length : 360;
+  const openCatObj = cats.find((c) => c.id === openCat) || null;
 
   return (
-    <div className="h-full flex items-center justify-center">
-      <div className="relative" style={{ width: SIZE, height: SIZE }}>
-        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0">
+    <div className="h-full flex flex-col items-center justify-start pt-2 overflow-y-auto">
+      <div className="relative shrink-0" style={{ width: SIZE, height: SIZE }}>
+        <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} className="absolute inset-0 overflow-visible">
           {cats.map((cat, i) => {
-            const a0 = i * seg + 1.5;
-            const a1 = (i + 1) * seg - 1.5;
+            const a0 = i * seg + 1;
+            const a1 = (i + 1) * seg - 1;
             const mid = (a0 + a1) / 2;
             const pal = SECTOR_FILL[cat.color] || SECTOR_FILL.orange;
             const isOpen = openCat === cat.id;
-            const [lx, ly] = pt(C, C, (R_OUT + R_IN) / 2, mid);
+            // Иконку чуть ближе к внешнему краю, счётчик — у центра.
+            const [ix, iy] = pt(C, C, (R_OUT + R_IN) / 2 + 8, mid);
+            const [cx, cy] = pt(C, C, (R_OUT + R_IN) / 2 - 18, mid);
             const Icon = cat.icon;
             return (
-              <g key={cat.id} className="cursor-pointer" onClick={() => setOpenCat(isOpen ? null : cat.id)}>
+              <g key={cat.id} className="cursor-pointer group" onClick={() => setOpenCat(isOpen ? null : cat.id)}>
                 <path
                   d={sectorPath(a0, a1)}
                   fill={pal.base}
-                  fillOpacity={isOpen ? 0.95 : 0.55}
-                  stroke={isOpen ? pal.active : 'rgba(255,255,255,0.12)'}
-                  strokeWidth={isOpen ? 2.5 : 1}
+                  fillOpacity={isOpen ? 1 : 0.5}
+                  stroke={isOpen ? pal.active : 'rgba(255,255,255,0.10)'}
+                  strokeWidth={isOpen ? 3 : 1}
                   className="transition-all duration-150"
+                  style={isOpen ? { filter: `drop-shadow(0 0 8px ${pal.active}66)` } : undefined}
                 />
-                {/* Иконка категории в секторе */}
-                <foreignObject x={lx - 16} y={ly - 24} width={32} height={32} className="pointer-events-none">
-                  <div className="flex items-center justify-center w-8 h-8 text-white">
-                    <Icon size={20} strokeWidth={1.7} />
+                {/* Иконка категории */}
+                <foreignObject x={ix - 14} y={iy - 14} width={28} height={28} className="pointer-events-none">
+                  <div className="flex items-center justify-center w-7 h-7 text-white">
+                    <Icon size={19} strokeWidth={1.8} />
                   </div>
                 </foreignObject>
+                {/* Название категории */}
                 <text
-                  x={lx} y={ly + 14}
+                  x={cx} y={cy + 1}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize="9.5"
-                  fill="rgba(255,255,255,0.92)"
+                  fontSize="10"
+                  fill="rgba(255,255,255,0.95)"
                   style={{ fontWeight: 600 }}
                 >
                   {cat.label}
                 </text>
+                {/* Счётчик */}
                 <text
-                  x={lx} y={ly + 25}
+                  x={cx} y={cy + 12}
                   textAnchor="middle"
                   className="pointer-events-none select-none"
-                  fontSize="8"
+                  fontSize="8.5"
                   fill={pal.active}
-                  style={{ fontFamily: 'monospace' }}
+                  style={{ fontFamily: 'monospace', fontWeight: 700 }}
                 >
                   {catCounts[cat.id]}
                 </text>
@@ -105,7 +111,7 @@ export default function CategoryWheel({ catCounts, padsByCat, activeCount, onSto
         <button
           onClick={(e) => { e.stopPropagation(); if (activeCount > 0) onStop(); }}
           disabled={activeCount === 0}
-          style={{ width: R_IN * 2 - 16, height: R_IN * 2 - 16 }}
+          style={{ width: R_IN * 2 - 14, height: R_IN * 2 - 14 }}
           className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-30 rounded-full flex flex-col items-center justify-center gap-0.5 border transition-colors
             ${activeCount > 0
               ? 'bg-rose-600/25 border-rose-500/60 text-rose-200 hover:bg-rose-600/35'
@@ -119,14 +125,21 @@ export default function CategoryWheel({ catCounts, padsByCat, activeCount, onSto
               </span>
             </>
           ) : (
-            <span className="text-[10px] font-mono tracking-widest text-white/40 uppercase text-center px-2">Выбери<br />сектор</span>
+            <span className="text-[10px] font-mono tracking-widest text-white/40 uppercase text-center px-2 leading-tight">Выбери<br />сектор</span>
           )}
         </button>
+      </div>
 
-        {/* Раскрытый веер звуков выбранной категории */}
+      {/* Выезжающая панель со звуками выбранного сектора */}
+      <div className="w-full max-w-md px-1">
         <AnimatePresence mode="wait">
-          {openCat && (
-            <WheelSoundArc key={openCat} pads={padsByCat[openCat] || []} />
+          {openCatObj && (
+            <WheelSoundSheet
+              key={openCatObj.id}
+              category={openCatObj}
+              pads={padsByCat[openCatObj.id] || []}
+              onClose={() => setOpenCat(null)}
+            />
           )}
         </AnimatePresence>
       </div>
