@@ -11,7 +11,13 @@ import { Loader2, AudioLines } from 'lucide-react';
 // Один общий AudioContext на все волны (декодирование не требует жеста).
 let sharedCtx = null;
 function getCtx() {
-  if (!sharedCtx) sharedCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (!sharedCtx) {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    // Safari/iOS: decodeAudioData у MP3 молча падает, если sampleRate контекста
+    // не совпадает с дефолтным аппаратным. Создаём контекст без явного
+    // sampleRate и ресемплим декодером сами — это самый совместимый путь.
+    sharedCtx = new Ctx();
+  }
   return sharedCtx;
 }
 
@@ -32,10 +38,17 @@ function Waveform({ url }) {
       const ctx = getCtx();
       // iOS Safari создаёт AudioContext в suspended — без resume decodeAudioData падает.
       if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
-      // Safari поддерживает только callback-форму decodeAudioData — оборачиваем в Promise.
+      // Декодируем в OfflineAudioContext — он не требует user-gesture/resume и на
+      // Safari декодирует MP3 надёжнее обычного AudioContext. Передаём свежую копию
+      // ArrayBuffer (decodeAudioData отбирает буфер) и поддерживаем callback-форму.
+      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+      const decodeCtx = OfflineCtx ? new OfflineCtx(1, 1, ctx.sampleRate || 44100) : ctx;
       const audioBuf = await new Promise((resolve, reject) => {
-        const p = ctx.decodeAudioData(buf.slice(0), resolve, reject);
-        if (p && typeof p.then === 'function') p.then(resolve, reject);
+        let settled = false;
+        const ok = (b) => { if (!settled) { settled = true; resolve(b); } };
+        const fail = (e) => { if (!settled) { settled = true; reject(e || new Error('decode failed')); } };
+        const p = decodeCtx.decodeAudioData(buf.slice(0), ok, fail);
+        if (p && typeof p.then === 'function') p.then(ok, fail);
       });
       // Берём первый канал, режем на BARS окон, в каждом — максимальная амплитуда.
       const data = audioBuf.getChannelData(0);
