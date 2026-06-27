@@ -7,11 +7,13 @@ import { useCustomPads } from '@/lib/useCustomPads';
 import { useAxes } from '@/lib/useAxes';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes, axisValue } from '@/lib/sceneAxes';
+import { playSceneMix } from '@/lib/sceneMix';
 import { padCategory, PAD_CATEGORIES } from '@/lib/padCategories';
 import PadDeck from '@/components/pad/PadDeck';
 import LocationGrid from '@/components/pad/LocationGrid';
 import CategoryWheel from '@/components/pad/CategoryWheel';
 import SceneTray from '@/components/pad/SceneTray';
+import IntentSearchBar from '@/components/scene/IntentSearchBar';
 import MixPresetBar from '@/components/pad/MixPresetBar';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
@@ -28,7 +30,7 @@ export default function Home() {
   const { activeSounds, masterVolume, setMasterVolume, stopAll } = useAudio();
   const { pads: customPads, addPads, removePad } = useCustomPads();
   const { axes } = useAxes();
-  const { getOverride } = useSoundOverrides();
+  const { getOverride, overrides } = useSoundOverrides();
   const { presets, saveCurrent, removePreset, applyPreset } = useMixPresets(customPads);
   const [folderOpen, setFolderOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
@@ -201,12 +203,19 @@ export default function Home() {
             </button>
           </div>
         ) : step === 'location' ? (
-          <LocationGrid
-            counts={counts}
-            total={customPads.length}
-            customValues={locationCustomValues}
-            onSelect={(loc) => { setActiveLoc(loc); setActiveCat(null); setStep('category'); }}
-          />
+          <div className="h-full overflow-y-auto space-y-4 -mr-1 pr-1">
+            <IntentSearchBar
+              pads={customPads}
+              overrides={overrides}
+              onPlayMix={(found) => playSceneMix(audioEngine, found)}
+            />
+            <LocationGrid
+              counts={counts}
+              total={customPads.length}
+              customValues={locationCustomValues}
+              onSelect={(loc) => { setActiveLoc(loc); setActiveCat(null); setStep('category'); }}
+            />
+          </div>
         ) : step === 'category' ? (
           <CategoryWheel
             catCounts={catCounts}
