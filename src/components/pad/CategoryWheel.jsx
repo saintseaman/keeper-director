@@ -7,6 +7,9 @@ import WheelSoundArc from './WheelSoundArc';
 // Палитра секторов по категориям (заливка / обводка / акцент активного).
 const SECTOR_FILL = {
   sky:     { base: '#0c4a6e', active: '#0ea5e9' },
+  cyan:    { base: '#155e63', active: '#06b6d4' },
+  green:   { base: '#14532d', active: '#22c55e' },
+  slate:   { base: '#334155', active: '#94a3b8' },
   violet:  { base: '#4c1d95', active: '#8b5cf6' },
   rose:    { base: '#881337', active: '#f43f5e' },
   amber:   { base: '#78350f', active: '#f59e0b' },
