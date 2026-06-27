@@ -72,6 +72,13 @@ export default function Tags() {
   // Стабильный onRename для memo строк.
   const handleRename = useCallback((id, title) => updatePad(id, { title }), [updatePad]);
 
+  // Переключение режима «луп / разовый» для звука. Храним в override.isLoopable.
+  // Если снимаем луп с играющего зацикленного звука — останавливаем его.
+  const handleToggleLoop = useCallback((id, isLoop) => {
+    setOverride(id, { isLoopable: isLoop });
+    if (!isLoop && audioEngine.isPlaying(id)) audioEngine.stop(id, 0);
+  }, [setOverride]);
+
   // Массовое применение: добавляем выбранные значения к каждому звуку,
   // не затирая его текущие теги (ручные или авто фиксируем как ручные).
   const applyBulk = (pickedAxes) => {
@@ -280,6 +287,7 @@ export default function Tags() {
                   onToggleSelect={toggleSelect}
                   onRemove={removePad}
                   onRename={handleRename}
+                  onToggleLoop={handleToggleLoop}
                   broken={health.broken.has(pad.id)}
                 />
               ))

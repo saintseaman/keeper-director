@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2, Pencil, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2, Pencil, X, Repeat, Zap } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { SCENE_AXES } from '@/lib/sceneAxes';
 import { useIsSoundActive } from '@/lib/useAudio';
@@ -11,11 +11,13 @@ import Waveform from './Waveform';
 // Строка звука в панели «Теги»: показывает, по каким осям нет тегов,
 // и по тапу разворачивает редактор для проставки прямо здесь.
 // В режиме выделения (selectable) слева — чекбокс, а тап по строке переключает выбор.
-function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove, onRename, broken }) {
+function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove, onRename, onToggleLoop, broken }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(pad.title);
   const Icon = getIcon(pad.icon);
+  // Текущий режим: override.isLoopable важнее значения с пэда. По умолчанию — луп.
+  const isLoop = typeof override?.isLoopable === 'boolean' ? override.isLoopable : (pad.is_loopable ?? true);
   const missingLabels = missing.map((id) => SCENE_AXES.find((a) => a.id === id)?.label).filter(Boolean);
   const done = missing.length === 0;
 
@@ -26,7 +28,8 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
     if (audioEngine.isPlaying(pad.id)) {
       audioEngine.stop(pad.id, 0);
     } else if (pad.url) {
-      audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
+      if (isLoop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
+      else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.6);
     }
   };
 
@@ -75,6 +78,22 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
             }`}
           >
             {isActive ? <Pause size={16} /> : <Play size={16} className="translate-x-[1px]" />}
+          </span>
+        )}
+        {onToggleLoop && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={(e) => { e.stopPropagation(); onToggleLoop(pad.id, !isLoop); }}
+            onPointerDown={(e) => e.stopPropagation()}
+            title={isLoop ? 'Зацикленный — нажмите, чтобы сделать разовым' : 'Разовый — нажмите, чтобы зациклить'}
+            className={`shrink-0 w-9 h-9 rounded-lg border flex items-center justify-center transition-colors ${
+              isLoop
+                ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-200'
+                : 'bg-white/5 border-white/10 text-white/45 hover:text-rose-200 hover:border-rose-400/40'
+            }`}
+          >
+            {isLoop ? <Repeat size={15} /> : <Zap size={15} />}
           </span>
         )}
         <span className="shrink-0 w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
@@ -186,5 +205,6 @@ export default React.memo(TagFixRow, (prev, next) =>
   prev.onChangeAxes === next.onChangeAxes &&
   prev.onToggleSelect === next.onToggleSelect &&
   prev.onRemove === next.onRemove &&
-  prev.onRename === next.onRename
+  prev.onRename === next.onRename &&
+  prev.onToggleLoop === next.onToggleLoop
 );
