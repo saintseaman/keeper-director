@@ -10,7 +10,8 @@ import { padAxes, axisValue } from '@/lib/sceneAxes';
 import { padCategory, PAD_CATEGORIES } from '@/lib/padCategories';
 import PadDeck from '@/components/pad/PadDeck';
 import LocationGrid from '@/components/pad/LocationGrid';
-import CategoryGrid from '@/components/pad/CategoryGrid';
+import CategoryWheel from '@/components/pad/CategoryWheel';
+import SceneTray from '@/components/pad/SceneTray';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 
@@ -71,6 +72,19 @@ export default function Home() {
     for (const p of inLocation) { const c = padCategory(p); acc[c] = (acc[c] || 0) + 1; }
     return acc;
   }, [inLocation]);
+
+  // Пэды локации, сгруппированные по категории — для раскрытия веера в колесе.
+  const padsByCat = useMemo(() => {
+    const acc = {};
+    for (const p of inLocation) { const c = padCategory(p); (acc[c] = acc[c] || []).push(p); }
+    return acc;
+  }, [inLocation]);
+
+  // Активные (играющие) пэды для ленты собранной сцены — из всех импортированных.
+  const activePads = useMemo(
+    () => customPads.filter((p) => activeSounds[p.id] && activeSounds[p.id].isPlaying !== false),
+    [customPads, activeSounds]
+  );
 
   // Внутри локации фильтруем по категории (или все). Затем режем по 9.
   const filtered = useMemo(
@@ -191,10 +205,11 @@ export default function Home() {
             onSelect={(loc) => { setActiveLoc(loc); setActiveCat(null); setStep('category'); }}
           />
         ) : step === 'category' ? (
-          <CategoryGrid
-            counts={catCounts}
-            total={inLocation.length}
-            onSelect={(cat) => { setActiveCat(cat); setStep('pads'); }}
+          <CategoryWheel
+            catCounts={catCounts}
+            padsByCat={padsByCat}
+            activeCount={activeCount}
+            onStop={() => stopAll(0.4)}
           />
         ) : decks.length === 0 ? (
           <div className="h-full flex items-center justify-center text-center">
@@ -204,6 +219,9 @@ export default function Home() {
           <PadDeck pages={decks} onRemoveCustom={removePad} />
         )}
       </div>
+
+      {/* Лента собранной сцены — видна на шаге колеса категорий */}
+      {step === 'category' && <SceneTray activePads={activePads} />}
 
       <DriveFolderDialog
         open={folderOpen}
