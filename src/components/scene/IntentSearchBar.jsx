@@ -18,7 +18,11 @@ export default function IntentSearchBar({ pads, overrides, onPlayMix, onApplyToS
   );
 
   const chips = useMemo(() => intentChips(parsed), [parsed]);
-  const mixCount = sceneMixCount(results);
+  // Показываем и собираем в микс только топ релевантных, а не всю библиотеку.
+  // Ранжирование в searchByIntent уже ставит вперёд звуки, покрывшие больше
+  // фасетов и совпавшие по названию, — так что отсечка отбрасывает «хвост шума».
+  const topResults = useMemo(() => results.slice(0, 24), [results]);
+  const mixCount = sceneMixCount(topResults);
   const hasQuery = query.trim().length > 0;
   const recognized = chips.length > 0;
 
@@ -79,20 +83,21 @@ export default function IntentSearchBar({ pads, overrides, onPlayMix, onApplyToS
         <div className="mt-3 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-white/40">
-              Найдено: <span className="text-orange-300 font-medium">{results.length}</span>
-              {mixCount > 0 && <span className="text-white/30"> · в фон пойдёт {mixCount}</span>}
+              Релевантных: <span className="text-orange-300 font-medium">{topResults.length}</span>
+              {results.length > topResults.length && <span className="text-white/25"> из {results.length}</span>}
+              {mixCount > 0 && <span className="text-white/30"> · в фон {mixCount}</span>}
             </span>
             <div className="flex items-center gap-2">
-              {onApplyToScene && results.length > 0 && (
+              {onApplyToScene && topResults.length > 0 && (
                 <button
-                  onClick={() => onApplyToScene(parsed, results)}
+                  onClick={() => onApplyToScene(parsed, topResults)}
                   className="text-[11px] font-mono tracking-wider text-white/45 hover:text-orange-300 transition-colors"
                 >
                   В КОНСТРУКТОР
                 </button>
               )}
               <button
-                onClick={() => onPlayMix(results)}
+                onClick={() => onPlayMix(topResults)}
                 disabled={mixCount === 0}
                 className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-mono tracking-wider border transition-colors ${
                   mixCount === 0
@@ -106,8 +111,8 @@ export default function IntentSearchBar({ pads, overrides, onPlayMix, onApplyToS
             </div>
           </div>
 
-          {results.length > 0 && (
-            <SceneMatchList pads={results.slice(0, 30)} onRemoveCustom={undefined} />
+          {topResults.length > 0 && (
+            <SceneMatchList pads={topResults} onRemoveCustom={undefined} />
           )}
         </div>
       )}
