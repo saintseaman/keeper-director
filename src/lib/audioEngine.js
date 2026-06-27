@@ -1096,11 +1096,17 @@ class AudioEngine {
 
     // Файли програємо чистим <audio> (без MediaElementSource): на iOS/Safari
     // createMediaElementSource вимагає CORS і інакше дає «тишу». Гучність —
-    // через el.volume з урахуванням майстра. Берём прогретый из preload-кэша,
-    // чтобы запуск был мгновенным (без сетевой буферизации).
-    const el = this._takePreloaded(url);
+    // через el.volume з урахуванням майстра.
+    //
+    // ВАЖЛИВО (iOS): елемент створюємо ТУТ, синхронно в обробнику жесту (тап).
+    // На iOS Safari звук дозволено лише на <audio>, чий .play() вперше викликано
+    // всередині жесту. Прелоадні елементи створюються поза жестом → iOS глушить
+    // їх мовчки (індикатор горить, звуку немає). Тому для відтворення завжди
+    // беремо свіжий елемент, а preload лишається тільки мережевим прогрівом URL.
+    const el = new Audio(url);
     el.loop = !!loop;
-    el.volume = Math.min(1, volume * this.masterVolume);
+    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
+    el.volume = Math.min(1, volume * m);
     // Если файл ещё не готов — повторяем play() по 'canplay' (иначе зацикленный
     // пэд горит активным, но молчит).
     const tryPlay = () => { el.play().catch(() => {}); };
@@ -1126,10 +1132,11 @@ class AudioEngine {
     }
 
     // Чистий <audio> (без Web Audio графа) — надійно на iOS, не залежить від CORS.
-    // Берём прогретый из preload-кэша → мгновенный старт без сетевой задержки.
-    const el = this._takePreloaded(url);
+    // Свіжий елемент у жесті: див. коментар у playFile (iOS глушить прелоадні).
+    const el = new Audio(url);
     el.loop = false;
-    el.volume = Math.min(1, volume * this.masterVolume);
+    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
+    el.volume = Math.min(1, volume * m);
     // Длинные файлы могут быть ещё не загружены: пробуем играть сразу, а если
     // браузер отклонил (не готов) — повторяем по 'canplay'. Без этого пэд
     // помечается активным, но звука нет.
@@ -1230,7 +1237,8 @@ class AudioEngine {
     sound.volume = volume;
     // Файл — регулюємо гучність прямо на <audio>; синтез — через gainNode.
     if (sound.mediaEl) {
-      try { sound.mediaEl.volume = Math.min(1, volume * this.masterVolume); } catch (e) {}
+      const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
+      try { sound.mediaEl.volume = Math.min(1, volume * m); } catch (e) {}
     } else if (sound.gainNode) {
       sound.gainNode.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
@@ -1239,9 +1247,10 @@ class AudioEngine {
 
   // Підлаштувати гучність активних файлових <audio> під поточний майстер.
   _applyMasterToFiles() {
+    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
     this.activeSounds.forEach((s) => {
       if (s.mediaEl) {
-        try { s.mediaEl.volume = Math.min(1, (s.volume ?? 1) * this.masterVolume); } catch (e) {}
+        try { s.mediaEl.volume = Math.min(1, (s.volume ?? 1) * m); } catch (e) {}
       }
     });
   }
