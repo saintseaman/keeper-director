@@ -1141,10 +1141,12 @@ class AudioEngine {
     el.loop = !!loop;
     el.volume = Math.max(0, Math.min(1, volume * this.masterVolume));
     try { el.currentTime = 0; } catch (e) {}
-    el.addEventListener('error', () => {
+    const onErr = () => {
       const err = el.error;
       onError?.(`audio error code=${err?.code ?? '?'} · ${err?.message || 'no message'}`);
-    }, { once: true });
+    };
+    el._onErr = onErr;
+    el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
     });
@@ -1171,10 +1173,12 @@ class AudioEngine {
         this._notify();
       }
     });
-    el.addEventListener('error', () => {
+    const onErr = () => {
       const err = el.error;
       onError?.(`audio error code=${err?.code ?? '?'} · ${err?.message || 'no message'}`);
-    }, { once: true });
+    };
+    el._onErr = onErr;
+    el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
     });
@@ -1221,6 +1225,16 @@ class AudioEngine {
     if (el) {
       sound.isPlaying = false;
       this._notify();
+      // Снимаем error-листенер ДО остановки — иначе pause/сброс мог бы
+      // выстрелить ложной ошибкой code=4 в UI.
+      if (el._onErr) { try { el.removeEventListener('error', el._onErr); } catch (e) {} el._onErr = null; }
+      // НЕ зануляем el.src — это ломает элемент (code=4) и портит пул preload.
+      // Достаточно pause; элемент дальше переиспользуется или соберётся GC.
+      const finish = () => {
+        try { el.pause(); el.currentTime = 0; } catch (e) {}
+        this.activeSounds.delete(soundId);
+        this._notify();
+      };
       const start = el.volume;
       const steps = 8;
       let i = 0;
@@ -1228,10 +1242,10 @@ class AudioEngine {
         i++;
         el.volume = Math.max(0, start * (1 - i / steps));
         if (i < steps) { setTimeout(tick, (fadeTime * 1000) / steps); }
-        else { try { el.pause(); el.src = ''; } catch (e) {} this.activeSounds.delete(soundId); this._notify(); }
+        else finish();
       };
       if (fadeTime > 0) tick();
-      else { try { el.pause(); el.src = ''; } catch (e) {} this.activeSounds.delete(soundId); this._notify(); }
+      else finish();
       return;
     }
 
