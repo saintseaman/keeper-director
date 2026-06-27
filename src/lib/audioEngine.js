@@ -1131,7 +1131,7 @@ class AudioEngine {
   // конкретных MP3 («decode failed»), из-за чего звука нет, хотя файл валиден.
   // HTMLAudioElement декодирует MP3 встроенным кодеком и работает везде.
   // Громкость и loop задаём прямо на элементе, мастер-громкость множим вручную.
-  playFile(soundId, url, title, volume = 0.8, loop = true) {
+  playFile(soundId, url, title, volume = 0.8, loop = true, onError) {
     if (this.activeSounds.has(soundId)) {
       this.setVolume(soundId, volume);
       return;
@@ -1141,7 +1141,13 @@ class AudioEngine {
     el.loop = !!loop;
     el.volume = Math.max(0, Math.min(1, volume * this.masterVolume));
     try { el.currentTime = 0; } catch (e) {}
-    el.play().catch(() => {});
+    el.addEventListener('error', () => {
+      const err = el.error;
+      onError?.(`audio error code=${err?.code ?? '?'} · ${err?.message || 'no message'}`);
+    }, { once: true });
+    el.play().then(() => onError?.(null)).catch((e) => {
+      onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
+    });
 
     this.activeSounds.set(soundId, {
       el, isPlaying: true, volume, title, loop, isFile: true, seq,
@@ -1152,7 +1158,7 @@ class AudioEngine {
 
   // Одноразовое воспроизведение загруженного файла (one-shot пэд).
   // По окончании само-удаляется из реестра.
-  triggerFile(soundId, url, title = '', volume = 1.0) {
+  triggerFile(soundId, url, title = '', volume = 1.0, onError) {
     if (this.activeSounds.has(soundId)) this.stop(soundId, 0);
     const seq = this._seq++;
     const el = this._takePreloaded(url);
@@ -1165,7 +1171,13 @@ class AudioEngine {
         this._notify();
       }
     });
-    el.play().catch(() => {});
+    el.addEventListener('error', () => {
+      const err = el.error;
+      onError?.(`audio error code=${err?.code ?? '?'} · ${err?.message || 'no message'}`);
+    }, { once: true });
+    el.play().then(() => onError?.(null)).catch((e) => {
+      onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
+    });
 
     this.activeSounds.set(soundId, {
       el, isPlaying: true, volume, title, loop: false, isFile: true, seq,

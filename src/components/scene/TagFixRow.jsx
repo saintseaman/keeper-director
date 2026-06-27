@@ -15,6 +15,7 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(pad.title);
+  const [playErr, setPlayErr] = useState('');
   const Icon = getIcon(pad.icon);
   // Текущий режим: override.isLoopable важнее значения с пэда. По умолчанию — луп.
   const isLoop = typeof override?.isLoopable === 'boolean' ? override.isLoopable : (pad.is_loopable ?? true);
@@ -28,8 +29,10 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
     if (audioEngine.isPlaying(pad.id)) {
       audioEngine.stop(pad.id, 0);
     } else if (pad.url) {
-      if (isLoop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
-      else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.6);
+      setPlayErr('');
+      const onErr = (msg) => setPlayErr(msg || '');
+      if (isLoop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true, onErr);
+      else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.6, onErr);
     }
   };
 
@@ -152,6 +155,9 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
             )}
           </div>
           {pad.url && !editing && <SoundProbe url={pad.url} playing={isActive} broken={broken} />}
+          {playErr && (
+            <p className="mt-1 text-[10px] text-rose-300/80 break-all leading-tight">▶ {playErr}</p>
+          )}
           {pad.url && !editing && <Waveform url={pad.url} />}
         </div>
         {!selectable && !editing && (
