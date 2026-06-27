@@ -29,7 +29,14 @@ function Waveform({ url }) {
     try {
       const res = await fetch(url);
       const buf = await res.arrayBuffer();
-      const audioBuf = await getCtx().decodeAudioData(buf);
+      const ctx = getCtx();
+      // iOS Safari создаёт AudioContext в suspended — без resume decodeAudioData падает.
+      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
+      // Safari поддерживает только callback-форму decodeAudioData — оборачиваем в Promise.
+      const audioBuf = await new Promise((resolve, reject) => {
+        const p = ctx.decodeAudioData(buf.slice(0), resolve, reject);
+        if (p && typeof p.then === 'function') p.then(resolve, reject);
+      });
       // Берём первый канал, режем на BARS окон, в каждом — максимальная амплитуда.
       const data = audioBuf.getChannelData(0);
       const block = Math.floor(data.length / BARS) || 1;
