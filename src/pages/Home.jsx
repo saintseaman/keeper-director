@@ -3,9 +3,11 @@ import { Square, Dices, FolderDown, SlidersHorizontal } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
-import { padCategory } from '@/lib/padCategories';
+import { useAxes } from '@/lib/useAxes';
+import { useSoundOverrides } from '@/lib/useSoundOverrides';
+import { padAxes } from '@/lib/sceneAxes';
 import PadDeck from '@/components/pad/PadDeck';
-import CategoryTabs from '@/components/pad/CategoryTabs';
+import LocationTabs from '@/components/pad/LocationTabs';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 import QuickAccessBar from '@/components/pad/QuickAccessBar';
@@ -20,23 +22,42 @@ function paginate(list, size = 9) {
 export default function Home() {
   const { activeSounds, masterVolume, setMasterVolume, stopAll } = useAudio();
   const { pads: customPads, addPads, removePad } = useCustomPads();
+  const { axes } = useAxes();
+  const { getOverride } = useSoundOverrides();
   const [folderOpen, setFolderOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
-  const [activeCat, setActiveCat] = useState(null); // null = «Все»
+  const [activeLoc, setActiveLoc] = useState(null); // null = «Все»
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
-  // Счётчики пэдов по категориям (для вкладок).
+  // Кастомные значения оси «Локация» (для подписей/иконок вкладок).
+  const locationCustomValues = useMemo(
+    () => axes.find((a) => a.id === 'location')?.values.filter((v) => v.custom) || [],
+    [axes]
+  );
+
+  // Карта: padId → массив id локаций пэда (с учётом ручных правок и авто).
+  const padLocations = useMemo(() => {
+    const map = {};
+    for (const p of customPads) {
+      map[p.id] = padAxes(p, getOverride(p.id)).location || [];
+    }
+    return map;
+  }, [customPads, getOverride]);
+
+  // Счётчики пэдов по локациям (звук может попасть в несколько → +1 каждой).
   const counts = useMemo(() => {
     const acc = {};
-    for (const p of customPads) { const c = padCategory(p); acc[c] = (acc[c] || 0) + 1; }
+    for (const p of customPads) {
+      for (const locId of padLocations[p.id] || []) acc[locId] = (acc[locId] || 0) + 1;
+    }
     return acc;
-  }, [customPads]);
+  }, [customPads, padLocations]);
 
-  // Пэды выбранной категории (или все). Затем режем на страницы по 9.
+  // Пэды выбранной локации (или все). Затем режем на страницы по 9.
   const filtered = useMemo(
-    () => (activeCat ? customPads.filter((p) => padCategory(p) === activeCat) : customPads),
-    [customPads, activeCat]
+    () => (activeLoc ? customPads.filter((p) => (padLocations[p.id] || []).includes(activeLoc)) : customPads),
+    [customPads, activeLoc, padLocations]
   );
   const decks = paginate(filtered, 9);
 
@@ -100,10 +121,16 @@ export default function Home() {
       {/* Полоса быстрого доступа: избранное + недавние */}
       {customPads.length > 0 && <QuickAccessBar pads={customPads} />}
 
-      {/* Вкладки категорий */}
+      {/* Вкладки локаций */}
       {customPads.length > 0 && (
         <div className="px-4 pt-3">
-          <CategoryTabs active={activeCat} onChange={setActiveCat} counts={counts} total={customPads.length} />
+          <LocationTabs
+            active={activeLoc}
+            onChange={setActiveLoc}
+            counts={counts}
+            total={customPads.length}
+            customValues={locationCustomValues}
+          />
         </div>
       )}
 
