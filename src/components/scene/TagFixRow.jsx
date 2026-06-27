@@ -6,6 +6,7 @@ import { useIsSoundActive } from '@/lib/useAudio';
 import { audioEngine } from '@/lib/audioEngine';
 import PadAxesEditor from './PadAxesEditor';
 import SoundProbe from './SoundProbe';
+import Waveform from './Waveform';
 
 // Строка звука в панели «Теги»: показывает, по каким осям нет тегов,
 // и по тапу разворачивает редактор для проставки прямо здесь.
@@ -130,6 +131,7 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
             )}
           </div>
           {pad.url && !editing && <SoundProbe url={pad.url} playing={isActive} broken={broken} />}
+          {pad.url && !editing && <Waveform url={pad.url} />}
         </div>
         {!selectable && !editing && (
           <span className="shrink-0 flex items-center gap-1">
