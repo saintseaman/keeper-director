@@ -6,8 +6,10 @@ import { useCustomPads } from '@/lib/useCustomPads';
 import { useAxes } from '@/lib/useAxes';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { padAxes } from '@/lib/sceneAxes';
+import { padCategory } from '@/lib/padCategories';
 import PadDeck from '@/components/pad/PadDeck';
 import LocationTabs from '@/components/pad/LocationTabs';
+import CategoryTabs from '@/components/pad/CategoryTabs';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 import QuickAccessBar from '@/components/pad/QuickAccessBar';
@@ -27,6 +29,7 @@ export default function Home() {
   const [folderOpen, setFolderOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
   const [activeLoc, setActiveLoc] = useState(null); // null = «Все»
+  const [activeCat, setActiveCat] = useState(null); // null = «Все» (категория внутри локации)
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
@@ -54,10 +57,23 @@ export default function Home() {
     return acc;
   }, [customPads, padLocations]);
 
-  // Пэды выбранной локации (или все). Затем режем на страницы по 9.
-  const filtered = useMemo(
+  // Пэды выбранной локации (или все).
+  const inLocation = useMemo(
     () => (activeLoc ? customPads.filter((p) => (padLocations[p.id] || []).includes(activeLoc)) : customPads),
     [customPads, activeLoc, padLocations]
+  );
+
+  // Счётчики категорий внутри выбранной локации (для второго ряда вкладок).
+  const catCounts = useMemo(() => {
+    const acc = {};
+    for (const p of inLocation) { const c = padCategory(p); acc[c] = (acc[c] || 0) + 1; }
+    return acc;
+  }, [inLocation]);
+
+  // Внутри локации фильтруем по категории (или все). Затем режем по 9.
+  const filtered = useMemo(
+    () => (activeCat ? inLocation.filter((p) => padCategory(p) === activeCat) : inLocation),
+    [inLocation, activeCat]
   );
   const decks = paginate(filtered, 9);
 
@@ -123,13 +139,20 @@ export default function Home() {
 
       {/* Вкладки локаций */}
       {customPads.length > 0 && (
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-3 space-y-2">
           <LocationTabs
             active={activeLoc}
-            onChange={setActiveLoc}
+            onChange={(loc) => { setActiveLoc(loc); setActiveCat(null); }}
             counts={counts}
             total={customPads.length}
             customValues={locationCustomValues}
+          />
+          {/* Категории внутри выбранной локации */}
+          <CategoryTabs
+            active={activeCat}
+            onChange={setActiveCat}
+            counts={catCounts}
+            total={inLocation.length}
           />
         </div>
       )}
