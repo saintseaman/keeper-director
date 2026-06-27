@@ -28,15 +28,31 @@ export default function Tags() {
   const [selected, setSelected] = useState(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
 
-  // Для каждого пэда считаем недостающие оси.
+  // Стабильный порядок строк: вычисляем «сколько дыр было» один раз по списку
+  // звуков (pads). НЕ пересортировываем при правке тегов — иначе строка, которую
+  // редактируешь, перескакивает вверх и «убегает», мешая проставить несколько тегов.
+  const order = useMemo(() => {
+    const rank = new Map();
+    pads.forEach((p) => {
+      rank.set(p.id, missingAxes(padAxes(p, overrides[p.id])).length);
+    });
+    return [...pads]
+      .sort((a, b) => (rank.get(b.id) || 0) - (rank.get(a.id) || 0))
+      .map((p) => p.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pads]);
+
+  // Недостающие оси пересчитываем реактивно, но позиции берём из замороженного order.
   const rows = useMemo(() => {
-    return pads
+    const byId = new Map(pads.map((p) => [p.id, p]));
+    return order
+      .map((id) => byId.get(id))
+      .filter(Boolean)
       .map((p) => {
         const axes = padAxes(p, overrides[p.id]);
         return { pad: p, missing: missingAxes(axes) };
-      })
-      .sort((a, b) => b.missing.length - a.missing.length);
-  }, [pads, overrides]);
+      });
+  }, [order, pads, overrides]);
 
   const needFix = rows.filter((r) => r.missing.length > 0);
   const done = rows.filter((r) => r.missing.length === 0);
