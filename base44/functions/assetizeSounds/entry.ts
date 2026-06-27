@@ -20,24 +20,29 @@ Deno.serve(async (req) => {
 
     let body = {};
     try { body = await req.json(); } catch (_) { /* empty body ok */ }
-    const limit = Math.min(Math.max(Number(body.limit) || 5, 1), 8);
+    // По одному файлу за вызов — так укладываемся во время даже на крупных WAV.
+    const limit = Math.min(Math.max(Number(body.limit) || 1, 1), 3);
 
     const { accessToken } = await base44.asServiceRole.connectors.getConnection('googledrive');
 
-    // Все пэды, ещё висящие на стримере.
+    // Пэды на стримере, ещё не помеченные как «слишком большие». Помеченные
+    // (asset_skipped) больше не пытаемся качать — они остаются на стриме с
+    // кэшем браузера и не блокируют очередь.
     const all = await base44.asServiceRole.entities.Pad.list('-created_date', 1000);
-    const pending = all.filter((p) => p.url && p.url.includes('streamDriveAudio'));
+    const pending = all.filter(
+      (p) => p.url && p.url.includes('streamDriveAudio') && !p.asset_skipped
+    );
     const batch = pending.slice(0, limit);
 
     const errors = [];
     let converted = 0;
+    let skipped = 0;
 
     for (const pad of batch) {
       try {
         const fileId = new URL(pad.url).searchParams.get('fileId');
         if (!fileId) { errors.push({ id: pad.id, error: 'no fileId' }); continue; }
 
-        // Качаем файл из Drive.
         const driveRes = await fetch(
           `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`,
           { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -47,24 +52,41 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const blob = await driveRes.blob();
         const name = (pad.title || 'sound').replace(/[^\w.-]+/g, '_').slice(0, 60) + '.wav';
-        const file = new File([blob], name, { type: 'audio/wav' });
 
-        // Заливаем в постоянное хранилище приложения.
+        let file;
+        try {
+          // Читаем файл в память. Крупные WAV (40+ МБ) могут не поместиться —
+          // тогда ловим ошибку памяти ниже и помечаем пэд как пропущенный.
+          const buf = new Uint8Array(await driveRes.arrayBuffer());
+          file = new File([buf], name, { type: 'audio/wav' });
+        } catch (memErr) {
+          // Слишком большой для воркера — помечаем, чтобы не блокировал очередь.
+          await base44.asServiceRole.entities.Pad.update(pad.id, { asset_skipped: true });
+          skipped++;
+          continue;
+        }
+
         const { file_url } = await base44.asServiceRole.integrations.Core.UploadFile({ file });
-
         await base44.asServiceRole.entities.Pad.update(pad.id, { url: file_url });
         converted++;
       } catch (e) {
-        errors.push({ id: pad.id, error: e.message });
+        // Любая иная ошибка памяти на больших файлах → тоже помечаем пропуск.
+        if (/memory/i.test(e.message || '')) {
+          try { await base44.asServiceRole.entities.Pad.update(pad.id, { asset_skipped: true }); skipped++; } catch (_) {}
+        } else {
+          errors.push({ id: pad.id, error: e.message });
+        }
       }
     }
 
+    const remaining = pending.length - converted - skipped;
     return Response.json({
       processed: batch.length,
       converted,
-      remaining: pending.length - converted,
+      skipped,
+      remaining,
+      done: remaining === 0,
       errors,
     });
   } catch (error) {
