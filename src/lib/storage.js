@@ -9,7 +9,6 @@
 // документ із хмари і — при першому вході — переносить дані з localStorage.
 // ─────────────────────────────────────────────────────────────
 import { base44 } from '@/api/base44Client';
-import { classifyPad } from './metadata';
 
 // Старі ключі localStorage — лише для одноразової міграції.
 const LEGACY_KEYS = {
@@ -48,45 +47,11 @@ let ready = false;
 // тож усі споживачі (getCustomPads / useCustomPads) лишаються незмінними.
 // padRecordId зіставляє app-level id пэда з id запису сущності Pad.
 const padRecordId = new Map();
-
-// Загрузка ВСЕХ записей Pad постранично — снимаем прежний потолок в 1000.
-// Base44 list отдаёт максимум ~? за раз; читаем страницами по 500, пока есть.
-async function loadAllPads() {
-  const PAGE = 500;
-  const out = [];
-  let skip = 0;
-  // Без жёсткого верхнего предела: страховка от бесконечного цикла — 200 страниц (100k).
-  for (let guard = 0; guard < 200; guard++) {
-    const batch = await base44.entities.Pad.list('-created_date', PAGE, skip);
-    if (!batch || batch.length === 0) break;
-    out.push(...batch);
-    if (batch.length < PAGE) break;
-    skip += PAGE;
-  }
-  return out;
-}
-// Запись Pad → форма кеша. Метаданные (location/weather/… + search_text)
-// тоже прокидываем в кеш, чтобы поиск/фильтры читали готовые поля.
 function toCachePad(rec) {
-  return {
-    id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon,
-    location: rec.location || [], weather: rec.weather || [], mood: rec.mood || [],
-    purpose: rec.purpose || [], elements: rec.elements || [], tags: rec.tags || [],
-    time: rec.time, genre: rec.genre, intensity: rec.intensity,
-    loop: typeof rec.loop === 'boolean' ? rec.loop : undefined,
-    search_text: rec.search_text || '',
-  };
+  return { id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon };
 }
-// Сырой пэд (импорт/кеш) → запись Pad с ВЫЧИСЛЕННЫМИ метаданными.
-// Классификация выполняется здесь один раз и сохраняется в запись.
 function toEntityPad(p) {
-  const meta = classifyPad({ title: p.title, category: p.category, isLoopable: p.isLoopable ?? p.loop });
-  return {
-    pad_id: p.id, title: p.title || '', url: p.url || '', category: p.category || '', icon: p.icon || '',
-    location: meta.location, weather: meta.weather, mood: meta.mood, purpose: meta.purpose,
-    elements: meta.elements, time: meta.time, genre: meta.genre, intensity: meta.intensity,
-    loop: meta.loop, tags: p.tags || [], search_text: meta.search_text,
-  };
+  return { pad_id: p.id, title: p.title || '', url: p.url || '', category: p.category || '', icon: p.icon || '' };
 }
 
 const listeners = new Set();
@@ -182,7 +147,7 @@ export const storage = {
       }
       // ── Бібліотека пэдів: завантаження із сущності Pad (+ одноразова міграція) ──
       try {
-        let padRecs = await loadAllPads();
+        let padRecs = await base44.entities.Pad.list('-created_date', 1000);
         // Якщо записів Pad немає, але в старому полі custom_pads щось є —
         // переносимо у нову сущність (раз) і працюємо далі вже з нею.
         if ((!padRecs || padRecs.length === 0) && (cache.custom_pads || []).length && !cache.custom_pads_migrated) {
@@ -190,7 +155,7 @@ export const storage = {
           for (let i = 0; i < toCreate.length; i += 100) {
             await base44.entities.Pad.bulkCreate(toCreate.slice(i, i + 100));
           }
-          padRecs = await loadAllPads();
+          padRecs = await base44.entities.Pad.list('-created_date', 1000);
           if (recordId) {
             try { await base44.entities.UserPrefs.update(recordId, { custom_pads_migrated: true }); } catch { /* ignore */ }
           }
