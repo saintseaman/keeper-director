@@ -111,6 +111,36 @@
       "default": [],
       "description": "Favorite pad ids"
     },
+    "mix_presets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "layers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "padId": {
+                  "type": "string"
+                },
+                "volume": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "default": [],
+      "description": "Quick mix snapshots \u2014 saved sets of playing pads with their volumes for one-tap switching"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,

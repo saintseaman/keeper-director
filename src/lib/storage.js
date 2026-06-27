@@ -32,6 +32,7 @@ const DEFAULTS = {
   scenes: [],
   recent_pads: [],
   pad_favorites: [],
+  mix_presets: [],
   migrated_from_local: false,
 };
 
@@ -168,6 +169,7 @@ export const storage = {
           scenes: r.scenes ?? DEFAULTS.scenes,
           recent_pads: r.recent_pads ?? DEFAULTS.recent_pads,
           pad_favorites: r.pad_favorites ?? DEFAULTS.pad_favorites,
+          mix_presets: r.mix_presets ?? DEFAULTS.mix_presets,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -364,4 +366,8 @@ export const storage = {
   // Улюблені пэди — масив id.
   getPadFavorites: () => cache.pad_favorites || [],
   setPadFavorites: (ids) => set('pad_favorites', ids),
+
+  // Снимки микса — заготовки сцены: [{ id, name, layers: [{ padId, volume }] }].
+  getMixPresets: () => cache.mix_presets || [],
+  setMixPresets: (list) => set('mix_presets', list),
 };

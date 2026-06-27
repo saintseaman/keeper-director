@@ -12,8 +12,10 @@ import PadDeck from '@/components/pad/PadDeck';
 import LocationGrid from '@/components/pad/LocationGrid';
 import CategoryWheel from '@/components/pad/CategoryWheel';
 import SceneTray from '@/components/pad/SceneTray';
+import MixPresetBar from '@/components/pad/MixPresetBar';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
+import { useMixPresets } from '@/lib/useMixPresets';
 
 // Розбити масив звуків на сторінки по 9 пэдів.
 function paginate(list, size = 9) {
@@ -27,6 +29,7 @@ export default function Home() {
   const { pads: customPads, addPads, removePad } = useCustomPads();
   const { axes } = useAxes();
   const { getOverride } = useSoundOverrides();
+  const { presets, saveCurrent, removePreset, applyPreset } = useMixPresets(customPads);
   const [folderOpen, setFolderOpen] = useState(false);
   const [mixerOpen, setMixerOpen] = useState(false);
   const [activeLoc, setActiveLoc] = useState(null); // null = «Все»
@@ -222,6 +225,19 @@ export default function Home() {
 
       {/* Лента собранной сцены — видна на шаге колеса категорий */}
       {step === 'category' && <SceneTray activePads={activePads} />}
+
+      {/* Быстрые снимки микса — сохранить текущий набор и переключаться касанием */}
+      <MixPresetBar
+        presets={presets}
+        activeCount={activeCount}
+        onSave={() => {
+          const name = window.prompt('Название снимка микса:', `Микс ${presets.length + 1}`);
+          if (name === null) return;
+          saveCurrent(name.trim());
+        }}
+        onApply={applyPreset}
+        onRemove={removePreset}
+      />
 
       <DriveFolderDialog
         open={folderOpen}
