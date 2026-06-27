@@ -4,6 +4,7 @@ import { getIcon } from '@/lib/iconMap';
 import { useIsSoundActive } from '@/lib/useAudio';
 import { audioEngine } from '@/lib/audioEngine';
 import PadEditDialog from '@/components/pad/PadEditDialog';
+import LayerVolumeSlider from '@/components/scene/LayerVolumeSlider';
 
 const LONG_PRESS_MS = 500;
 
@@ -48,12 +49,13 @@ function MatchRow({ pad, onRemoveCustom }) {
   return (
     <>
       <div
-        className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 select-none transition-colors ${
+        className={`w-full rounded-lg border select-none transition-colors ${
           isActive
             ? 'bg-orange-500/15 border-orange-400/50'
             : 'bg-white/5 border-white/10 hover:border-white/25'
         }`}
       >
+      <div className="flex items-center gap-3 px-3 py-2.5">
         <button
           onClick={handleClick}
           onPointerDown={startPress}
@@ -79,6 +81,8 @@ function MatchRow({ pad, onRemoveCustom }) {
         >
           <MoreVertical size={16} />
         </button>
+        </div>
+        {isActive && <LayerVolumeSlider padId={pad.id} />}
       </div>
 
       <PadEditDialog

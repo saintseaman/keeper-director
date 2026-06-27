@@ -10,6 +10,7 @@
 // ─────────────────────────────────────────────────────────────
 
 const BASE_VOLUME = 0.6; // громкость одиночного слоя
+export const MAX_SCENE_LAYERS = 8; // максимум одновременных фоновых слоёв
 
 // Луп ли это пэд (по умолчанию — да; one-shot помечается isLoopable === false).
 export function isLoopPad(pad) {
@@ -21,6 +22,11 @@ export function loopableScenePads(pads) {
   return (pads || []).filter((p) => p?.url && isLoopPad(p));
 }
 
+// Сколько слоёв реально пойдёт в фон с учётом лимита (для подписей UI).
+export function sceneMixCount(pads) {
+  return Math.min(loopableScenePads(pads).length, MAX_SCENE_LAYERS);
+}
+
 // Громкость одного слоя при N одновременных слоях.
 // 1/√N сохраняет суммарную воспринимаемую энергию примерно постоянной.
 export function layerVolume(count) {
@@ -29,9 +35,10 @@ export function layerVolume(count) {
 }
 
 // Запустить набор пэдов как нормализованный фон сцены.
+// Берём не более MAX_SCENE_LAYERS слоёв, чтобы не было звуковой каши.
 // Возвращает число реально запущенных слоёв.
 export function playSceneMix(audioEngine, pads) {
-  const loops = loopableScenePads(pads);
+  const loops = loopableScenePads(pads).slice(0, MAX_SCENE_LAYERS);
   const vol = layerVolume(loops.length);
   for (const pad of loops) {
     audioEngine.playFile(pad.id, pad.url, pad.title, vol, true);
