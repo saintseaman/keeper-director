@@ -129,6 +129,67 @@ function guessCategory(name) {
   return { category, icon };
 }
 
+// ── Багатовісна класифікація (location / action / weather / mood) ──
+// Дзеркало SCENE_AXES із фронту (lib/sceneAxes.js). Зберігається НА ЗАПИС
+// пэда (поле axes) під час імпорту — це ground truth замість рантайм-вгадування.
+const AXIS_KW = {
+  location: {
+    city: ['city', 'town', 'street', 'urban', 'город', 'улиц', 'місто'],
+    suburb: ['suburb', 'village', 'house', 'home', 'manor', 'пригород', 'деревн', 'дом', 'село'],
+    cafe: ['cafe', 'tavern', 'inn', 'pub', 'bar', 'restaurant', 'кафе', 'таверн', 'бар', 'трактир'],
+    forest: ['forest', 'jungle', 'wood', 'tree', 'swamp', 'лес', 'джунгл', 'болот'],
+    dungeon: ['dungeon', 'cave', 'crypt', 'tomb', 'cellar', 'basement', 'underground', 'подземель', 'пещер', 'склеп', 'подвал'],
+    sea: ['sea', 'ocean', 'harbor', 'dock', 'beach', 'море', 'океан', 'порт', 'пляж'],
+    temple: ['church', 'temple', 'cathedral', 'shrine', 'церков', 'храм', 'собор'],
+    asylum: ['asylum', 'sanatorium', 'hospital', 'madhouse', 'лечебниц', 'психиатр', 'больниц', 'санатор'],
+    library: ['library', 'archive', 'study', 'arkham', 'miskatonic', 'библиотек', 'архив', 'кабинет'],
+    university: ['university', 'college', 'academy', 'университет', 'академ', 'колледж'],
+    ruins: ['ruins', 'rlyeh', 'cyclopean', 'руин', 'рльех', 'развалин', 'древн'],
+    ship_deck: ['ship', 'vessel', 'boat', 'deck', 'корабл', 'судно', 'палуб'],
+  },
+  action: {
+    explore: ['explore', 'investigation', 'ambient', 'ambience', 'mystery', 'исследован', 'эмбиент', 'фон'],
+    combat: ['combat', 'fight', 'battle', 'chase', 'drum', 'war', 'бой', 'битва', 'сражен', 'погон', 'барабан'],
+    dialogue: ['dialogue', 'talk', 'conversation', 'social', 'диалог', 'разговор', 'беседа'],
+    travel: ['travel', 'journey', 'road', 'walk', 'march', 'путешеств', 'дорог', 'поход', 'марш'],
+    ritual: ['ritual', 'summon', 'spell', 'incantation', 'sacrifice', 'chant', 'ритуал', 'призыв', 'закл', 'жертв'],
+    rest: ['rest', 'calm', 'peace', 'sleep', 'camp', 'отдых', 'покой', 'привал', 'лагерь', 'сон'],
+    investigate: ['investigate', 'clue', 'search', 'detective', 'расследов', 'улик', 'обыск'],
+    research: ['research', 'lore', 'tome', 'occult', 'фолиант', 'оккульт', 'манускрипт'],
+    sanity: ['sanity', 'madness', 'insanity', 'panic', 'безуми', 'рассудок', 'паник', 'помешат'],
+    summon: ['awaken', 'great old one', 'cthulhu', 'пробужд', 'ктулху'],
+  },
+  weather: {
+    rain: ['rain', 'drizzle', 'дождь', 'дощ', 'ливень'],
+    sunny: ['sun', 'sunny', 'day', 'clear', 'солнц', 'сонц', 'ясн'],
+    storm: ['storm', 'thunder', 'lightning', 'гроза', 'гром', 'буря', 'молни'],
+    night: ['night', 'dark', 'moon', 'ночь', 'ноч', 'тьма', 'лун'],
+    fog: ['fog', 'mist', 'wind', 'туман', 'мгл', 'ветер', 'вітер'],
+    underwater: ['underwater', 'deep', 'abyss', 'submerged', 'под вод', 'глубин', 'бездн', 'затоплен'],
+    cosmic: ['cosmic', 'void', 'stars', 'space', 'космос', 'пустот', 'звёзд', 'звезд'],
+    snow: ['snow', 'blizzard', 'ice', 'arctic', 'снег', 'метел', 'лёд', 'лед', 'арктик'],
+  },
+  mood: {
+    calm: ['calm', 'peace', 'gentle', 'soft', 'спокой', 'мирн', 'тих'],
+    tense: ['tense', 'suspense', 'danger', 'напряж', 'опасн', 'тревож'],
+    horror: ['horror', 'creepy', 'eerie', 'dread', 'fear', 'scream', 'whisper', 'ужас', 'жуть', 'страх', 'крик', 'шёпот', 'шепот'],
+    mystery: ['mystery', 'unknown', 'тайна', 'загадк', 'неизвестн'],
+  },
+};
+
+function guessAxes(name) {
+  const lower = name.toLowerCase();
+  const axes = {};
+  for (const [axisId, values] of Object.entries(AXIS_KW)) {
+    const hits = [];
+    for (const [valueId, kw] of Object.entries(values)) {
+      if (kw.some((k) => lower.includes(k))) hits.push(valueId);
+    }
+    if (hits.length) axes[axisId] = hits;
+  }
+  return axes;
+}
+
 Deno.serve(async (req) => {
   try {
     const base44 = createClientFromRequest(req);
@@ -200,6 +261,8 @@ Deno.serve(async (req) => {
       const { category, icon } = guessCategory(f.name || '');
       // Атмосфера/істоти/безумство — зацикленi; події/jumpscare — одноразові.
       const isLoopable = !['events', 'jumpscare'].includes(category);
+      // Багатовісна класифікація — зберігається на запис пэда (ground truth).
+      const axes = guessAxes(f.name || '');
       sounds.push({
         id: `custom_${f.id}`,
         title: cleanTitle(f.name || 'Sound'),
@@ -207,6 +270,7 @@ Deno.serve(async (req) => {
         category,
         icon,
         isLoopable,
+        axes,
       });
     }
 

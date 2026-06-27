@@ -48,10 +48,36 @@ let ready = false;
 // padRecordId зіставляє app-level id пэда з id запису сущності Pad.
 const padRecordId = new Map();
 function toCachePad(rec) {
-  return { id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon };
+  return {
+    id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon,
+    isLoopable: rec.is_loopable, axes: rec.axes || {}, tags: rec.tags || [],
+  };
 }
 function toEntityPad(p) {
-  return { pad_id: p.id, title: p.title || '', url: p.url || '', category: p.category || '', icon: p.icon || '' };
+  const rec = {
+    pad_id: p.id, title: p.title || '', url: p.url || '', category: p.category || '', icon: p.icon || '',
+    axes: p.axes || {}, tags: p.tags || [],
+  };
+  if (typeof p.isLoopable === 'boolean') rec.is_loopable = p.isLoopable;
+  return rec;
+}
+
+// Постранична виборка ВСІХ пэдів — без потолка в 1000 записів.
+// Бібліотека може містити десятки тисяч звуків; читаємо сторінками по 1000,
+// поки сторінка повертає повний розмір.
+async function fetchAllPads() {
+  const PAGE = 1000;
+  const all = [];
+  let skip = 0;
+  // Захист від нескінченного циклу: щонайбільше 200 сторінок (200k звуків).
+  for (let guard = 0; guard < 200; guard++) {
+    const page = await base44.entities.Pad.list('-created_date', PAGE, skip);
+    if (!page || page.length === 0) break;
+    all.push(...page);
+    if (page.length < PAGE) break;
+    skip += PAGE;
+  }
+  return all;
 }
 
 const listeners = new Set();
@@ -147,7 +173,7 @@ export const storage = {
       }
       // ── Бібліотека пэдів: завантаження із сущності Pad (+ одноразова міграція) ──
       try {
-        let padRecs = await base44.entities.Pad.list('-created_date', 1000);
+        let padRecs = await fetchAllPads();
         // Якщо записів Pad немає, але в старому полі custom_pads щось є —
         // переносимо у нову сущність (раз) і працюємо далі вже з нею.
         if ((!padRecs || padRecs.length === 0) && (cache.custom_pads || []).length && !cache.custom_pads_migrated) {
@@ -155,7 +181,7 @@ export const storage = {
           for (let i = 0; i < toCreate.length; i += 100) {
             await base44.entities.Pad.bulkCreate(toCreate.slice(i, i + 100));
           }
-          padRecs = await base44.entities.Pad.list('-created_date', 1000);
+          padRecs = await fetchAllPads();
           if (recordId) {
             try { await base44.entities.UserPrefs.update(recordId, { custom_pads_migrated: true }); } catch { /* ignore */ }
           }
@@ -274,6 +300,9 @@ export const storage = {
     if ('url' in patch) entityPatch.url = patch.url;
     if ('category' in patch) entityPatch.category = patch.category;
     if ('icon' in patch) entityPatch.icon = patch.icon;
+    if ('axes' in patch) entityPatch.axes = patch.axes;
+    if ('tags' in patch) entityPatch.tags = patch.tags;
+    if ('isLoopable' in patch) entityPatch.is_loopable = patch.isLoopable;
     if (Object.keys(entityPatch).length === 0) return;
     setStatus('saving');
     try {

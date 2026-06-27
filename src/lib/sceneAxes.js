@@ -139,15 +139,23 @@ export function autoAxes(pad) {
   return result;
 }
 
-// Итоговые теги пэда: ручные (override.axes) приоритетнее авто.
-// Если по оси нет ни ручных, ни авто-тегов — ось пустая (пэд «универсальный»).
+// Итоговые теги пэда. Приоритет источников:
+//  1) ручной override (override.axes) — пользователь правил вручную;
+//  2) сохранённые на записи пэда оси (pad.axes) — ground truth с момента импорта;
+//  3) авто-угадывание по имени (autoAxes) — легаси-фоллбэк для старых пэдов
+//     без сохранённых осей.
+// Так мы перестаём перегадывать оси в рантайме для каждого импортированного звука.
 export function padAxes(pad, override) {
   const manual = override?.axes || {};
-  const auto = autoAxes(pad);
+  const stored = pad?.axes || {};
+  const hasStored = Object.values(stored).some((v) => Array.isArray(v) && v.length);
+  const auto = hasStored ? {} : autoAxes(pad);
   const merged = {};
   for (const axis of SCENE_AXES) {
     const m = manual[axis.id];
+    const s = stored[axis.id];
     if (Array.isArray(m) && m.length) merged[axis.id] = m;
+    else if (Array.isArray(s) && s.length) merged[axis.id] = s;
     else if (auto[axis.id]) merged[axis.id] = auto[axis.id];
     else merged[axis.id] = [];
   }
