@@ -25,7 +25,6 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
   const isActive = useIsSoundActive(pad.id);
   const togglePreview = (e) => {
     e.stopPropagation();
-    audioEngine.unlock(); // iOS: разблокируем аудио синхронно в жесте тапа
     if (audioEngine.isPlaying(pad.id)) {
       audioEngine.stop(pad.id, 0);
     } else if (pad.url) {

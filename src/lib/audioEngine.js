@@ -1137,9 +1137,10 @@ class AudioEngine {
       return;
     }
     const seq = this._seq++;
-    const el = new Audio(url);
+    const el = this._takePreloaded(url);
     el.loop = !!loop;
     el.volume = Math.max(0, Math.min(1, volume * this.masterVolume));
+    try { el.currentTime = 0; } catch (e) {}
     el.play().catch(() => {});
 
     this.activeSounds.set(soundId, {
@@ -1154,9 +1155,10 @@ class AudioEngine {
   triggerFile(soundId, url, title = '', volume = 1.0) {
     if (this.activeSounds.has(soundId)) this.stop(soundId, 0);
     const seq = this._seq++;
-    const el = new Audio(url);
+    const el = this._takePreloaded(url);
     el.loop = false;
     el.volume = Math.max(0, Math.min(1, volume * this.masterVolume));
+    try { el.currentTime = 0; } catch (e) {}
     el.addEventListener('ended', () => {
       if (this.activeSounds.get(soundId)?.el === el) {
         this.activeSounds.delete(soundId);
