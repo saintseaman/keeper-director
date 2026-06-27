@@ -71,10 +71,9 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent
-        style={{ width: 'auto', maxWidth: 'none' }}
-        className="bg-[#141414] border-white/10 text-white !left-3 !right-3 !translate-x-0 w-auto max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6 sm:!left-[50%] sm:!right-auto sm:!translate-x-[-50%] sm:w-full sm:max-w-sm"
+        className="bg-[#141414] border-white/10 text-white grid-cols-[minmax(0,1fr)] w-[calc(100vw-1.5rem)] max-w-sm max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6"
       >
-        <DialogHeader>
+        <DialogHeader className="min-w-0">
           <DialogTitle className="font-mono tracking-wider text-sm text-white/80 uppercase flex items-center justify-between gap-2 pr-6 min-w-0">
             <span className="truncate min-w-0">Пэд · {title}</span>
             <span className="shrink-0 flex items-center gap-3">
@@ -92,7 +91,7 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pt-1">
+        <div className="space-y-4 pt-1 min-w-0">
           {/* Название */}
           <Section label="Название">
             <Input
