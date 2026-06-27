@@ -70,7 +70,10 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-[#141414] border-white/10 text-white w-[calc(100vw-1.5rem)] max-w-sm max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6">
+      <DialogContent
+        style={{ width: 'calc(100vw - 1.5rem)', maxWidth: '24rem' }}
+        className="bg-[#141414] border-white/10 text-white max-h-[85vh] overflow-y-auto overflow-x-hidden p-4 sm:p-6"
+      >
         <DialogHeader>
           <DialogTitle className="font-mono tracking-wider text-sm text-white/80 uppercase flex items-center justify-between gap-2 pr-6 min-w-0">
             <span className="truncate min-w-0">Пэд · {title}</span>
