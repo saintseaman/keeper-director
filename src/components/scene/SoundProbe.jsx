@@ -1,142 +1,126 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Clock } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { Clock, ShieldCheck, ShieldAlert, Loader2, Volume2 } from 'lucide-react';
 
-// Диагностическая проба звука для панели «Теги».
-// Самостоятельно (мимо общего audioEngine) грузит файл по url через скрытый
-// <audio>, показывает его длительность в секундах и Audio Visualizer
-// (анализатор частот) во время превью-воспроизведения. Цель — увидеть,
-// действительно ли файл доступен/играет, ведь часть звуков «не звучит».
+// Диагностическая проба звука для панели «Теги» — РАБОТАЕТ ПО ЗАПРОСУ.
 //
-// playing  — внешний флаг (строка сейчас проигрывается через TagFixRow).
-// url      — ссылка на аудиофайл.
-export default function SoundProbe({ url, playing }) {
+// Важное отличие от прошлой версии: проба больше НЕ грузит файл автоматически
+// при рендере. Раньше каждая из 159 строк сразу создавала скрытый <audio> и
+// тянула метаданные WAV — 159 параллельных загрузок забивали сеть и UI лагал.
+//
+// Теперь по тапу на «Проверить» открывается лёгкий <audio>, который сообщает:
+//  • длительность в секундах,
+//  • реально ли файл доступен (✓) или битый/недоступен (✗).
+// Так пользователь точечно видит, какие звуки не работают, без тормозов.
+//
+// playing — внешний флаг (строка сейчас проигрывается через TagFixRow);
+//           показываем индикатор сигнала, когда звук идёт.
+// broken  — результат массовой проверки: true/false если уже проверяли всё,
+//           undefined если массовая проверка не запускалась.
+function SoundProbe({ url, playing, broken }) {
   const audioRef = useRef(null);
-  const canvasRef = useRef(null);
-  const rafRef = useRef(null);
-  const ctxRef = useRef(null);
-  const analyserRef = useRef(null);
-  const srcRef = useRef(null);
+  // Если массовая проверка уже дала вердикт — сразу отражаем его.
+  const initial = broken === true ? 'error' : broken === false ? 'ok' : 'idle';
+  const [state, setState] = useState(initial); // idle | checking | ok | error
+  const [duration, setDuration] = useState(null);
 
-  const [duration, setDuration] = useState(null); // секунды, либо null если не удалось прочитать
-
-  // Пытаемся узнать длину файла. Это лишь справочная метрика — если браузер
-  // (особенно iOS Safari на .wav) не отдаёт метаданные, просто показываем
-  // прочерк. НИКАКОЙ красной тревоги «не загружается»: реальное
-  // воспроизведение идёт через движок отдельно и работает.
+  // Синхронизируем стейт с результатом массовой проверки, когда он приходит.
   useEffect(() => {
-    if (!url) { setDuration(null); return; }
-    setDuration(null);
-    const el = new Audio();
-    el.preload = 'metadata';
-    el.src = url;
-    audioRef.current = el;
+    if (broken === true) setState('error');
+    else if (broken === false) setState((s) => (s === 'idle' ? 'ok' : s));
+  }, [broken]);
 
-    const onMeta = () => {
-      if (isFinite(el.duration) && el.duration > 0) setDuration(el.duration);
-    };
-    el.addEventListener('loadedmetadata', onMeta);
-    el.addEventListener('durationchange', onMeta);
-    el.load();
+  const check = useCallback(
+    (e) => {
+      e?.stopPropagation();
+      if (!url || state === 'checking') return;
+      setState('checking');
+      setDuration(null);
 
-    return () => {
-      el.removeEventListener('loadedmetadata', onMeta);
-      el.removeEventListener('durationchange', onMeta);
-      try { el.pause(); el.src = ''; } catch (e) {}
-    };
-  }, [url]);
+      const el = new Audio();
+      el.preload = 'metadata';
+      el.src = url;
+      audioRef.current = el;
 
-  // Визуализатор работает, пока строка играет. Подключаем тот же url отдельным
-  // <audio> к AnalyserNode и рисуем спектр. Так видно, реально ли идёт сигнал.
-  useEffect(() => {
-    if (!playing || !url) {
-      stopViz();
-      return;
-    }
-    let cancelled = false;
-
-    const start = async () => {
-      try {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AC();
-        ctxRef.current = ctx;
-        if (ctx.state === 'suspended') await ctx.resume();
-
-        const el = new Audio();
-        el.crossOrigin = 'anonymous';
-        el.src = url;
-        el.loop = true;
-        el.volume = 0.0001; // звук уже идёт через основной движок — здесь только анализ
-        srcRef.current = el;
-
-        const node = ctx.createMediaElementSource(el);
-        const analyser = ctx.createAnalyser();
-        analyser.fftSize = 128;
-        node.connect(analyser);
-        analyser.connect(ctx.destination);
-        analyserRef.current = analyser;
-
-        await el.play().catch(() => {});
-        if (cancelled) { stopViz(); return; }
-        draw();
-      } catch (e) {
-        // CORS/без MediaElementSource — визуализатор недоступен, но длительность всё равно есть.
-      }
-    };
-
-    const draw = () => {
-      const analyser = analyserRef.current;
-      const canvas = canvasRef.current;
-      if (!analyser || !canvas) return;
-      const cctx = canvas.getContext('2d');
-      const bins = analyser.frequencyBinCount;
-      const data = new Uint8Array(bins);
-
-      const render = () => {
-        analyser.getByteFrequencyData(data);
-        const w = canvas.width;
-        const h = canvas.height;
-        cctx.clearRect(0, 0, w, h);
-        const barW = w / bins;
-        for (let i = 0; i < bins; i++) {
-          const v = data[i] / 255;
-          const bh = Math.max(1, v * h);
-          cctx.fillStyle = `rgba(251,146,60,${0.35 + v * 0.65})`;
-          cctx.fillRect(i * barW, h - bh, barW * 0.8, bh);
-        }
-        rafRef.current = requestAnimationFrame(render);
+      const onMeta = () => {
+        if (isFinite(el.duration) && el.duration > 0) setDuration(el.duration);
+        setState('ok');
       };
-      render();
+      const onErr = () => setState('error');
+      el.addEventListener('loadedmetadata', onMeta, { once: true });
+      el.addEventListener('error', onErr, { once: true });
+      // Таймаут: если за 8 с ни метаданных, ни ошибки — считаем недоступным.
+      const timer = setTimeout(() => { if (audioRef.current === el) setState('error'); }, 8000);
+      el.addEventListener('loadedmetadata', () => clearTimeout(timer), { once: true });
+      el.addEventListener('error', () => clearTimeout(timer), { once: true });
+      el.load();
+    },
+    [url, state]
+  );
+
+  // Чистим скрытый <audio> при размонтировании.
+  useEffect(() => {
+    return () => {
+      const el = audioRef.current;
+      if (el) { try { el.pause(); el.src = ''; } catch (err) {} }
     };
-
-    start();
-    return () => { cancelled = true; stopViz(); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, url]);
-
-  const stopViz = () => {
-    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-    try { srcRef.current?.pause(); if (srcRef.current) srcRef.current.src = ''; } catch (e) {}
-    try { ctxRef.current?.close(); } catch (e) {}
-    srcRef.current = null;
-    analyserRef.current = null;
-    ctxRef.current = null;
-  };
+  }, []);
 
   return (
-    <div className="flex items-center gap-2 mt-1.5">
-      {/* Длительность звука в секундах (или прочерк, если браузер не отдал её) */}
-      <span className="flex items-center gap-1 text-[11px] text-white/50 tabular-nums">
-        <Clock size={11} />
-        {duration != null ? `${duration.toFixed(1)} с` : '—'}
-      </span>
+    <div className="flex items-center gap-2 mt-1.5" onClick={(e) => e.stopPropagation()}>
+      {state === 'idle' && (
+        <button
+          onClick={check}
+          className="flex items-center gap-1 text-[11px] text-white/45 hover:text-orange-300 rounded-md px-1.5 py-0.5 border border-white/10 hover:border-orange-400/40 transition-colors"
+          title="Проверить, что файл доступен и играет"
+        >
+          <ShieldCheck size={11} /> Проверить
+        </button>
+      )}
 
-      {/* Audio Visualizer — спектр во время превью */}
-      <canvas
-        ref={canvasRef}
-        width={120}
-        height={20}
-        className={`h-5 w-[120px] rounded transition-opacity ${playing ? 'opacity-100' : 'opacity-25'}`}
-      />
+      {state === 'checking' && (
+        <span className="flex items-center gap-1 text-[11px] text-white/50">
+          <Loader2 size={11} className="animate-spin" /> проверка…
+        </span>
+      )}
+
+      {state === 'ok' && (
+        <span className="flex items-center gap-1 text-[11px] text-emerald-300/90" title="Файл доступен">
+          <ShieldCheck size={11} /> работает
+          {duration != null && (
+            <span className="flex items-center gap-1 text-white/45 tabular-nums">
+              <Clock size={10} /> {duration.toFixed(1)} с
+            </span>
+          )}
+        </span>
+      )}
+
+      {state === 'error' && (
+        <button
+          onClick={check}
+          className="flex items-center gap-1 text-[11px] text-rose-300/90 hover:text-rose-200 transition-colors"
+          title="Файл недоступен — нажмите, чтобы проверить ещё раз"
+        >
+          <ShieldAlert size={11} /> не загружается
+        </button>
+      )}
+
+      {/* Индикатор реального сигнала во время превью-воспроизведения */}
+      {playing && (
+        <span className="flex items-center gap-0.5 text-orange-300" title="Сигнал идёт">
+          <Volume2 size={12} />
+          <span className="flex items-end gap-[2px] h-3">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-[3px] bg-orange-400 rounded-sm"
+                style={{ animation: `eqbar 0.7s ease-in-out ${i * 0.15}s infinite`, height: '100%', transformOrigin: 'bottom' }}
+              />
+            ))}
+          </span>
+        </span>
+      )}
     </div>
   );
 }
+
+export default React.memo(SoundProbe);

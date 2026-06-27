@@ -1,11 +1,13 @@
-import React, { useState, useMemo } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles, Square } from 'lucide-react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles, Square, HeartPulse } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useAudio } from '@/lib/useAudio';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
+import { audioEngine } from '@/lib/audioEngine';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
 import { useScaryFolderScan } from '@/lib/useScaryFolderScan';
 import { useSmartTag } from '@/lib/useSmartTag';
+import { useHealthCheck } from '@/lib/useHealthCheck';
 import TagFixRow from '@/components/scene/TagFixRow';
 import BulkTagDialog from '@/components/scene/BulkTagDialog';
 import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
@@ -20,6 +22,7 @@ export default function Tags() {
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
   const scary = useScaryFolderScan();
   const smart = useSmartTag(mergeOverrides, overrides);
+  const health = useHealthCheck();
   const [showDone, setShowDone] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -39,15 +42,25 @@ export default function Tags() {
   const done = rows.filter((r) => r.missing.length === 0);
   const visible = showDone ? rows : needFix;
 
-  const onChangeAxes = (padId, axes) => setOverride(padId, { axes });
+  // Прогреваем preload-кэш первых видимых звуков → превью по тапу запускается
+  // мгновенно, без сетевой буферизации. Ограничиваем числом, чтобы не плодить
+  // <audio> на все 159 файлов.
+  useEffect(() => {
+    for (const r of visible.slice(0, 16)) {
+      if (r.pad.url) audioEngine.preloadFile(r.pad.url);
+    }
+  }, [visible]);
 
-  const toggleSelect = (padId) => {
+  // useCallback — чтобы memo на TagFixRow реально работала (стабильные ссылки).
+  const onChangeAxes = useCallback((padId, axes) => setOverride(padId, { axes }), [setOverride]);
+
+  const toggleSelect = useCallback((padId) => {
     setSelected((prev) => {
       const next = new Set(prev);
       next.has(padId) ? next.delete(padId) : next.add(padId);
       return next;
     });
-  };
+  }, []);
 
   const exitSelect = () => {
     setSelectMode(false);
@@ -55,6 +68,9 @@ export default function Tags() {
   };
 
   const selectAllVisible = () => setSelected(new Set(visible.map((r) => r.pad.id)));
+
+  // Стабильный onRename для memo строк.
+  const handleRename = useCallback((id, title) => updatePad(id, { title }), [updatePad]);
 
   // Массовое применение: добавляем выбранные значения к каждому звуку,
   // не затирая его текущие теги (ручные или авто фиксируем как ручные).
@@ -119,6 +135,17 @@ export default function Tags() {
                 : 'ИИ-ТЕГИ'}
             </button>
             <button
+              onClick={() => health.run(pads)}
+              disabled={health.running || pads.length === 0}
+              title="Проверить, какие звуки не загружаются"
+              className="flex items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-500/10 px-2 py-1.5 text-sky-200 hover:bg-sky-500/20 hover:border-sky-400/50 disabled:opacity-50 transition-colors"
+            >
+              <HeartPulse size={12} className={health.running ? 'animate-pulse' : ''} />
+              {health.running
+                ? (health.progress ? `${health.progress.done} / ${health.progress.total}` : 'ПРОВЕРКА…')
+                : 'ПРОВЕРКА'}
+            </button>
+            <button
               onClick={scary.resync}
               disabled={scary.syncing}
               title="Синхронизировать с папкой Scary_sounds"
@@ -153,6 +180,27 @@ export default function Tags() {
         {!selectMode && !smart.running && smart.result && (
           <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
             ИИ-разметка завершена. Размечено звуков: {smart.result.tagged}
+          </div>
+        )}
+
+        {!selectMode && health.running && (
+          <div className="rounded-lg border border-sky-400/40 bg-sky-500/10 px-3 py-2 text-[12px] text-sky-200 flex items-center gap-2">
+            <HeartPulse size={13} className="animate-pulse" />
+            Проверяю звуки…{health.progress ? ` ${health.progress.done} / ${health.progress.total}` : ''}
+          </div>
+        )}
+
+        {!selectMode && health.checked && !health.running && (
+          <div
+            className={`rounded-lg border px-3 py-2 text-[12px] ${
+              health.broken.size > 0
+                ? 'border-rose-400/40 bg-rose-500/10 text-rose-200'
+                : 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
+            }`}
+          >
+            {health.broken.size > 0
+              ? <>Не загружаются: <span className="font-medium">{health.broken.size}</span> — отмечены красным ниже.</>
+              : <>Все звуки загружаются. Битых нет.</>}
           </div>
         )}
 
@@ -231,7 +279,8 @@ export default function Tags() {
                   selected={selected.has(pad.id)}
                   onToggleSelect={toggleSelect}
                   onRemove={removePad}
-                  onRename={(id, title) => updatePad(id, { title })}
+                  onRename={handleRename}
+                  broken={health.broken.has(pad.id)}
                 />
               ))
             )}

@@ -10,7 +10,7 @@ import SoundProbe from './SoundProbe';
 // Строка звука в панели «Теги»: показывает, по каким осям нет тегов,
 // и по тапу разворачивает редактор для проставки прямо здесь.
 // В режиме выделения (selectable) слева — чекбокс, а тап по строке переключает выбор.
-export default function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove, onRename }) {
+function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected, onToggleSelect, onRemove, onRename, broken }) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(pad.title);
@@ -49,7 +49,9 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
   };
 
   return (
-    <div className={`rounded-xl border bg-white/[0.03] overflow-hidden transition-colors ${selectable && selected ? 'border-orange-400/60' : 'border-white/10'}`}>
+    <div className={`rounded-xl border bg-white/[0.03] overflow-hidden transition-colors ${
+      broken ? 'border-rose-500/60 bg-rose-500/[0.04]' : selectable && selected ? 'border-orange-400/60' : 'border-white/10'
+    }`}>
       <button
         onClick={() => (selectable ? onToggleSelect(pad.id) : setOpen((v) => !v))}
         className="w-full flex items-center gap-3 px-3 py-2.5 text-left"
@@ -127,7 +129,7 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
               </span>
             )}
           </div>
-          {pad.url && !editing && <SoundProbe url={pad.url} playing={isActive} />}
+          {pad.url && !editing && <SoundProbe url={pad.url} playing={isActive} broken={broken} />}
         </div>
         {!selectable && !editing && (
           <span className="shrink-0 flex items-center gap-1">
@@ -168,3 +170,19 @@ export default function TagFixRow({ pad, override, missing, onChangeAxes, select
     </div>
   );
 }
+
+// Мемоизация: при правке одной строки или превью остальные 158 не
+// перерендериваются. Сравниваем только поля, влияющие на вид строки.
+export default React.memo(TagFixRow, (prev, next) =>
+  prev.pad === next.pad &&
+  prev.override === next.override &&
+  prev.missing.length === next.missing.length &&
+  prev.missing.join(',') === next.missing.join(',') &&
+  prev.selectable === next.selectable &&
+  prev.selected === next.selected &&
+  prev.broken === next.broken &&
+  prev.onChangeAxes === next.onChangeAxes &&
+  prev.onToggleSelect === next.onToggleSelect &&
+  prev.onRemove === next.onRemove &&
+  prev.onRename === next.onRename
+);
