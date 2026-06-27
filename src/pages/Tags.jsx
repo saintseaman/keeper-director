@@ -1,16 +1,14 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, RefreshCw, Sparkles, Square, HeartPulse } from 'lucide-react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, Sparkles, Square, HeartPulse } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useAudio } from '@/lib/useAudio';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
-import { useScaryFolderScan } from '@/lib/useScaryFolderScan';
 import { useSmartTag } from '@/lib/useSmartTag';
 import { useHealthCheck } from '@/lib/useHealthCheck';
 import TagFixRow from '@/components/scene/TagFixRow';
 import BulkTagDialog from '@/components/scene/BulkTagDialog';
-import ScaryScanBanner from '@/components/scene/ScaryScanBanner';
 
 // Панель «Теги» — аналитика разметки звуков.
 // Показывает звуки, у которых не проставлены теги по осям («нужно починить»),
@@ -20,7 +18,6 @@ export default function Tags() {
   const { activeSounds, stopAll } = useAudio();
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
-  const scary = useScaryFolderScan();
   const smart = useSmartTag(mergeOverrides, overrides);
   const health = useHealthCheck();
   const [showDone, setShowDone] = useState(true);
@@ -164,29 +161,11 @@ export default function Tags() {
               <HeartPulse size={13} className={health.running ? 'animate-pulse' : ''} />
               {health.running && health.progress && `${health.progress.done}/${health.progress.total}`}
             </button>
-            <button
-              onClick={scary.resync}
-              disabled={scary.syncing}
-              title="Синхронизировать с папкой Scary_sounds"
-              className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/55 hover:text-orange-300 hover:border-orange-400/40 disabled:opacity-50 transition-colors"
-            >
-              <RefreshCw size={13} className={scary.syncing ? 'animate-spin' : ''} />
-              {scary.syncing && scary.progress && `${scary.progress.done}/${scary.progress.total}`}
-            </button>
           </div>
         )}
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
-        {!selectMode && (
-          <ScaryScanBanner
-            count={scary.newFiles.length}
-            importing={scary.importing}
-            onImport={scary.importNew}
-            onDismiss={scary.dismiss}
-          />
-        )}
-
         {!selectMode && smart.running && (
           <div className="rounded-lg border border-violet-400/40 bg-violet-500/10 px-3 py-2 text-[12px] text-violet-200 flex items-center gap-2">
             <Sparkles size={13} className="animate-pulse" />
@@ -221,22 +200,10 @@ export default function Tags() {
           </div>
         )}
 
-        {!selectMode && scary.lastSync && (
-          <div
-            className={`rounded-lg border px-3 py-2 text-[12px] ${
-              scary.lastSync.added > 0
-                ? 'border-emerald-400/40 bg-emerald-500/10 text-emerald-200'
-                : 'border-white/10 bg-white/5 text-white/55'
-            }`}
-          >
-            {scary.lastSync.message}
-          </div>
-        )}
-
         {pads.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <TagsIcon size={40} className="text-white/15" strokeWidth={1.2} />
-            <p className="text-sm text-white/45">Сначала импортируйте звуки с Google Диска на главной.</p>
+            <p className="text-sm text-white/45">Сначала импортируйте звуки на главной.</p>
           </div>
         ) : (
           <>

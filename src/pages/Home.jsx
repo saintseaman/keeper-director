@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Square, Dices, FolderDown, SlidersHorizontal, ChevronLeft } from 'lucide-react';
+import { Square, Dices, FolderUp, SlidersHorizontal, ChevronLeft } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { audioEngine } from '@/lib/audioEngine';
 import { useAudio } from '@/lib/useAudio';
@@ -15,7 +15,7 @@ import CategoryWheel from '@/components/pad/CategoryWheel';
 import SceneTray from '@/components/pad/SceneTray';
 import IntentSearchBar from '@/components/scene/IntentSearchBar';
 import MixPresetBar from '@/components/pad/MixPresetBar';
-import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
+import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 import { useMixPresets } from '@/lib/useMixPresets';
 
@@ -119,14 +119,14 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Импорт папки с Google Диска */}
+          {/* Импорт папки с устройства на сервер */}
           <button
             onClick={() => setFolderOpen(true)}
             className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-mono tracking-wider bg-white/5 border border-white/10 text-white/60 hover:border-orange-400/40 hover:text-orange-300 transition-colors"
-            title="Импорт папки с Google Диска"
+            title="Импорт папки со звуками"
           >
-            <FolderDown size={13} />
-            <span className="hidden sm:inline">DRIVE</span>
+            <FolderUp size={13} />
+            <span className="hidden sm:inline">ИМПОРТ</span>
           </button>
 
           {/* Настройки всех кнопок (микшер) */}
@@ -193,13 +193,13 @@ export default function Home() {
       <div className="flex-1 min-h-0 px-4 pt-3 pb-3">
         {customPads.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center gap-3">
-            <FolderDown size={32} className="text-white/20" />
+            <FolderUp size={32} className="text-white/20" />
             <p className="text-sm text-white/50 font-mono tracking-wide">Нет пэдов</p>
             <button
               onClick={() => setFolderOpen(true)}
               className="rounded-lg px-4 py-2 text-[11px] font-mono tracking-wider bg-white/5 border border-orange-400/40 text-orange-300 hover:bg-orange-400/10 transition-colors"
             >
-              Импортировать папку с Google Диска
+              Импортировать папку со звуками
             </button>
           </div>
         ) : step === 'location' ? (
@@ -248,7 +248,7 @@ export default function Home() {
         onRemove={removePreset}
       />
 
-      <DriveFolderDialog
+      <FolderUploadDialog
         open={folderOpen}
         onClose={() => setFolderOpen(false)}
         onImported={(sounds) => addPads(sounds)}

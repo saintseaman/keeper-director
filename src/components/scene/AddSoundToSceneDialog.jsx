@@ -1,12 +1,12 @@
 import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Search, FolderDown, Plus, Check, X } from 'lucide-react';
+import { Search, FolderUp, Plus, Check, X } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 
 // Диалог добавления звука в сцену.
 // Сверху — поиск по своей библиотеке (выбрать из имеющихся), кнопка импорта
-// с Google Диска. Уже входящие в сцену звуки помечены галочкой и тап по ним
+// папки со звуками. Уже входящие в сцену звуки помечены галочкой и тап по ним
 // убирает их из сцены.
 export default function AddSoundToSceneDialog({ open, onClose, pads, sceneIds, onAdd, onRemove, onImport }) {
   const [query, setQuery] = useState('');
@@ -35,8 +35,8 @@ export default function AddSoundToSceneDialog({ open, onClose, pads, sceneIds, o
             onClick={onImport}
             className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-600/20 border border-orange-500/40 p-2.5 text-xs text-orange-200 hover:bg-orange-600/30 transition-colors"
           >
-            <FolderDown size={15} />
-            Импортировать с Google Диска
+            <FolderUp size={15} />
+            Импортировать папку
           </button>
 
           <div className="relative">

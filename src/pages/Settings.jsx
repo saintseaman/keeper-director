@@ -3,7 +3,6 @@ import { Settings as SettingsIcon, Volume2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import LangSelector from '@/components/pad/LangSelector';
-import AssetizeButton from '@/components/pad/AssetizeButton';
 
 export default function Settings() {
   const { masterVolume, setMasterVolume } = useAudio();
@@ -37,10 +36,6 @@ export default function Settings() {
           <LangSelector />
         </div>
 
-        {/* Ускорение звуков — перенос из Drive в хранилище приложения */}
-        <div className="pt-2 border-t border-white/10">
-          <AssetizeButton />
-        </div>
       </div>
     </div>
   );

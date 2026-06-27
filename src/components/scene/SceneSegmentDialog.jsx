@@ -5,9 +5,9 @@ import { Check, Pencil, Trash2, Plus, Music, XCircle } from 'lucide-react';
 import { axisValue, padAxes } from '@/lib/sceneAxes';
 import { segmentBg } from '@/lib/segmentBackgrounds';
 import { audioEngine } from '@/lib/audioEngine';
-import DriveImportDialog from '@/components/pad/DriveImportDialog';
+import SingleFileUploadDialog from '@/components/pad/SingleFileUploadDialog';
 
-// Диалог сегмента колеса (напр. «Город»): импорт звука с Google Диска
+// Диалог сегмента колеса (напр. «Город»): загрузка звука с устройства
 // (с автопривязкой тега сегмента), переименование и удаление звуков сегмента.
 export default function SceneSegmentDialog({
   axisId,
@@ -35,9 +35,9 @@ export default function SceneSegmentDialog({
     return pads.filter((p) => (padAxes(p, overrides[p.id])[axisId] || []).includes(valueId));
   }, [pads, overrides, axisId, valueId, value]);
 
-  // Импорт с Drive → создаём пэд и сразу привязываем тег сегмента.
+  // Загрузка файла → создаём пэд и сразу привязываем тег сегмента.
   const handleImport = ({ url, name }) => {
-    const id = `drive_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const id = `upload_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     addPads([{ id, title: name, url, category: 'atmosphere', icon: 'Music' }]);
     const existingAxes = overrides[id]?.axes || {};
     const axisTags = Array.from(new Set([...(existingAxes[axisId] || []), valueId]));
@@ -82,13 +82,13 @@ export default function SceneSegmentDialog({
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-orange-500/15 border border-orange-400/40 px-3 py-2.5 text-[12px] font-mono tracking-wider text-orange-200 hover:bg-orange-500/25 transition-colors"
             >
               <Plus size={15} />
-              ИМПОРТ С GOOGLE ДИСКА
+              ЗАГРУЗИТЬ ЗВУК
             </button>
 
             <div className="max-h-72 overflow-y-auto space-y-1.5">
               {segmentPads.length === 0 ? (
                 <div className="rounded-lg border border-dashed border-white/15 p-4 text-center text-xs text-white/35">
-                  Нет звуков в этом сегменте. Импортируйте с Google Диска.
+                  Нет звуков в этом сегменте. Загрузите свой файл.
                 </div>
               ) : (
                 segmentPads.map((pad) => (
@@ -145,7 +145,7 @@ export default function SceneSegmentDialog({
         </DialogContent>
       </Dialog>
 
-      <DriveImportDialog open={driveOpen} onClose={() => setDriveOpen(false)} onImport={handleImport} />
+      <SingleFileUploadDialog open={driveOpen} onClose={() => setDriveOpen(false)} onImport={handleImport} />
     </>
   );
 }

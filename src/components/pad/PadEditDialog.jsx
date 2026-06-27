@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, Trash2, Music, Loader2, Play, HardDrive, RotateCcw, Repeat, Zap, Star } from 'lucide-react';
+import { Upload, Trash2, Music, Loader2, Play, RotateCcw, Repeat, Zap, Star } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { usePadFiles } from '@/lib/usePadFiles';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { usePadLibrary } from '@/lib/usePadLibrary';
 import { audioEngine } from '@/lib/audioEngine';
-import DriveImportDialog from './DriveImportDialog';
+import SingleFileUploadDialog from './SingleFileUploadDialog';
 import IconPicker from './IconPicker';
 import PadAxesEditor from '@/components/scene/PadAxesEditor';
 
@@ -150,7 +150,7 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
             />
           </Section>
 
-          {/* Свой звук (MP3 / Drive) */}
+          {/* Свой звук (MP3) */}
           <Section label="Свой звук">
             {current ? (
               <div className="flex items-center gap-3 rounded-lg bg-white/5 border border-white/10 p-3">
@@ -172,25 +172,15 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
             {error && <p className="text-xs text-rose-400">{error}</p>}
 
             <input ref={inputRef} type="file" accept="audio/*,.mp3" className="hidden" onChange={handleFile} />
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                onClick={handlePick}
-                disabled={uploading}
-                className="bg-orange-600/20 border border-orange-500/40 text-orange-200 hover:bg-orange-600/30"
-              >
-                {uploading
-                  ? <><Loader2 size={15} className="animate-spin mr-1.5" /> …</>
-                  : <><Upload size={15} className="mr-1.5" /> {current ? 'Заменить' : 'Загрузить'}</>}
-              </Button>
-              <Button
-                onClick={() => setDriveOpen(true)}
-                disabled={uploading}
-                variant="outline"
-                className="bg-white/5 border-white/15 text-white/80 hover:bg-white/10"
-              >
-                <HardDrive size={15} className="mr-1.5" /> Drive
-              </Button>
-            </div>
+            <Button
+              onClick={handlePick}
+              disabled={uploading}
+              className="w-full bg-orange-600/20 border border-orange-500/40 text-orange-200 hover:bg-orange-600/30"
+            >
+              {uploading
+                ? <><Loader2 size={15} className="animate-spin mr-1.5" /> …</>
+                : <><Upload size={15} className="mr-1.5" /> {current ? 'Заменить' : 'Загрузить'}</>}
+            </Button>
           </Section>
 
           {/* Сброс */}
@@ -203,7 +193,7 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
             </button>
           )}
 
-          {/* Удаление кастомного пэда (из Drive) */}
+          {/* Удаление кастомного пэда */}
           {onRemove && (
             <button
               onClick={() => { if (window.confirm(`Удалить пэд «${title}»?`)) onRemove(); }}
@@ -214,7 +204,7 @@ export default function PadEditDialog({ sound, open, onClose, onRemove }) {
           )}
         </div>
 
-        <DriveImportDialog
+        <SingleFileUploadDialog
           open={driveOpen}
           onClose={() => setDriveOpen(false)}
           onImport={({ url, name }) => setFile(sound.id, { url, name })}

@@ -17,7 +17,7 @@ import SavedScenes from '@/components/scene/SavedScenes';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
 import AddSoundToSceneDialog from '@/components/scene/AddSoundToSceneDialog';
-import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
+import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
@@ -130,7 +130,7 @@ export default function Scenes() {
         {pads.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <Layers size={40} className="text-white/15" strokeWidth={1.2} />
-            <p className="text-sm text-white/45">Сначала импортируйте звуки с Google Диска на главной.</p>
+            <p className="text-sm text-white/45">Сначала импортируйте звуки на главной.</p>
           </div>
         ) : (
           <>
@@ -268,7 +268,7 @@ export default function Scenes() {
         onImport={() => { setAddSoundOpen(false); setDriveOpen(true); }}
       />
 
-      <DriveFolderDialog
+      <FolderUploadDialog
         open={driveOpen}
         onClose={() => setDriveOpen(false)}
         onImported={(sounds) => {
