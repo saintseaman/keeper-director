@@ -13,7 +13,6 @@ import LocationTabs from '@/components/pad/LocationTabs';
 import CategoryTabs from '@/components/pad/CategoryTabs';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
-import QuickAccessBar from '@/components/pad/QuickAccessBar';
 
 // Розбити масив звуків на сторінки по 9 пэдів.
 function paginate(list, size = 9) {
@@ -143,9 +142,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Полоса быстрого доступа: избранное + недавние */}
-      {customPads.length > 0 && <QuickAccessBar pads={customPads} />}
-
       {/* Вкладки локаций */}
       {customPads.length > 0 && (
         <div className="px-4 pt-3 space-y-2">
@@ -156,13 +152,15 @@ export default function Home() {
             total={customPads.length}
             customValues={locationCustomValues}
           />
-          {/* Категории внутри выбранной локации */}
-          <CategoryTabs
-            active={activeCat}
-            onChange={setActiveCat}
-            counts={catCounts}
-            total={inLocation.length}
-          />
+          {/* Категории показываем только после выбора локации */}
+          {activeLoc && (
+            <CategoryTabs
+              active={activeCat}
+              onChange={setActiveCat}
+              counts={catCounts}
+              total={inLocation.length}
+            />
+          )}
         </div>
       )}
 
