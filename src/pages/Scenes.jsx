@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Layers, Sparkles, Play, Square, Save } from 'lucide-react';
+import { Layers, Sparkles, Play, Square, Save, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
@@ -15,6 +15,8 @@ import SceneMatchList from '@/components/scene/SceneMatchList';
 import SavedScenes from '@/components/scene/SavedScenes';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
+import AddSoundToSceneDialog from '@/components/scene/AddSoundToSceneDialog';
+import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
@@ -30,9 +32,15 @@ export default function Scenes() {
   const [name, setName] = useState('');
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
+  const [addSoundOpen, setAddSoundOpen] = useState(false); // диалог добавления звука в сцену
+  const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
+  // Ручные правки текущей сцены поверх автоподбора по фильтру:
+  const [extraIds, setExtraIds] = useState([]); // вручную добавленные звуки
+  const [excludedIds, setExcludedIds] = useState(new Set()); // убранные из сцены звуки
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
+  const hasScene = hasFilter || extraIds.length > 0;
 
   // Карта пэдов по id (для запуска сохранённых сцен).
   const padsById = useMemo(() => {
@@ -41,11 +49,34 @@ export default function Scenes() {
     return m;
   }, [pads]);
 
-  // Пэды, подходящие под выбранный набор осей.
-  const matches = useMemo(() => {
+  // Пэды, подходящие под выбранный набор осей (автоподбор).
+  const autoMatches = useMemo(() => {
     if (!hasFilter) return [];
     return pads.filter((p) => padMatchesSelection(padAxes(p, overrides[p.id]), selection));
   }, [pads, overrides, selection, hasFilter]);
+
+  // Итоговый список звуков сцены = (автоподбор + вручную добавленные) − убранные.
+  // Это позволяет добавлять/удалять звуки поверх фильтра осей.
+  const matches = useMemo(() => {
+    const byId = new Map(pads.map((p) => [p.id, p]));
+    const ids = new Set(autoMatches.map((p) => p.id));
+    for (const id of extraIds) ids.add(id);
+    for (const id of excludedIds) ids.delete(id);
+    return Array.from(ids).map((id) => byId.get(id)).filter(Boolean);
+  }, [pads, autoMatches, extraIds, excludedIds]);
+
+  // Множество id текущей сцены — для подсветки в диалоге добавления.
+  const sceneIds = useMemo(() => new Set(matches.map((p) => p.id)), [matches]);
+
+  // Добавить/убрать звук из сцены вручную (поверх автоподбора).
+  const addToScene = (id) => {
+    setExcludedIds((prev) => { const n = new Set(prev); n.delete(id); return n; });
+    setExtraIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+  const removeFromScene = (id) => {
+    setExtraIds((prev) => prev.filter((x) => x !== id));
+    setExcludedIds((prev) => { const n = new Set(prev); n.add(id); return n; });
+  };
 
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
@@ -125,15 +156,15 @@ export default function Scenes() {
                 <SceneSliders selection={selection} onSelect={onSelect} />
               </div>
 
-              {hasFilter && (
+              {hasScene && (
                 <div className="mt-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] text-white/40">
-                      Подходит: <span className="text-orange-300 font-medium">{matches.length}</span>
+                      В сцене: <span className="text-orange-300 font-medium">{matches.length}</span>
                     </span>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setSelection(EMPTY)}
+                        onClick={() => { setSelection(EMPTY); setExtraIds([]); setExcludedIds(new Set()); }}
                         className="text-[11px] text-white/40 hover:text-white/70 transition-colors"
                       >
                         Сбросить
@@ -153,7 +184,15 @@ export default function Scenes() {
                     </div>
                   </div>
 
-                  <SceneMatchList pads={matches} onRemoveCustom={removePad} />
+                  <button
+                    onClick={() => setAddSoundOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 px-3 py-2.5 text-[11px] font-mono tracking-wider text-white/55 hover:border-orange-400/40 hover:text-orange-300 transition-colors"
+                  >
+                    <Plus size={14} />
+                    ДОБАВИТЬ ЗВУК В СЦЕНУ
+                  </button>
+
+                  <SceneMatchList pads={matches} onRemoveCustom={removeFromScene} />
 
                   {matches.length > 0 && (
                     <div className="flex items-center gap-2 pt-1">
@@ -207,6 +246,31 @@ export default function Scenes() {
         open={!!addAxis}
         onClose={() => setAddAxis(null)}
         onAdd={addValue}
+      />
+
+      <AddSoundToSceneDialog
+        open={addSoundOpen}
+        onClose={() => setAddSoundOpen(false)}
+        pads={pads}
+        sceneIds={sceneIds}
+        onAdd={addToScene}
+        onRemove={removeFromScene}
+        onImport={() => { setAddSoundOpen(false); setDriveOpen(true); }}
+      />
+
+      <DriveFolderDialog
+        open={driveOpen}
+        onClose={() => setDriveOpen(false)}
+        onImported={(sounds) => {
+          addPads(sounds);
+          setExtraIds((prev) => Array.from(new Set([...prev, ...sounds.map((s) => s.id)])));
+          setExcludedIds((prev) => {
+            const n = new Set(prev);
+            for (const s of sounds) n.delete(s.id);
+            return n;
+          });
+          setDriveOpen(false);
+        }}
       />
     </div>
   );
