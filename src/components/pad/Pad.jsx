@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Infinity as InfinityIcon, Zap } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
-import { getCategoryImage } from '@/lib/categoryImages';
+import { getPadBackground } from '@/lib/padBackground';
 import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
 import { usePadFiles } from '@/lib/usePadFiles';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
@@ -42,8 +42,8 @@ export default function Pad({ sound, index, onRemoveCustom }) {
   const title = ov.title ?? (isCustom ? sound.title : localizedSoundTitle(sound.id, lang, sound.title));
   const volume = typeof ov.volume === 'number' ? ov.volume : 0.6;
   const Icon = getIcon(ov.icon ?? sound.icon);
-  // Фоновая картинка по категории звука (встроенные и импортированные с Диска).
-  const bgImage = getCategoryImage(sound.category);
+  // Фон по смыслу звука (локация/погода/настроение) — узнаётся за секунду.
+  const bgImage = getPadBackground(sound, ov);
   const isLoopable = typeof ov.isLoopable === 'boolean' ? ov.isLoopable : !!sound.isLoopable;
   // Власний пэд з Google Диска несе свій url прямо в sound; інакше — MP3,
   // прив'язаний до вбудованого пэда через usePadFiles.
@@ -166,9 +166,18 @@ export default function Pad({ sound, index, onRemoveCustom }) {
           </>
         )}
 
-        {/* Название звука — на тёмной плашке для читаемости на любом фоне */}
-        <span className={`relative z-10 mx-1.5 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm ring-1 ring-white/10 text-[13px] sm:text-sm font-semibold leading-tight text-center tracking-wide line-clamp-2 max-w-[calc(100%-0.75rem)] [text-shadow:0_1px_3px_rgba(0,0,0,0.95)] ${isActive ? 'text-orange-50' : 'text-white'}`}>
-          {title}
+        {/* Крупная иконка по центру — мгновенно намекает на тип звука */}
+        <span className="relative z-10 mb-5 flex items-center justify-center">
+          <span className={`flex items-center justify-center w-11 h-11 rounded-full bg-black/45 backdrop-blur-sm ring-1 ${isActive ? 'ring-orange-300/60 text-orange-100' : 'ring-white/15 text-white/90'}`}>
+            <Icon size={22} strokeWidth={1.7} />
+          </span>
+        </span>
+
+        {/* Название звука — нижняя плашка во всю ширину, до 2 строк, текст не вылезает */}
+        <span className="absolute inset-x-0 bottom-0 z-10 flex items-end justify-center px-1.5 pb-1.5 pt-6 bg-gradient-to-t from-black via-black/85 to-transparent pointer-events-none">
+          <span className={`w-full text-[11px] sm:text-[12px] font-semibold leading-[1.1] text-center tracking-tight break-words [text-shadow:0_1px_2px_rgba(0,0,0,0.9)] [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden ${isActive ? 'text-orange-50' : 'text-white'}`}>
+            {title}
+          </span>
         </span>
       </button>
 
