@@ -1067,12 +1067,14 @@ class AudioEngine {
     if (!url) return new Audio(url);
     if (!this._preloaded) this._preloaded = new Map();
     const cached = this._preloaded.get(url);
-    if (cached) {
+    if (cached && cached.src) {
       this._preloaded.delete(url);
       try { cached.pause(); cached.currentTime = 0; } catch (e) {}
       this.preloadFile(url); // прогреваем заново для повторного тапа
       return cached;
     }
+    // Кэш был очищен/пуст — выбрасываем его и создаём свежий элемент ниже.
+    if (cached) this._preloaded.delete(url);
     // Не было в кэше — создаём и параллельно кладём копию в прогрев.
     const el = new Audio(url);
     this.preloadFile(url);
@@ -1099,7 +1101,11 @@ class AudioEngine {
     const el = this._takePreloaded(url);
     el.loop = !!loop;
     el.volume = Math.min(1, volume * this.masterVolume);
-    el.play().catch(() => {});
+    // Если файл ещё не готов — повторяем play() по 'canplay' (иначе зацикленный
+    // пэд горит активным, но молчит).
+    const tryPlay = () => { el.play().catch(() => {}); };
+    tryPlay();
+    el.addEventListener('canplay', tryPlay, { once: true });
 
     this.activeSounds.set(soundId, {
       source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
@@ -1124,7 +1130,12 @@ class AudioEngine {
     const el = this._takePreloaded(url);
     el.loop = false;
     el.volume = Math.min(1, volume * this.masterVolume);
-    el.play().catch(() => {});
+    // Длинные файлы могут быть ещё не загружены: пробуем играть сразу, а если
+    // браузер отклонил (не готов) — повторяем по 'canplay'. Без этого пэд
+    // помечается активным, но звука нет.
+    const tryPlay = () => { el.play().catch(() => {}); };
+    tryPlay();
+    el.addEventListener('canplay', tryPlay, { once: true });
 
     this.activeSounds.set(soundId, {
       source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
