@@ -1081,43 +1081,64 @@ class AudioEngine {
     return el;
   }
 
-  // ── Воспроизведение загруженного аудиофайла (MP3) ──
-  // Используем <audio> + MediaElementSource → masterGain. Проще и надёжнее,
-  // чем декодировать в буфер, и работает потоково для длинных файлов.
+  // Загружаем и декодируем файл в AudioBuffer (с кэшем). Тот же путь, что и
+  // визуализация волны, поэтому если волна рисуется — буфер точно валиден,
+  // а значит и звук пойдёт. Решает баг «волна есть, звука нет» (когда <audio>
+  // молча не проигрывал WAV/длинные файлы).
+  async _decodeFile(url) {
+    if (!this._bufferCache) this._bufferCache = new Map();
+    if (this._bufferCache.has(url)) return this._bufferCache.get(url);
+    const res = await fetch(url);
+    const arr = await res.arrayBuffer();
+    const buf = await this.audioContext.decodeAudioData(arr);
+    this._bufferCache.set(url, buf);
+    // Ограничиваем кэш буферов, чтобы не раздувать память.
+    if (this._bufferCache.size > 48) {
+      const firstKey = this._bufferCache.keys().next().value;
+      this._bufferCache.delete(firstKey);
+    }
+    return buf;
+  }
+
+  // ── Воспроизведение загруженного аудиофайла через Web Audio (BufferSource) ──
+  // Декодируем файл в буфер (как волна) и играем через граф → masterGain.
+  // Надёжнее <audio>: проигрывает любые WAV/длинные файлы, которые <audio> молчал.
   playFile(soundId, url, title, volume = 0.8, loop = true) {
-    // Розблоковуємо аудіо за жестом користувача: на мобільних без активного
-    // AudioContext браузер глушить навіть <audio>, тому resume обовʼязковий.
     this._ensureContext();
     if (this.activeSounds.has(soundId)) {
       this.setVolume(soundId, volume);
       return;
     }
+    // Резервируем id сразу, чтобы быстрый повторный тап не запустил два голоса.
+    this.activeSounds.set(soundId, { isPlaying: true, volume, title, loop, isFile: true, seq: this._seq++ });
     this._enforceVoiceLimit();
 
-    // Файли програємо чистим <audio> (без MediaElementSource): на iOS/Safari
-    // createMediaElementSource вимагає CORS і інакше дає «тишу». Гучність —
-    // через el.volume з урахуванням майстра.
-    //
-    // ВАЖЛИВО (iOS): елемент створюємо ТУТ, синхронно в обробнику жесту (тап).
-    // На iOS Safari звук дозволено лише на <audio>, чий .play() вперше викликано
-    // всередині жесту. Прелоадні елементи створюються поза жестом → iOS глушить
-    // їх мовчки (індикатор горить, звуку немає). Тому для відтворення завжди
-    // беремо свіжий елемент, а preload лишається тільки мережевим прогрівом URL.
-    const el = new Audio(url);
-    el.loop = !!loop;
-    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
-    el.volume = Math.min(1, volume * m);
-    // Если файл ещё не готов — повторяем play() по 'canplay' (иначе зацикленный
-    // пэд горит активным, но молчит).
-    const tryPlay = () => { el.play().catch(() => {}); };
-    tryPlay();
-    el.addEventListener('canplay', tryPlay, { once: true });
+    this._decodeFile(url).then((buffer) => {
+      // Пока декодировали, звук могли остановить — не запускаем «призрак».
+      const cur = this.activeSounds.get(soundId);
+      if (!cur || cur.isPlaying === false) { this.activeSounds.delete(soundId); this._notify(); return; }
 
-    this.activeSounds.set(soundId, {
-      source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
-      mediaEl: el, gainNode: null, lfo: null, extraNodes: [],
-      isPlaying: true, volume, title, loop, isFile: true, seq: this._seq++,
+      const ctx = this.audioContext;
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = volume;
+      gainNode.connect(this.masterGain);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = !!loop;
+      src.connect(gainNode);
+      try { src.start(); } catch (e) {}
+
+      this.activeSounds.set(soundId, {
+        source: src, gainNode, lfo: null, extraNodes: [],
+        isPlaying: true, volume, title, loop, isFile: true, seq: cur.seq,
+      });
+      this._notify();
+    }).catch(() => {
+      // Файл не декодировался — снимаем запись (пэд не «зависнет» активным).
+      this.activeSounds.delete(soundId);
+      this._notify();
     });
+
     this._notify();
   }
 
@@ -1130,36 +1151,42 @@ class AudioEngine {
     if (this.activeSounds.has(soundId)) {
       this.stop(soundId, 0);
     }
+    const seq = this._seq++;
+    // Резервируем id, чтобы повторный тап не запустил два голоса параллельно.
+    this.activeSounds.set(soundId, { isPlaying: true, volume, title, loop: false, isFile: true, seq });
 
-    // Чистий <audio> (без Web Audio графа) — надійно на iOS, не залежить від CORS.
-    // Свіжий елемент у жесті: див. коментар у playFile (iOS глушить прелоадні).
-    const el = new Audio(url);
-    el.loop = false;
-    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
-    el.volume = Math.min(1, volume * m);
-    // Длинные файлы могут быть ещё не загружены: пробуем играть сразу, а если
-    // браузер отклонил (не готов) — повторяем по 'canplay'. Без этого пэд
-    // помечается активным, но звука нет.
-    const tryPlay = () => { el.play().catch(() => {}); };
-    tryPlay();
-    el.addEventListener('canplay', tryPlay, { once: true });
+    this._decodeFile(url).then((buffer) => {
+      const cur = this.activeSounds.get(soundId);
+      if (!cur || cur.isPlaying === false) { this.activeSounds.delete(soundId); this._notify(); return; }
 
-    this.activeSounds.set(soundId, {
-      source: { stop: () => { try { el.pause(); el.currentTime = 0; } catch (e) {} } },
-      mediaEl: el, gainNode: null, lfo: null, extraNodes: [],
-      isPlaying: true, volume, title, loop: false, isFile: true, seq: this._seq++,
+      const ctx = this.audioContext;
+      const gainNode = ctx.createGain();
+      gainNode.gain.value = volume;
+      gainNode.connect(this.masterGain);
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = false;
+      src.connect(gainNode);
+
+      // По окончании убираем звук из реестра.
+      src.addEventListener('ended', () => {
+        if (this.activeSounds.get(soundId)?.source === src) {
+          try { gainNode.disconnect(); } catch (e) {}
+          this.activeSounds.delete(soundId);
+          this._notify();
+        }
+      });
+      try { src.start(); } catch (e) {}
+
+      this.activeSounds.set(soundId, {
+        source: src, gainNode, lfo: null, extraNodes: [],
+        isPlaying: true, volume, title, loop: false, isFile: true, seq,
+      });
+      this._notify();
+    }).catch(() => {
+      this.activeSounds.delete(soundId);
+      this._notify();
     });
-
-    // По окончании/ошибке убираем звук из реестра.
-    const cleanup = () => {
-      try { el.pause(); el.src = ''; el.load(); } catch (e) {}
-      if (this.activeSounds.get(soundId)?.mediaEl === el) {
-        this.activeSounds.delete(soundId);
-        this._notify();
-      }
-    };
-    el.addEventListener('ended', cleanup, { once: true });
-    el.addEventListener('error', cleanup, { once: true });
 
     this._notify();
   }
@@ -1194,15 +1221,7 @@ class AudioEngine {
     if (!sound) return;
     if (sound.isPlaying === false) return; // вже зупиняється — не запускаємо фейд вдруге
 
-    const { gainNode, source, lfo, extraNodes = [], mediaEl } = sound;
-
-    // Файл (<audio>) зупиняємо ЖОРСТКО і одразу: пауза + скидання, без графа.
-    if (mediaEl) {
-      try { mediaEl.pause(); mediaEl.currentTime = 0; mediaEl.loop = false; mediaEl.src = ''; mediaEl.load(); } catch (e) {}
-      this.activeSounds.delete(soundId);
-      this._notify();
-      return;
-    }
+    const { gainNode, source, lfo, extraNodes = [] } = sound;
 
     // Граф ще не побудований (зарезервований id) — просто знімаємо запис.
     if (!gainNode) {
@@ -1235,24 +1254,11 @@ class AudioEngine {
     const sound = this.activeSounds.get(soundId);
     if (!sound) return;
     sound.volume = volume;
-    // Файл — регулюємо гучність прямо на <audio>; синтез — через gainNode.
-    if (sound.mediaEl) {
-      const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
-      try { sound.mediaEl.volume = Math.min(1, volume * m); } catch (e) {}
-    } else if (sound.gainNode) {
+    // И файлы, и синтез теперь идут через gainNode → masterGain.
+    if (sound.gainNode) {
       sound.gainNode.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
     this._notify();
-  }
-
-  // Підлаштувати гучність активних файлових <audio> під поточний майстер.
-  _applyMasterToFiles() {
-    const m = typeof this.masterVolume === 'number' ? this.masterVolume : 1;
-    this.activeSounds.forEach((s) => {
-      if (s.mediaEl) {
-        try { s.mediaEl.volume = Math.min(1, (s.volume ?? 1) * m); } catch (e) {}
-      }
-    });
   }
 
   setMasterVolume(volume) {
@@ -1261,7 +1267,6 @@ class AudioEngine {
     if (this.masterGain && this.audioContext) {
       this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
-    this._applyMasterToFiles();
     this._notify();
   }
 
@@ -1271,7 +1276,6 @@ class AudioEngine {
     if (this.masterGain && this.audioContext) {
       this.masterGain.gain.setTargetAtTime(volume, this.audioContext.currentTime, 0.1);
     }
-    this._applyMasterToFiles();
     this._notify();
   }
 
