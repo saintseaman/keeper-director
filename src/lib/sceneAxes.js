@@ -14,6 +14,7 @@ import {
   Smile, Flame, Ghost, HelpCircle,
   BookOpen, Eye, Microscope, Ship, Library, Brain,
   Anchor, Fish, Pentagon, Tornado, Snowflake, Star,
+  Car, Train, Factory, DoorOpen, Spade, Hammer, Wind,
 } from 'lucide-react';
 
 // Иконки, доступные для пользовательских сегментов (имя → компонент).
@@ -23,6 +24,7 @@ export const AXIS_ICON_CHOICES = {
   Landmark, Library, BookOpen, Microscope, Compass, Swords,
   MessageCircle, Footprints, Coffee, Beer, CloudRain, CloudLightning,
   CloudFog, Moon, Sun, Snowflake, Tornado, Smile, HelpCircle,
+  Car, Train, Factory, DoorOpen, Spade, Hammer, Wind,
 };
 
 // Каждая ось: id, label, иконка-«заголовок», и список значений.
@@ -36,10 +38,13 @@ export const SCENE_AXES = [
       { id: 'city', label: 'Город', icon: Building2, kw: ['city', 'town', 'street', 'urban', 'город', 'улиц', 'місто'] },
       { id: 'suburb', label: 'Пригород', icon: Home, kw: ['suburb', 'village', 'house', 'home', 'manor', 'пригород', 'деревн', 'дом', 'село'] },
       { id: 'cafe', label: 'Кафе/Таверна', icon: Beer, kw: ['cafe', 'tavern', 'inn', 'pub', 'bar', 'restaurant', 'кафе', 'таверн', 'бар', 'трактир'] },
-      { id: 'forest', label: 'Лес', icon: Trees, kw: ['forest', 'jungle', 'wood', 'tree', 'swamp', 'лес', 'джунгл', 'болот'] },
+      { id: 'forest', label: 'Лес', icon: Trees, kw: ['forest', 'jungle', 'wood', 'tree', 'swamp', 'nature', 'лес', 'ліс', 'природ', 'дик', 'джунгл', 'болот'] },
+      { id: 'car', label: 'Машина', icon: Car, kw: ['car', 'vehicle', 'engine', 'auto', 'motorcycle', 'foley', 'авто', 'машин', 'двигун', 'двигат', 'мотоцикл', 'фари'] },
+      { id: 'train', label: 'Поезд/Вокзал', icon: Train, kw: ['train', 'station', 'platform', 'rail', 'потяг', 'поїзд', 'поезд', 'вокзал', 'платформ'] },
+      { id: 'factory', label: 'Завод', icon: Factory, kw: ['factory', 'industrial', 'crane', 'workshop', 'завод', 'кран', 'цех', 'фабр', 'заводськ'] },
       { id: 'dungeon', label: 'Подземелье', icon: Mountain, kw: ['dungeon', 'cave', 'crypt', 'tomb', 'cellar', 'basement', 'underground', 'подземель', 'пещер', 'склеп', 'подвал'] },
-      { id: 'sea', label: 'Море', icon: Waves, kw: ['sea', 'ocean', 'ship', 'harbor', 'dock', 'beach', 'море', 'океан', 'корабл', 'порт', 'пляж'] },
-      { id: 'temple', label: 'Храм', icon: Landmark, kw: ['church', 'temple', 'cathedral', 'shrine', 'церков', 'храм', 'собор'] },
+      { id: 'sea', label: 'Море', icon: Waves, kw: ['sea', 'ocean', 'ship', 'harbor', 'dock', 'beach', 'wave', 'river', 'water', 'море', 'океан', 'хвил', 'річк', 'корабл', 'порт', 'пляж'] },
+      { id: 'temple', label: 'Храм', icon: Landmark, kw: ['church', 'temple', 'cathedral', 'shrine', 'bell', 'церков', 'храм', 'собор', 'дзвон'] },
       { id: 'asylum', label: 'Лечебница', icon: Brain, kw: ['asylum', 'sanatorium', 'hospital', 'madhouse', 'лечебниц', 'психиатр', 'больниц', 'санатор'] },
       { id: 'library', label: 'Библиотека', icon: Library, kw: ['library', 'archive', 'study', 'arkham', 'miskatonic', 'библиотек', 'архив', 'кабинет'] },
       { id: 'university', label: 'Университет', icon: BookOpen, kw: ['university', 'college', 'academy', 'miskatonic', 'университет', 'академ', 'колледж'] },
@@ -62,6 +67,10 @@ export const SCENE_AXES = [
       { id: 'research', label: 'Исследование тайн', icon: Microscope, kw: ['research', 'lore', 'tome', 'study', 'occult', 'исследован тайн', 'фолиант', 'оккульт', 'манускрипт'] },
       { id: 'sanity', label: 'Безумие', icon: Brain, kw: ['sanity', 'madness', 'insanity', 'panic', 'безуми', 'рассудок', 'паник', 'помешат'] },
       { id: 'summon', label: 'Призыв', icon: Star, kw: ['summon', 'awaken', 'great old one', 'cthulhu', 'призыв', 'пробужд', 'ктулху', 'древн'] },
+      { id: 'creak', label: 'Скрип', icon: Hammer, kw: ['creak', 'squeak', 'metal scrape', 'скрип', 'скоблен', 'дребезг'] },
+      { id: 'impact', label: 'Удар', icon: Swords, kw: ['impact', 'hit', 'punch', 'gunshot', 'shot', 'удар', 'постріл', 'выстрел'] },
+      { id: 'door', label: 'Двери', icon: DoorOpen, kw: ['door', 'gate', 'slam', 'дверь', 'двер', 'ворот'] },
+      { id: 'cards', label: 'Карты/Игра', icon: Spade, kw: ['card', 'dice', 'deal', 'gambl', 'карт', 'грал', 'кост'] },
     ],
   },
   {
@@ -73,7 +82,9 @@ export const SCENE_AXES = [
       { id: 'sunny', label: 'Солнечно', icon: Sun, kw: ['sun', 'sunny', 'day', 'clear', 'солнц', 'сонц', 'ясн', 'день'] },
       { id: 'storm', label: 'Гроза', icon: CloudLightning, kw: ['storm', 'thunder', 'lightning', 'гроза', 'гром', 'буря', 'молни'] },
       { id: 'night', label: 'Ночь', icon: Moon, kw: ['night', 'dark', 'moon', 'ночь', 'ноч', 'тьма', 'лун'] },
-      { id: 'fog', label: 'Туман', icon: CloudFog, kw: ['fog', 'mist', 'wind', 'туман', 'мгл', 'ветер', 'вітер'] },
+      { id: 'fog', label: 'Туман', icon: CloudFog, kw: ['fog', 'mist', 'туман', 'мгл'] },
+      { id: 'wind', label: 'Ветер', icon: Wind, kw: ['wind', 'gust', 'breeze', 'gale', 'ветер', 'вітер', 'порив', 'ураган'] },
+      { id: 'fire', label: 'Огонь', icon: Flame, kw: ['fire', 'flame', 'campfire', 'burning', 'огонь', 'вогонь', 'вогню', 'полум', 'пожеж'] },
       { id: 'underwater', label: 'Под водой', icon: Fish, kw: ['underwater', 'deep', 'abyss', 'submerged', 'под вод', 'глубин', 'бездн', 'затоплен'] },
       { id: 'cosmic', label: 'Космос', icon: Star, kw: ['cosmic', 'void', 'stars', 'space', 'космос', 'пустот', 'звёзд', 'звезд', 'бездн'] },
       { id: 'snow', label: 'Снег', icon: Snowflake, kw: ['snow', 'blizzard', 'ice', 'arctic', 'снег', 'метел', 'лёд', 'лед', 'арктик'] },
