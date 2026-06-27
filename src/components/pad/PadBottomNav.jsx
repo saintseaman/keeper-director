@@ -3,11 +3,11 @@ import { NavLink } from 'react-router-dom';
 import { Grid3x3, Search, Layers, Tags, Settings } from 'lucide-react';
 
 const ITEMS = [
-  { to: '/', label: 'Звуки', icon: Grid3x3, end: true },
-  { to: '/search', label: 'Поиск', icon: Search },
-  { to: '/scenes', label: 'Сцены', icon: Layers },
-  { to: '/tags', label: 'Теги', icon: Tags },
-  { to: '/settings', label: 'Настройки', icon: Settings },
+  { to: '/app', label: 'Звуки', icon: Grid3x3, end: true },
+  { to: '/app/search', label: 'Поиск', icon: Search },
+  { to: '/app/scenes', label: 'Сцены', icon: Layers },
+  { to: '/app/tags', label: 'Теги', icon: Tags },
+  { to: '/app/settings', label: 'Настройки', icon: Settings },
 ];
 
 export default function PadBottomNav() {

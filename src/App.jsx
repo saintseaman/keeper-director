@@ -17,11 +17,48 @@ import Search from './pages/Search';
 import Scenes from './pages/Scenes';
 import Tags from './pages/Tags';
 import Settings from './pages/Settings';
+import Landing from './pages/Landing.jsx';
+import Demo from './pages/Demo.jsx';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
+  const { isLoadingPublicSettings } = useAuth();
 
-  if (isLoadingPublicSettings || isLoadingAuth) {
+  if (isLoadingPublicSettings) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-obsidian">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-8 h-8 border-2 border-brass/20 border-t-brass rounded-full animate-spin"></div>
+          <p className="text-xs font-heading tracking-widest text-brass-dim uppercase">Keeper Director</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Публичные маршруты (лендинг + демо) доступны без аккаунта.
+  // Сам саундборд под /app защищён гейтом авторизации и загрузки настроек.
+  return (
+    <Routes>
+      <Route path="/" element={<Landing />} />
+      <Route path="/demo" element={<Demo />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/app/*" element={<AppGate />} />
+      <Route path="*" element={<PageNotFound />} />
+    </Routes>
+  );
+};
+
+// Гейт авторизации для самого приложения (саундборда).
+const AppGate = () => {
+  const { isLoadingAuth, authError, navigateToLogin } = useAuth();
+
+  if (isLoadingAuth) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-obsidian">
         <div className="flex flex-col items-center gap-4">
@@ -60,14 +97,16 @@ const PrefsGate = () => {
     );
   }
 
+  // Эти маршруты вложены под <Route path="/app/*">, поэтому пути ОТНОСИТЕЛЬНЫЕ
+  // ("" = /app, "search" = /app/search и т.д.).
   return (
     <Routes>
       <Route element={<PadLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/search" element={<Search />} />
-        <Route path="/scenes" element={<Scenes />} />
-        <Route path="/tags" element={<Tags />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route index element={<Home />} />
+        <Route path="search" element={<Search />} />
+        <Route path="scenes" element={<Scenes />} />
+        <Route path="tags" element={<Tags />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
