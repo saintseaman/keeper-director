@@ -98,21 +98,6 @@ export default function Scenes() {
     playSceneMix(audioEngine, matches);
   };
 
-  // Перенести распознанное намерение в конструктор: по одному значению на ось
-  // в selection (для совместимости с колесом) + найденные звуки в extraIds.
-  const applyIntentToScene = (parsed, found) => {
-    setSelection((prev) => {
-      const next = { ...prev };
-      for (const axisId of Object.keys(EMPTY)) {
-        const ids = parsed[axisId] || [];
-        if (ids.length) next[axisId] = ids[0];
-      }
-      return next;
-    });
-    setExtraIds((prev) => Array.from(new Set([...prev, ...found.map((p) => p.id)])));
-    setExcludedIds(new Set());
-  };
-
   const saveScene = () => {
     const finalName = name.trim() || 'Без названия';
     addScene({ name: finalName, selection: { ...selection }, padIds: matches.map((p) => p.id) });
@@ -149,12 +134,13 @@ export default function Scenes() {
           </div>
         ) : (
           <>
-            {/* Командная строка намерений — главная точка входа */}
+            {/* Командная строка намерений — подсказки для ручной сборки сцены */}
             <IntentSearchBar
               pads={pads}
               overrides={overrides}
-              onPlayMix={(found) => playSceneMix(audioEngine, found)}
-              onApplyToScene={applyIntentToScene}
+              sceneIds={sceneIds}
+              onAdd={addToScene}
+              onRemove={removeFromScene}
             />
 
             {/* Колесо атмосферы */}

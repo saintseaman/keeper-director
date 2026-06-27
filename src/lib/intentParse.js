@@ -122,3 +122,33 @@ export function searchByIntent(pads, overrides, query) {
   });
   return { parsed, results: scored.map((s) => s.pad) };
 }
+
+// ─────────────────────────────────────────────────────────────
+// Ручная сборка с подсказками.
+// Вместо слепого авто-микса движок предлагает кандидатов, разложенных по
+// РОЛЯМ в сцене — Хранитель сам решает, что добавить. Роли:
+//  • background — зацикленный фон (основа атмосферы);
+//  • accent     — разовые звуки-акценты (события, удары, скрипы).
+// Лупы делятся на «основу» (покрыла больше всего осей) и «детали» только в UI;
+// здесь же — простая бинарная классификация по типу звука.
+// ─────────────────────────────────────────────────────────────
+function isLoopPad(pad) {
+  return pad?.isLoopable !== false;
+}
+
+// Разложить ранжированные результаты на группы кандидатов для ручной сборки.
+// Возвращает { background:[pads], accents:[pads] }, каждая ограничена лимитом,
+// чтобы не вываливать на Хранителя весь хвост библиотеки.
+export function intentCandidates(pads, overrides, query, limit = 12) {
+  const { parsed, results } = searchByIntent(pads, overrides, query);
+  const background = [];
+  const accents = [];
+  for (const pad of results) {
+    if (isLoopPad(pad)) {
+      if (background.length < limit) background.push(pad);
+    } else if (accents.length < limit) {
+      accents.push(pad);
+    }
+  }
+  return { parsed, background, accents, total: results.length };
+}
