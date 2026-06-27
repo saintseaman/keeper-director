@@ -56,6 +56,23 @@ class AudioEngine {
     }
   }
 
+  // iOS Safari: Web Audio звучит только если контекст разблокирован СИНХРОННО
+  // внутри пользовательского жеста. Последующее воспроизведение через async
+  // decode уже разрешено. Вызывать строго из обработчика тапа (без await до этого).
+  unlock() {
+    this._ensureContext();
+    const ctx = this.audioContext;
+    if (ctx.state === 'suspended') ctx.resume();
+    // Проигрываем тишину 1 семпл — это «активирует» аудиовыход в Safari.
+    try {
+      const buf = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(ctx.destination);
+      src.start(0);
+    } catch (e) {}
+  }
+
   subscribe(listener) {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

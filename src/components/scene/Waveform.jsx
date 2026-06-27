@@ -25,7 +25,7 @@ function Waveform({ url }) {
     if (!url || state === 'loading') return;
     setState('loading');
     try {
-      audioEngine._ensureContext();
+      audioEngine.unlock(); // iOS: активируем аудиоконтекст синхронно в жесте тапа
       const audioBuf = await audioEngine._decodeFile(url);
       // Берём первый канал, режем на BARS окон, в каждом — максимальная амплитуда.
       const data = audioBuf.getChannelData(0);
