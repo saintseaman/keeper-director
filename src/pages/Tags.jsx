@@ -134,16 +134,16 @@ export default function Tags() {
               onClick={() => stopAll(0.4)}
               disabled={activeCount === 0}
               title="Остановить все звуки"
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 tracking-wider transition-all
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 tracking-wider transition-all
                 ${activeCount > 0 ? 'bg-rose-600/20 border border-rose-500/50 text-rose-300' : 'bg-white/5 border border-white/10 text-white/25'}`}
             >
-              <Square size={12} className={activeCount > 0 ? 'fill-rose-400' : ''} />
-              {activeCount > 0 ? activeCount : 'STOP'}
+              <Square size={13} className={activeCount > 0 ? 'fill-rose-400' : ''} />
+              {activeCount > 0 && activeCount}
             </button>
-            <span className="flex items-center gap-1 text-orange-300/80">
+            <span className="flex items-center gap-1 text-orange-300/80" title="Без тегов">
               <AlertCircle size={12} /> {needFix.length}
             </span>
-            <span className="flex items-center gap-1 text-emerald-300/80">
+            <span className="flex items-center gap-1 text-emerald-300/80" title="Размечено">
               <CheckCircle2 size={12} /> {done.length}
             </span>
             <button
@@ -152,10 +152,8 @@ export default function Tags() {
               title="Умная разметка всех звуков через ИИ"
               className="flex items-center gap-1 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2 py-1.5 text-violet-200 hover:bg-violet-500/20 hover:border-violet-400/50 disabled:opacity-50 transition-colors"
             >
-              <Sparkles size={12} className={smart.running ? 'animate-pulse' : ''} />
-              {smart.running
-                ? (smart.progress ? `${smart.progress.done} / ${smart.progress.total}` : 'ИИ…')
-                : 'ИИ-ТЕГИ'}
+              <Sparkles size={13} className={smart.running ? 'animate-pulse' : ''} />
+              {smart.running && smart.progress && `${smart.progress.done}/${smart.progress.total}`}
             </button>
             <button
               onClick={() => health.run(pads)}
@@ -163,10 +161,8 @@ export default function Tags() {
               title="Проверить, какие звуки не загружаются"
               className="flex items-center gap-1 rounded-lg border border-sky-400/30 bg-sky-500/10 px-2 py-1.5 text-sky-200 hover:bg-sky-500/20 hover:border-sky-400/50 disabled:opacity-50 transition-colors"
             >
-              <HeartPulse size={12} className={health.running ? 'animate-pulse' : ''} />
-              {health.running
-                ? (health.progress ? `${health.progress.done} / ${health.progress.total}` : 'ПРОВЕРКА…')
-                : 'ПРОВЕРКА'}
+              <HeartPulse size={13} className={health.running ? 'animate-pulse' : ''} />
+              {health.running && health.progress && `${health.progress.done}/${health.progress.total}`}
             </button>
             <button
               onClick={scary.resync}
@@ -174,10 +170,8 @@ export default function Tags() {
               title="Синхронизировать с папкой Scary_sounds"
               className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-white/55 hover:text-orange-300 hover:border-orange-400/40 disabled:opacity-50 transition-colors"
             >
-              <RefreshCw size={12} className={scary.syncing ? 'animate-spin' : ''} />
-              {scary.syncing
-                ? (scary.progress ? `${scary.progress.done} / ${scary.progress.total}` : 'СИНХР…')
-                : 'СИНХР'}
+              <RefreshCw size={13} className={scary.syncing ? 'animate-spin' : ''} />
+              {scary.syncing && scary.progress && `${scary.progress.done}/${scary.progress.total}`}
             </button>
           </div>
         )}
