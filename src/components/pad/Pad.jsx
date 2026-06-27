@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { Infinity as InfinityIcon, Zap } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { getCategoryImage } from '@/lib/categoryImages';
 import { useIsSoundActive, useAudioActions } from '@/lib/useAudio';
@@ -118,11 +119,22 @@ export default function Pad({ sound, index, onRemoveCustom }) {
             : 'border-white/10 hover:border-white/25'}
         `}
       >
-        <span className={`absolute top-2 left-2.5 text-[9px] font-mono tracking-widest ${isActive ? 'text-orange-200/80' : 'text-white/25'}`}>
+        <span className={`absolute top-2 left-2.5 z-20 text-[9px] font-mono tracking-widest ${isActive ? 'text-orange-200/80' : 'text-white/25'}`}>
           {String(index + 1).padStart(2, '0')}
         </span>
 
-        <span className={`absolute top-2 right-2.5 w-1.5 h-1.5 rounded-full ${isActive ? 'bg-orange-300 shadow-[0_0_8px_rgba(253,186,116,0.9)]' : isOneShot ? 'bg-rose-500/40' : 'bg-cyan-500/40'}`} />
+        {/* Бейдж типа: ∞ — зацикленный (атмосфера), ⚡ — разовый (one-shot) */}
+        <span
+          className={`absolute top-1.5 right-1.5 z-20 flex items-center justify-center w-5 h-5 rounded-md backdrop-blur-sm ring-1
+            ${isActive
+              ? 'bg-orange-400/30 ring-orange-300/50 text-orange-100'
+              : isOneShot
+                ? 'bg-rose-500/15 ring-rose-400/30 text-rose-300/80'
+                : 'bg-cyan-500/15 ring-cyan-400/30 text-cyan-300/80'}`}
+          title={isOneShot ? 'Разовый' : 'Зацикленный'}
+        >
+          {isOneShot ? <Zap size={11} strokeWidth={2.2} /> : <InfinityIcon size={12} strokeWidth={2.2} />}
+        </span>
 
         {/* Метка пользовательского MP3 */}
         {fileUrl && (
@@ -141,7 +153,17 @@ export default function Pad({ sound, index, onRemoveCustom }) {
         {/* Затемнение для читаемости текста */}
         <span className={`absolute inset-0 pointer-events-none bg-gradient-to-t from-black/85 via-black/45 to-black/30 ${isActive ? 'mix-blend-normal' : ''}`} />
         {isActive && (
-          <span className="absolute inset-0 pointer-events-none bg-orange-500/25" />
+          <>
+            <span className="absolute inset-0 pointer-events-none bg-orange-500/25" />
+            {/* Пульсирующая рамка — сразу видно, что пэд звучит */}
+            <span className="absolute inset-0 pointer-events-none rounded-xl ring-2 ring-orange-400/70 animate-pulse" />
+            {/* «Эквалайзер» в углу — живой индикатор воспроизведения */}
+            <span className="absolute bottom-2 right-2.5 z-20 flex items-end gap-[2px] h-3" aria-hidden="true">
+              <span className="w-[3px] bg-orange-300 rounded-full animate-[eqbar_0.7s_ease-in-out_infinite] [animation-delay:0s] h-2 origin-bottom" />
+              <span className="w-[3px] bg-orange-300 rounded-full animate-[eqbar_0.7s_ease-in-out_infinite] [animation-delay:0.15s] h-3 origin-bottom" />
+              <span className="w-[3px] bg-orange-300 rounded-full animate-[eqbar_0.7s_ease-in-out_infinite] [animation-delay:0.3s] h-1.5 origin-bottom" />
+            </span>
+          </>
         )}
 
         {/* Название звука — на тёмной плашке для читаемости на любом фоне */}

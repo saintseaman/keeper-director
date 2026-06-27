@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Square, Dices, FolderDown, SlidersHorizontal } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { audioEngine } from '@/lib/audioEngine';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useAxes } from '@/lib/useAxes';
@@ -76,6 +77,14 @@ export default function Home() {
     [inLocation, activeCat]
   );
   const decks = paginate(filtered, 9);
+
+  // Прогреваем звуки видимого набора → первый тап по любому пэду без сетевой
+  // задержки. Берём текущий фильтр (локация + категория), до 24 файлов.
+  useEffect(() => {
+    for (const p of filtered.slice(0, 24)) {
+      if (p.url) audioEngine.preloadFile(p.url);
+    }
+  }, [filtered]);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">

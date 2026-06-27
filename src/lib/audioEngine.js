@@ -1052,12 +1052,31 @@ class AudioEngine {
     try { el.load(); } catch (e) {}
     this._preloaded.set(url, el);
     // Ограничиваем кэш предзагрузки, чтобы не плодить элементы без меры.
-    if (this._preloaded.size > 32) {
+    if (this._preloaded.size > 64) {
       const firstKey = this._preloaded.keys().next().value;
       const old = this._preloaded.get(firstKey);
       try { old.src = ''; old.load(); } catch (e) {}
       this._preloaded.delete(firstKey);
     }
+  }
+
+  // Берём уже предзагруженный <audio> по url (буфер прогрет → запуск без сетевой
+  // задержки). Изымаем его из кэша (он становится «живым» голосом), а на его
+  // место сразу ставим свежий preload того же url — для следующего запуска.
+  _takePreloaded(url) {
+    if (!url) return new Audio(url);
+    if (!this._preloaded) this._preloaded = new Map();
+    const cached = this._preloaded.get(url);
+    if (cached) {
+      this._preloaded.delete(url);
+      try { cached.pause(); cached.currentTime = 0; } catch (e) {}
+      this.preloadFile(url); // прогреваем заново для повторного тапа
+      return cached;
+    }
+    // Не было в кэше — создаём и параллельно кладём копию в прогрев.
+    const el = new Audio(url);
+    this.preloadFile(url);
+    return el;
   }
 
   // ── Воспроизведение загруженного аудиофайла (MP3) ──
@@ -1075,8 +1094,9 @@ class AudioEngine {
 
     // Файли програємо чистим <audio> (без MediaElementSource): на iOS/Safari
     // createMediaElementSource вимагає CORS і інакше дає «тишу». Гучність —
-    // через el.volume з урахуванням майстра.
-    const el = new Audio(url);
+    // через el.volume з урахуванням майстра. Берём прогретый из preload-кэша,
+    // чтобы запуск был мгновенным (без сетевой буферизации).
+    const el = this._takePreloaded(url);
     el.loop = !!loop;
     el.volume = Math.min(1, volume * this.masterVolume);
     el.play().catch(() => {});
@@ -1100,7 +1120,9 @@ class AudioEngine {
     }
 
     // Чистий <audio> (без Web Audio графа) — надійно на iOS, не залежить від CORS.
-    const el = new Audio(url);
+    // Берём прогретый из preload-кэша → мгновенный старт без сетевой задержки.
+    const el = this._takePreloaded(url);
+    el.loop = false;
     el.volume = Math.min(1, volume * this.masterVolume);
     el.play().catch(() => {});
 

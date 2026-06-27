@@ -95,6 +95,12 @@
   from { box-shadow: 0 0 30px rgba(220, 38, 38, 0.4), 0 0 60px rgba(220, 38, 38, 0.2); }
   to { box-shadow: 0 0 40px rgba(220, 38, 38, 0.6), 0 0 80px rgba(220, 38, 38, 0.3); }
 }
+/* Живой «эквалайзер» на играющем пэде */
+@keyframes eqbar {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
 .sound-active {
   animation: sound-breathe 2s ease-in-out infinite;
 }
