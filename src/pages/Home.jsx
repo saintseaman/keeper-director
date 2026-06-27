@@ -1,16 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Square, Dices, FolderDown, SlidersHorizontal } from 'lucide-react';
+import { Square, Dices, FolderDown, SlidersHorizontal, ChevronLeft } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { audioEngine } from '@/lib/audioEngine';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useAxes } from '@/lib/useAxes';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
-import { padAxes } from '@/lib/sceneAxes';
-import { padCategory } from '@/lib/padCategories';
+import { padAxes, axisValue } from '@/lib/sceneAxes';
+import { padCategory, PAD_CATEGORIES } from '@/lib/padCategories';
 import PadDeck from '@/components/pad/PadDeck';
-import LocationTabs from '@/components/pad/LocationTabs';
-import CategoryTabs from '@/components/pad/CategoryTabs';
+import LocationGrid from '@/components/pad/LocationGrid';
+import CategoryGrid from '@/components/pad/CategoryGrid';
 import DriveFolderDialog from '@/components/pad/DriveFolderDialog';
 import MixerDialog from '@/components/pad/MixerDialog';
 
@@ -30,6 +30,8 @@ export default function Home() {
   const [mixerOpen, setMixerOpen] = useState(false);
   const [activeLoc, setActiveLoc] = useState(null); // null = «Все»
   const [activeCat, setActiveCat] = useState(null); // null = «Все» (категория внутри локации)
+  // Шаг навигации: 'location' → 'category' → 'pads'
+  const [step, setStep] = useState('location');
 
   const activeCount = Object.values(activeSounds).filter(v => v.isPlaying !== false).length;
 
@@ -76,6 +78,10 @@ export default function Home() {
     [inLocation, activeCat]
   );
   const decks = paginate(filtered, 9);
+
+  // Подписи для хлебных крошек.
+  const locLabel = activeLoc ? (axisValue('location', activeLoc)?.label || '') : 'Все звуки';
+  const catLabel = activeCat ? (PAD_CATEGORIES.find((c) => c.id === activeCat)?.label || '') : 'Все';
 
   // Прогреваем звуки видимого набора → первый тап по любому пэду без сетевой
   // задержки. Берём текущий фильтр (локация + категория), до 24 файлов.
@@ -142,31 +148,31 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Вкладки локаций */}
-      {customPads.length > 0 && (
-        <div className="px-4 pt-3 space-y-2">
-          <LocationTabs
-            active={activeLoc}
-            onChange={(loc) => { setActiveLoc(loc); setActiveCat(null); }}
-            counts={counts}
-            total={customPads.length}
-            customValues={locationCustomValues}
-          />
-          {/* Категории показываем только после выбора локации */}
-          {activeLoc && (
-            <CategoryTabs
-              active={activeCat}
-              onChange={setActiveCat}
-              counts={catCounts}
-              total={inLocation.length}
-            />
-          )}
+      {/* Хлебные крошки / навигация назад (на шагах категорий и звуков) */}
+      {customPads.length > 0 && step !== 'location' && (
+        <div className="flex items-center gap-2 px-4 pt-3">
+          <button
+            onClick={() => {
+              if (step === 'pads') { setStep('category'); setActiveCat(null); }
+              else { setStep('location'); setActiveLoc(null); }
+            }}
+            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-mono tracking-wider bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/25 transition-colors"
+          >
+            <ChevronLeft size={14} />
+            Назад
+          </button>
+          <span className="text-[12px] font-mono tracking-wide text-white/55 truncate">
+            {locLabel}
+            {step === 'pads' && activeCat && (
+              <span className="text-white/35"> · {catLabel}</span>
+            )}
+          </span>
         </div>
       )}
 
-      {/* Дека */}
-      <div className="flex-1 min-h-0 px-4 pt-4 pb-3">
-        {decks.length === 0 ? (
+      {/* Контент по шагам */}
+      <div className="flex-1 min-h-0 px-4 pt-3 pb-3">
+        {customPads.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center gap-3">
             <FolderDown size={32} className="text-white/20" />
             <p className="text-sm text-white/50 font-mono tracking-wide">Нет пэдов</p>
@@ -176,6 +182,23 @@ export default function Home() {
             >
               Импортировать папку с Google Диска
             </button>
+          </div>
+        ) : step === 'location' ? (
+          <LocationGrid
+            counts={counts}
+            total={customPads.length}
+            customValues={locationCustomValues}
+            onSelect={(loc) => { setActiveLoc(loc); setActiveCat(null); setStep('category'); }}
+          />
+        ) : step === 'category' ? (
+          <CategoryGrid
+            counts={catCounts}
+            total={inLocation.length}
+            onSelect={(cat) => { setActiveCat(cat); setStep('pads'); }}
+          />
+        ) : decks.length === 0 ? (
+          <div className="h-full flex items-center justify-center text-center">
+            <p className="text-sm text-white/50 font-mono tracking-wide">Нет звуков</p>
           </div>
         ) : (
           <PadDeck pages={decks} onRemoveCustom={removePad} />
