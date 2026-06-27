@@ -19,13 +19,15 @@ function Waveform({ url }) {
   const canvasRef = useRef(null);
   const [state, setState] = useState('idle'); // idle | loading | ready | error | empty
   const [peaks, setPeaks] = useState(null);
+  const [errMsg, setErrMsg] = useState('');
 
   const load = async (e) => {
     e?.stopPropagation();
     if (!url || state === 'loading') return;
     setState('loading');
+    setErrMsg('');
     try {
-      audioEngine.unlock(); // iOS: активируем аудиоконтекст синхронно в жесте тапа
+      audioEngine.unlock(); // активируем аудиоконтекст синхронно в жесте тапа
       const audioBuf = await audioEngine._decodeFile(url);
       // Берём первый канал, режем на BARS окон, в каждом — максимальная амплитуда.
       const data = audioBuf.getChannelData(0);
@@ -48,6 +50,8 @@ function Waveform({ url }) {
       // Если пик ничтожно мал — это фактически тишина (пустой файл).
       setState(globalMax < 0.001 ? 'empty' : 'ready');
     } catch (err) {
+      const ctx = audioEngine.audioContext;
+      setErrMsg(`${err?.name || 'Error'}: ${err?.message || String(err)} · ctx=${ctx?.state || 'нет'}/${ctx?.sampleRate || '?'}`);
       setState('error');
     }
   };
@@ -98,13 +102,18 @@ function Waveform({ url }) {
 
   if (state === 'error') {
     return (
-      <button
-        onClick={load}
-        className="mt-1.5 flex items-center gap-1 text-[11px] text-rose-300/90 hover:text-rose-200 transition-colors"
-        title="Не удалось прочитать файл"
-      >
-        <AudioLines size={12} /> волна недоступна
-      </button>
+      <div className="mt-1.5">
+        <button
+          onClick={load}
+          className="flex items-center gap-1 text-[11px] text-rose-300/90 hover:text-rose-200 transition-colors"
+          title="Не удалось прочитать файл — нажмите, чтобы повторить"
+        >
+          <AudioLines size={12} /> волна недоступна
+        </button>
+        {errMsg && (
+          <p className="mt-0.5 text-[10px] text-rose-300/70 break-all leading-tight">{errMsg}</p>
+        )}
+      </div>
     );
   }
 
