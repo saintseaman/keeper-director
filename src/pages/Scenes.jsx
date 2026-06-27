@@ -8,6 +8,7 @@ import { useAudio } from '@/lib/useAudio';
 import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { audioEngine } from '@/lib/audioEngine';
+import { playSceneMix, loopableScenePads } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
@@ -49,23 +50,20 @@ export default function Scenes() {
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
 
-  // Запустить все подходящие пэды как микс.
+  // Запустить подходящие пэды как нормализованный фон сцены.
+  // В авто-микс идут только лупы; громкость каждого слоя снижается по числу слоёв.
   const playMatches = () => {
-    const playable = matches.filter((p) => p.url);
-    if (playable.length === 0) {
+    const loops = loopableScenePads(matches);
+    if (loops.length === 0) {
       toast({
-        title: hasFilter ? 'Нет звуков под этот выбор' : 'Сначала выберите сегменты',
+        title: hasFilter ? 'Нет фоновых звуков под этот выбор' : 'Сначала выберите сегменты',
         description: hasFilter
-          ? 'У импортированных звуков не проставлены теги. Откройте звук (зажатие) и задайте локацию/действие.'
+          ? 'Под фильтр не попало ни одного зацикленного звука. Разовые звуки в фон сцены не идут — запустите их вручную из списка.'
           : 'Выберите локацию и действие на колесе.',
       });
       return;
     }
-    for (const pad of playable) {
-      const loop = pad.isLoopable !== false;
-      if (loop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
-      else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.8);
-    }
+    playSceneMix(audioEngine, matches);
   };
 
   const saveScene = () => {

@@ -1120,7 +1120,9 @@ class AudioEngine {
 
       const ctx = this.audioContext;
       const gainNode = ctx.createGain();
-      gainNode.gain.value = volume;
+      // Мягкий fade-in: лупы поднимаются за ~0.6с вместо щелчка на старте.
+      gainNode.gain.value = 0;
+      gainNode.gain.setTargetAtTime(volume, ctx.currentTime, 0.2);
       gainNode.connect(this.masterGain);
       const src = ctx.createBufferSource();
       src.buffer = buffer;

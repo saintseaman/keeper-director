@@ -3,6 +3,7 @@ import { Play, Square, Trash2, Layers } from 'lucide-react';
 import { axisValue } from '@/lib/sceneAxes';
 import { audioEngine } from '@/lib/audioEngine';
 import { useAudio } from '@/lib/useAudio';
+import { playSceneMix } from '@/lib/sceneMix';
 
 // Чипы-теги выбранных осей сцены (для краткого описания под названием).
 function SceneTags({ selection }) {
@@ -38,11 +39,8 @@ function SceneCard({ scene, padsById, onRemove }) {
       for (const p of pads) audioEngine.stop(p.id, 0.4);
       return;
     }
-    for (const pad of pads) {
-      const loop = pad.isLoopable !== false;
-      if (loop) audioEngine.playFile(pad.id, pad.url, pad.title, 0.6, true);
-      else audioEngine.triggerFile(pad.id, pad.url, pad.title, 0.8);
-    }
+    // Нормализованный фон: только лупы, громкость слоёв сбалансирована по числу.
+    playSceneMix(audioEngine, pads);
   };
 
   return (
