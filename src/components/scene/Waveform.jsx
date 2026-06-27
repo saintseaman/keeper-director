@@ -1,25 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, AudioLines } from 'lucide-react';
+import { audioEngine } from '@/lib/audioEngine';
 
 // Мини-визуализация формы волны звука прямо в строке.
-// Декодирует файл (Web Audio) и рисует пики на canvas, чтобы было видно:
+// Рисует пики на canvas, чтобы было видно:
 //   • есть сигнал (видны столбики разной высоты) — файл не пустой;
 //   • плоская линия по центру — файл тишина/пустой;
-//   • ошибка/недоступно — крестик, значит проблема не в воспроизведении.
+//   • ошибка/недоступно — значит проблема не в воспроизведении.
 //
 // Грузим ПО ЗАПРОСУ (тап на «волну») — иначе 159 декодирований разом убьют CPU.
-// Один общий AudioContext на все волны (декодирование не требует жеста).
-let sharedCtx = null;
-function getCtx() {
-  if (!sharedCtx) {
-    const Ctx = window.AudioContext || window.webkitAudioContext;
-    // Safari/iOS: decodeAudioData у MP3 молча падает, если sampleRate контекста
-    // не совпадает с дефолтным аппаратным. Создаём контекст без явного
-    // sampleRate и ресемплим декодером сами — это самый совместимый путь.
-    sharedCtx = new Ctx();
-  }
-  return sharedCtx;
-}
+// Декодируем ТЕМ ЖЕ декодером, что и воспроизведение (audioEngine._decodeFile) —
+// он Safari-совместим (callback-форма + resume) и кэширует буфер, поэтому если
+// волна построилась, то и звук точно проиграется (и наоборот).
 
 const BARS = 56; // сколько столбиков рисуем
 
@@ -33,23 +25,8 @@ function Waveform({ url }) {
     if (!url || state === 'loading') return;
     setState('loading');
     try {
-      const res = await fetch(url);
-      const buf = await res.arrayBuffer();
-      const ctx = getCtx();
-      // iOS Safari создаёт AudioContext в suspended — без resume decodeAudioData падает.
-      if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) {} }
-      // Декодируем в OfflineAudioContext — он не требует user-gesture/resume и на
-      // Safari декодирует MP3 надёжнее обычного AudioContext. Передаём свежую копию
-      // ArrayBuffer (decodeAudioData отбирает буфер) и поддерживаем callback-форму.
-      const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-      const decodeCtx = OfflineCtx ? new OfflineCtx(1, 1, ctx.sampleRate || 44100) : ctx;
-      const audioBuf = await new Promise((resolve, reject) => {
-        let settled = false;
-        const ok = (b) => { if (!settled) { settled = true; resolve(b); } };
-        const fail = (e) => { if (!settled) { settled = true; reject(e || new Error('decode failed')); } };
-        const p = decodeCtx.decodeAudioData(buf.slice(0), ok, fail);
-        if (p && typeof p.then === 'function') p.then(ok, fail);
-      });
+      audioEngine._ensureContext();
+      const audioBuf = await audioEngine._decodeFile(url);
       // Берём первый канал, режем на BARS окон, в каждом — максимальная амплитуда.
       const data = audioBuf.getChannelData(0);
       const block = Math.floor(data.length / BARS) || 1;

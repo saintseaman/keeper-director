@@ -1090,7 +1090,16 @@ class AudioEngine {
     if (this._bufferCache.has(url)) return this._bufferCache.get(url);
     const res = await fetch(url);
     const arr = await res.arrayBuffer();
-    const buf = await this.audioContext.decodeAudioData(arr);
+    // iOS Safari: контекст должен быть resumed до decode, иначе MP3 не декодируется.
+    if (this.audioContext.state === 'suspended') { try { await this.audioContext.resume(); } catch (e) {} }
+    // Safari поддерживает только callback-форму decodeAudioData — поддерживаем обе.
+    const buf = await new Promise((resolve, reject) => {
+      let settled = false;
+      const ok = (b) => { if (!settled) { settled = true; resolve(b); } };
+      const fail = (e) => { if (!settled) { settled = true; reject(e || new Error('decode failed')); } };
+      const p = this.audioContext.decodeAudioData(arr, ok, fail);
+      if (p && typeof p.then === 'function') p.then(ok, fail);
+    });
     this._bufferCache.set(url, buf);
     // Ограничиваем кэш буферов, чтобы не раздувать память.
     if (this._bufferCache.size > 48) {
