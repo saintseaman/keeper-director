@@ -1077,25 +1077,18 @@ class AudioEngine {
     }
   }
 
-  // Берём уже предзагруженный <audio> по url (буфер прогрет → запуск без сетевой
-  // задержки). Изымаем его из кэша (он становится «живым» голосом), а на его
-  // место сразу ставим свежий preload того же url — для следующего запуска.
+  // Всегда создаём СВЕЖИЙ <audio> для воспроизведения прямо в обработчике тапа.
+  //
+  // Раньше мы переиспользовали элемент из пула preload — но такой элемент не
+  // получал прямого пользовательского жеста, и на мобильных (iOS) его play()
+  // молча отклонялся autoplay-политикой: запись попадала в реестр (эквалайзер
+  // горит), а звука не было. Именно поэтому «молчали» только верхние звуки,
+  // попавшие в preload, а нижние — играли.
+  //
+  // Файл уже лежит в HTTP-кэше браузера благодаря preloadFile(url), поэтому
+  // свежий элемент стартует так же быстро, но play() вызывается строго по жесту.
   _takePreloaded(url) {
-    if (!url) return new Audio(url);
-    if (!this._preloaded) this._preloaded = new Map();
-    const cached = this._preloaded.get(url);
-    if (cached && cached.src) {
-      this._preloaded.delete(url);
-      try { cached.pause(); cached.currentTime = 0; } catch (e) {}
-      this.preloadFile(url); // прогреваем заново для повторного тапа
-      return cached;
-    }
-    // Кэш был очищен/пуст — выбрасываем его и создаём свежий элемент ниже.
-    if (cached) this._preloaded.delete(url);
-    // Не было в кэше — создаём и параллельно кладём копию в прогрев.
-    const el = new Audio(url);
-    this.preloadFile(url);
-    return el;
+    return new Audio(url || '');
   }
 
   // Загружаем и декодируем файл в AudioBuffer (с кэшем). Тот же путь, что и
@@ -1149,6 +1142,11 @@ class AudioEngine {
     el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
+      // play() отклонён — убираем запись, чтобы эквалайзер не «горел» вхолостую.
+      if (this.activeSounds.get(soundId)?.el === el) {
+        this.activeSounds.delete(soundId);
+        this._notify();
+      }
     });
 
     this.activeSounds.set(soundId, {
@@ -1181,6 +1179,10 @@ class AudioEngine {
     el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
+      if (this.activeSounds.get(soundId)?.el === el) {
+        this.activeSounds.delete(soundId);
+        this._notify();
+      }
     });
 
     this.activeSounds.set(soundId, {
