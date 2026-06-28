@@ -65,7 +65,13 @@ export default function Tags() {
   }, [visible]);
 
   // useCallback — чтобы memo на TagFixRow реально работала (стабильные ссылки).
-  const onChangeAxes = useCallback((padId, axes) => setOverride(padId, { axes }), [setOverride]);
+  // Пишем теги СРАЗУ в саму запись пэда (Pad.axes) — это ground truth, который
+  // переживает любые рассинхронизации и сохраняется навсегда. override.axes
+  // оставляем для мгновенной реактивности UI (мемоизированные строки).
+  const onChangeAxes = useCallback((padId, axes) => {
+    setOverride(padId, { axes });
+    updatePad(padId, { axes });
+  }, [setOverride, updatePad]);
 
   const toggleSelect = useCallback((padId) => {
     setSelected((prev) => {
@@ -105,7 +111,10 @@ export default function Tags() {
         const base = manual[axisId] || auto[axisId] || [];
         merged[axisId] = Array.from(new Set([...base, ...addIds]));
       }
-      setOverride(padId, { axes: { ...manual, ...merged } });
+      const nextAxes = { ...manual, ...merged };
+      setOverride(padId, { axes: nextAxes });
+      // Сохраняем навсегда прямо в запись пэда (Pad.axes).
+      updatePad(padId, { axes: nextAxes });
     }
     exitSelect();
   };
