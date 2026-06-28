@@ -18,6 +18,9 @@ import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
 import AddSoundToSceneDialog from '@/components/scene/AddSoundToSceneDialog';
 import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
+import BackgroundControlPanel from '@/components/scene/BackgroundControlPanel';
+import AssignBackgroundDialog from '@/components/scene/AssignBackgroundDialog';
+import { useBackgroundLayer } from '@/lib/useBackgroundLayer';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
@@ -35,6 +38,10 @@ export default function Scenes() {
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
   const [addSoundOpen, setAddSoundOpen] = useState(false); // диалог добавления звука в сцену
   const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
+  const [assignBgOpen, setAssignBgOpen] = useState(false); // диалог назначения фоновых звуков
+
+  // Отдельный фоновый аудио-слой (не конфликтует с кнопками-эффектами).
+  const bgLayer = useBackgroundLayer(pads, overrides);
   // Ручные правки текущей сцены поверх автоподбора по фильтру:
   const [extraIds, setExtraIds] = useState([]); // вручную добавленные звуки
   const [excludedIds, setExcludedIds] = useState(new Set()); // убранные из сцены звуки
@@ -233,6 +240,26 @@ export default function Scenes() {
           </>
         )}
       </div>
+
+      {/* Нижняя панель управления фоном — отдельный слой, прижата книзу */}
+      {pads.length > 0 && (
+        <BackgroundControlPanel
+          pads={pads}
+          overrides={overrides}
+          layer={bgLayer}
+          onStopAll={() => { bgLayer.stopBackground(); stopAll(0.4); }}
+          onAssign={() => setAssignBgOpen(true)}
+        />
+      )}
+
+      <AssignBackgroundDialog
+        open={assignBgOpen}
+        onClose={() => setAssignBgOpen(false)}
+        pads={pads}
+        overrides={overrides}
+        updatePad={updatePad}
+        setOverride={setOverride}
+      />
 
       <SceneSegmentDialog
         axisId={segment?.axisId}
