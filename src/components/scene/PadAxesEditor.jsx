@@ -1,27 +1,56 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import { SCENE_AXES, AXIS_CHIP_CLASS, autoAxes } from '@/lib/sceneAxes';
 
 // Редактор тегов пэда по осям сцены. Множественный выбор внутри оси.
 // Без ручной правки используются авто-теги (autoAxes) — здесь показаны
 // бледными как подсказка. Клик фиксирует выбор вручную (override.axes).
+//
+// Правки копятся в локальном черновике и применяются ТОЛЬКО по кнопке
+// «Сохранить» — так можно проставить сразу несколько тегов, и строка не
+// перескакивает по списку после каждого клика.
 export default function PadAxesEditor({ pad, override, onChange }) {
-  const manual = override?.axes || {};
   const auto = autoAxes(pad);
+  // Локальный черновик выбора по осям. Инициализируем из override (ручные)
+  // или авто-подсказок, чтобы пользователь сразу видел текущее состояние.
+  const initDraft = () => {
+    const manual = override?.axes || {};
+    const draft = {};
+    for (const axis of SCENE_AXES) {
+      draft[axis.id] = manual[axis.id] || auto[axis.id] || [];
+    }
+    return draft;
+  };
+  const [draft, setDraft] = useState(initDraft);
+  const [dirty, setDirty] = useState(false);
+
+  // Если пэд/оверрайды поменялись извне — пересобираем черновик.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setDraft(initDraft()); setDirty(false); }, [pad.id, override]);
 
   const toggle = (axisId, valueId) => {
-    const current = manual[axisId] || auto[axisId] || [];
-    const next = current.includes(valueId)
-      ? current.filter((v) => v !== valueId)
-      : [...current, valueId];
-    onChange({ ...manual, [axisId]: next });
+    setDraft((prev) => {
+      const current = prev[axisId] || [];
+      const next = current.includes(valueId)
+        ? current.filter((v) => v !== valueId)
+        : [...current, valueId];
+      return { ...prev, [axisId]: next };
+    });
+    setDirty(true);
+  };
+
+  const save = () => {
+    onChange(draft);
+    setDirty(false);
   };
 
   return (
     <div className="space-y-3">
       {SCENE_AXES.map((axis) => {
         const cls = AXIS_CHIP_CLASS[axis.color];
-        const selected = manual[axis.id] || auto[axis.id] || [];
-        const isAuto = !manual[axis.id] && (auto[axis.id]?.length > 0);
+        const selected = draft[axis.id] || [];
+        const manualSet = override?.axes || {};
+        const isAuto = !manualSet[axis.id] && (auto[axis.id]?.length > 0);
         return (
           <div key={axis.id}>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -47,6 +76,19 @@ export default function PadAxesEditor({ pad, override, onChange }) {
           </div>
         );
       })}
+
+      <button
+        onClick={save}
+        disabled={!dirty}
+        className={`w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-[12px] font-mono tracking-wider transition-colors ${
+          dirty
+            ? 'bg-orange-500/20 border border-orange-400/50 text-orange-200 hover:bg-orange-500/30'
+            : 'bg-white/5 border border-white/10 text-white/30'
+        }`}
+      >
+        <Check size={14} />
+        {dirty ? 'СОХРАНИТЬ ТЕГИ' : 'СОХРАНЕНО'}
+      </button>
     </div>
   );
 }
