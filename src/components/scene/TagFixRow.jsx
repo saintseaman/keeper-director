@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Check, Play, Pause, Trash2, Pencil, X, Repeat, Zap } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Play, Pause, Trash2, Pencil, X, Repeat, Zap } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
-import { SCENE_AXES } from '@/lib/sceneAxes';
 import { useIsSoundActive } from '@/lib/useAudio';
 import { audioEngine } from '@/lib/audioEngine';
 import PadAxesEditor from './PadAxesEditor';
@@ -18,7 +17,6 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
   const Icon = getIcon(pad.icon);
   // Текущий режим: override.isLoopable важнее значения с пэда. По умолчанию — луп.
   const isLoop = typeof override?.isLoopable === 'boolean' ? override.isLoopable : (pad.is_loopable ?? true);
-  const missingLabels = missing.map((id) => SCENE_AXES.find((a) => a.id === id)?.label).filter(Boolean);
   const done = missing.length === 0;
 
   // Превью-прослушивание: тап — play, тап ещё раз (или на играющем) — pause.
@@ -140,19 +138,8 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
               </span>
             </div>
           ) : (
-            <div className="text-sm text-white/85 truncate">{pad.title}</div>
+            <div className="text-sm text-white/85 line-clamp-2 leading-snug">{pad.title}</div>
           )}
-          <div className="flex items-center gap-1.5 mt-0.5">
-            {done ? (
-              <span className="flex items-center gap-1 text-[11px] text-emerald-300/80">
-                <CheckCircle2 size={11} /> размечено
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-[11px] text-orange-300/80">
-                <AlertCircle size={11} /> нет: {missingLabels.join(', ')}
-              </span>
-            )}
-          </div>
           {pad.url && !editing && <SoundProbe url={pad.url} playing={isActive} broken={broken} />}
           {playErr && (
             <p className="mt-1 text-[10px] text-rose-300/80 break-all leading-tight">▶ {playErr}</p>
