@@ -5,7 +5,7 @@ import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
-import { padAxes, padMatchesSelection, axisValue } from '@/lib/sceneAxes';
+import { axisValue } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { audioEngine } from '@/lib/audioEngine';
