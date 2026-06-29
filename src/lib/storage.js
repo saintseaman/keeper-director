@@ -52,7 +52,7 @@ const padRecordId = new Map();
 function toCachePad(rec) {
   return {
     id: rec.pad_id, title: rec.title, url: rec.url, category: rec.category, icon: rec.icon,
-    isLoopable: rec.is_loopable, axes: rec.axes || {}, tags: rec.tags || [],
+    isLoopable: rec.is_loopable, isEffect: !!rec.is_effect, axes: rec.axes || {}, tags: rec.tags || [],
   };
 }
 function toEntityPad(p) {
@@ -61,6 +61,7 @@ function toEntityPad(p) {
     axes: p.axes || {}, tags: p.tags || [],
   };
   if (typeof p.isLoopable === 'boolean') rec.is_loopable = p.isLoopable;
+  if (typeof p.isEffect === 'boolean') rec.is_effect = p.isEffect;
   return rec;
 }
 
@@ -307,6 +308,7 @@ export const storage = {
     if ('axes' in patch) entityPatch.axes = patch.axes;
     if ('tags' in patch) entityPatch.tags = patch.tags;
     if ('isLoopable' in patch) entityPatch.is_loopable = patch.isLoopable;
+    if ('isEffect' in patch) entityPatch.is_effect = patch.isEffect;
     if (Object.keys(entityPatch).length === 0) return;
     setStatus('saving');
     try {

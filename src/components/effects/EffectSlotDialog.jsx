@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { FileAudio, Check, Trash2, CheckCircle2 } from 'lucide-react';
 import IconPicker from '@/components/pad/IconPicker';
 import SingleFileUploadDialog from '@/components/pad/SingleFileUploadDialog';
+import EffectPadPicker from './EffectPadPicker';
 
 // Диалог редактирования одного слота эффектов: название, иконка, импорт звука,
 // очистка слота. Long-press по слоту открывает этот диалог.
@@ -78,6 +79,20 @@ export default function EffectSlotDialog({ slot, open, onClose, onSave, onClear 
                   ? <><CheckCircle2 size={18} className="text-emerald-300" /><span className="text-xs font-mono tracking-wider">Звук загружен</span></>
                   : <><FileAudio size={18} /><span className="text-xs font-mono tracking-wider">Импортировать звук</span></>}
               </button>
+            </div>
+
+            {/* Выбор из звуков-эффектов библиотеки */}
+            <div>
+              <label className="block text-[11px] font-mono tracking-wider text-white/40 uppercase mb-1.5">
+                Или выбрать эффект
+              </label>
+              <EffectPadPicker
+                onPick={(p) => {
+                  setUrl(p.url);
+                  setTitle(p.title || '');
+                  if (p.icon) setIcon(p.icon);
+                }}
+              />
             </div>
 
             {/* Действия */}

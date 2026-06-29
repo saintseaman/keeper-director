@@ -190,7 +190,7 @@ function TagFixRow({ pad, override, missing, onChangeAxes, selectable, selected,
           <PadAxesEditor
             pad={pad}
             override={override}
-            onChange={(axes) => onChangeAxes(pad.id, axes)}
+            onChange={(axes, isEffect) => onChangeAxes(pad.id, axes, isEffect)}
           />
         </div>
       )}

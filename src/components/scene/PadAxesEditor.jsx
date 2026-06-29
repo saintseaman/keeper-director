@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Zap } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { SCENE_AXES, AXIS_CHIP_CLASS, autoAxes } from '@/lib/sceneAxes';
 
 // Редактор тегов пэда по осям сцены. Множественный выбор внутри оси.
@@ -22,11 +23,12 @@ export default function PadAxesEditor({ pad, override, onChange }) {
     return draft;
   };
   const [draft, setDraft] = useState(initDraft);
+  const [isEffect, setIsEffect] = useState(!!pad.isEffect);
   const [dirty, setDirty] = useState(false);
 
   // Если пэд/оверрайды поменялись извне — пересобираем черновик.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { setDraft(initDraft()); setDirty(false); }, [pad.id, override]);
+  useEffect(() => { setDraft(initDraft()); setIsEffect(!!pad.isEffect); setDirty(false); }, [pad.id, override]);
 
   const toggle = (axisId, valueId) => {
     setDraft((prev) => {
@@ -40,12 +42,28 @@ export default function PadAxesEditor({ pad, override, onChange }) {
   };
 
   const save = () => {
-    onChange(draft);
+    onChange(draft, isEffect);
     setDirty(false);
   };
 
   return (
     <div className="space-y-3">
+      {/* Флаг «Эффект» — отдельная секция над осями. Звук уходит в шторку
+          эффектов и исключается из автоподбора атмосферы. */}
+      <div className="flex items-center justify-between rounded-lg border border-orange-400/25 bg-orange-500/[0.06] px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <Zap size={14} className="text-orange-300" />
+          <div className="leading-tight">
+            <div className="text-[12px] text-white/85">Эффект (для шторки)</div>
+            <div className="text-[10px] text-white/35">Разовый звук, не для атмосферы</div>
+          </div>
+        </div>
+        <Switch
+          checked={isEffect}
+          onCheckedChange={(v) => { setIsEffect(v); setDirty(true); }}
+        />
+      </div>
+
       {SCENE_AXES.map((axis) => {
         const cls = AXIS_CHIP_CLASS[axis.color];
         const selected = draft[axis.id] || [];

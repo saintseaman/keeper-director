@@ -26,6 +26,11 @@
       "type": "boolean",
       "description": "Whether this sound loops (ambience) or is a one-shot"
     },
+    "is_effect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Sound is meant for the effects sheet (one-shot triggers), not for ambient scene auto-mix"
+    },
     "axes": {
       "type": "object",
       "description": "Persisted multi-axis classification: { location:[ids], action:[ids], weather:[ids], mood:[ids] }. Seeded at import-time, user-editable. Ground truth \u2014 replaces runtime filename guessing.",

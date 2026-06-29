@@ -52,7 +52,8 @@ export default function Scenes() {
   // Пэды, подходящие под выбранный набор осей (автоподбор).
   const autoMatches = useMemo(() => {
     if (!hasFilter) return [];
-    return pads.filter((p) => padMatchesSelection(padAxes(p, overrides[p.id]), selection));
+    // Эффекты исключаем из автоподбора фона — они только для шторки эффектов.
+    return pads.filter((p) => !p.isEffect && padMatchesSelection(padAxes(p, overrides[p.id]), selection));
   }, [pads, overrides, selection, hasFilter]);
 
   // Итоговый список звуков сцены = (автоподбор + вручную добавленные) − убранные.

@@ -68,9 +68,9 @@ export default function Tags() {
   // Пишем теги СРАЗУ в саму запись пэда (Pad.axes) — это ground truth, который
   // переживает любые рассинхронизации и сохраняется навсегда. override.axes
   // оставляем для мгновенной реактивности UI (мемоизированные строки).
-  const onChangeAxes = useCallback((padId, axes) => {
+  const onChangeAxes = useCallback((padId, axes, isEffect) => {
     setOverride(padId, { axes });
-    updatePad(padId, { axes });
+    updatePad(padId, { axes, isEffect: !!isEffect });
   }, [setOverride, updatePad]);
 
   const toggleSelect = useCallback((padId) => {

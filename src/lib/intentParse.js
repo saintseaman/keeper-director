@@ -103,6 +103,8 @@ export function searchByIntent(pads, overrides, query) {
 
   const scored = [];
   for (const pad of pads) {
+    // Эффекты не участвуют в автоподборе фона по осям/намерению.
+    if (pad.isEffect) continue;
     const { axisOverlap, matchedAxes, titleHits } =
       scorePadAgainstIntent(pad, overrides?.[pad.id], parsed, words);
     // Звук попадает в выдачу, только если есть реальная связь с запросом:
