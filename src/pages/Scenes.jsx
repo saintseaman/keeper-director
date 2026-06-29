@@ -5,7 +5,7 @@ import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
-import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
+import { padAxes, padMatchesSelection, axisValue } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { audioEngine } from '@/lib/audioEngine';
 import { syncSceneMix, loopableScenePads } from '@/lib/sceneMix';
@@ -14,6 +14,7 @@ import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
 import SavedScenes from '@/components/scene/SavedScenes';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
+import TileSoundsDialog from '@/components/scene/TileSoundsDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
 import AddSoundToSceneDialog from '@/components/scene/AddSoundToSceneDialog';
 import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
@@ -31,6 +32,7 @@ export default function Scenes() {
   const [selection, setSelection] = useState(EMPTY);
   const [name, setName] = useState('');
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
+  const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
   const [addSoundOpen, setAddSoundOpen] = useState(false); // диалог добавления звука в сцену
   const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
@@ -170,7 +172,10 @@ export default function Scenes() {
                 onStop={stopScene}
                 activeCount={activeCount}
                 matchCount={matches.length}
-                onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
+                onSegmentLongPress={(axisId, valueId) => {
+                  const v = axisValue(axisId, valueId);
+                  setTileSounds({ axisId, valueId, label: v?.label || valueId });
+                }}
                 onAddSegment={(axisId) => setAddAxis(axisId)}
               />
 
@@ -241,6 +246,14 @@ export default function Scenes() {
           </>
         )}
       </div>
+
+      <TileSoundsDialog
+        open={!!tileSounds}
+        onClose={() => setTileSounds(null)}
+        axisId={tileSounds?.axisId}
+        valueId={tileSounds?.valueId}
+        valueLabel={tileSounds?.label}
+      />
 
       <SceneSegmentDialog
         axisId={segment?.axisId}

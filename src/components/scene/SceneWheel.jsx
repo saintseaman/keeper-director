@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Play, Square, Plus } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
+import { useTileSounds } from '@/lib/useTileSounds';
 
 const LONG_PRESS_MS = 450;
 
@@ -18,7 +19,7 @@ const AXIS_META = {
 const AXIS_ORDER = ['location', 'action', 'weather'];
 
 // Одна плитка значения оси.
-function Tile({ axisId, value, active, onClick, onLongPress }) {
+function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const Icon = getIcon(value.icon);
@@ -54,6 +55,14 @@ function Tile({ axisId, value, active, onClick, onLongPress }) {
         boxShadow: active ? '0 0 12px rgba(249,115,22,0.55)' : 'none',
       }}
     >
+      {soundCount > 0 && (
+        <span
+          className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[10px] font-bold text-black"
+          style={{ background: '#f97316', boxShadow: '0 0 6px rgba(249,115,22,0.7)' }}
+        >
+          {soundCount}
+        </span>
+      )}
       <Icon size={20} color="#ffffff" style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.9))' }} />
       <span
         className="px-1 text-center leading-tight"
@@ -72,6 +81,7 @@ function Tile({ axisId, value, active, onClick, onLongPress }) {
 
 export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, activeCount = 0, matchCount, onSegmentLongPress, onAddSegment }) {
   const isPlaying = activeCount > 0;
+  const { getSounds } = useTileSounds();
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
@@ -117,6 +127,7 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
             active={selection[activeAxis] === v.id}
             onClick={(id) => onSelect(activeAxis, id)}
             onLongPress={onSegmentLongPress}
+            soundCount={getSounds(activeAxis, v.id).length}
           />
         ))}
 
