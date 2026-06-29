@@ -47,7 +47,10 @@ export default function Tags() {
       .filter(Boolean)
       .map((p) => {
         const axes = padAxes(p, overrides[p.id]);
-        return { pad: p, missing: missingAxes(axes) };
+        // Звук-эффект считается размеченным независимо от осей —
+        // он уходит из «Без тегов» так же, как при обычном теге.
+        const missing = p.isEffect ? [] : missingAxes(axes);
+        return { pad: p, missing };
       });
   }, [order, pads, overrides]);
 
