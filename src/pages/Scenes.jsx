@@ -9,7 +9,6 @@ import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { audioEngine } from '@/lib/audioEngine';
 import { playSceneMix, loopableScenePads } from '@/lib/sceneMix';
-import IntentSearchBar from '@/components/scene/IntentSearchBar';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
@@ -134,15 +133,6 @@ export default function Scenes() {
           </div>
         ) : (
           <>
-            {/* Командная строка намерений — подсказки для ручной сборки сцены */}
-            <IntentSearchBar
-              pads={pads}
-              overrides={overrides}
-              sceneIds={sceneIds}
-              onAdd={addToScene}
-              onRemove={removeFromScene}
-            />
-
             {/* Колесо атмосферы */}
             <section>
               <div className="flex items-center gap-2 mb-2">
