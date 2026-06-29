@@ -34,6 +34,7 @@ const DEFAULTS = {
   pad_favorites: [],
   mix_presets: [],
   effect_slots: [],
+  tile_sounds: {},
   migrated_from_local: false,
 };
 
@@ -173,6 +174,7 @@ export const storage = {
           pad_favorites: r.pad_favorites ?? DEFAULTS.pad_favorites,
           mix_presets: r.mix_presets ?? DEFAULTS.mix_presets,
           effect_slots: r.effect_slots ?? DEFAULTS.effect_slots,
+          tile_sounds: r.tile_sounds ?? DEFAULTS.tile_sounds,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -378,4 +380,8 @@ export const storage = {
   // Глобальные слоты звуковых эффектов: [{ id, title, icon, url, isEmpty }].
   getEffectSlots: () => cache.effect_slots || [],
   setEffectSlots: (list) => set('effect_slots', list),
+
+  // Звуки, назначенные на плитки осей: { 'axisId:valueId': [soundId, ...] }.
+  getTileSounds: () => cache.tile_sounds || {},
+  setTileSounds: (map) => set('tile_sounds', map),
 };

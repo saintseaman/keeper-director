@@ -166,6 +166,11 @@
       "default": [],
       "description": "Global one-shot sound-effect slots for the Keeper \u2014 12 fixed slots (slot_1..slot_12)"
     },
+    "tile_sounds": {
+      "type": "object",
+      "default": {},
+      "description": "Sounds assigned to axis tiles, keyed by 'axisId:valueId': { 'location:city': ['soundId1','soundId2'], ... }"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,
