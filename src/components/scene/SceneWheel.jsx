@@ -76,7 +76,8 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
   const longFiredRef = useRef(false);
   const arcId = `arc-${axisId}-${value.id}`;
   const clipId = `clip-${axisId}-${value.id}`;
-  const bg = segmentBg(value.id);
+  const gradId = `grad-${axisId}-${value.id}`;
+  const bg = value.image || segmentBg(value.id);
   const path = sectorPath(R_INNER, R_OUTER, start, end);
 
   const startPress = () => {
@@ -107,7 +108,14 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
         <motion.path animate={{ d: path }} transition={spring} d={path} />
       </clipPath>
 
-      <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(255,255,255,0.03)" />
+      {/* Радиальный тёмный градиент: к центру колеса картинка темнеет под текст */}
+      <radialGradient id={gradId} gradientUnits="userSpaceOnUse" cx={C} cy={C} r={R_OUTER}>
+        <stop offset="0%" stopColor="rgba(0,0,0,0.7)" />
+        <stop offset="55%" stopColor="rgba(0,0,0,0.35)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+      </radialGradient>
+
+      <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(20,20,20,0.9)" />
 
       {bg && (
         <image
@@ -118,27 +126,36 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
           height={R_OUTER * 2}
           preserveAspectRatio="xMidYMid slice"
           clipPath={`url(#${clipId})`}
-          opacity={active ? 1 : 0.42}
-          className="transition-opacity duration-300 pointer-events-none"
+          opacity={1}
+          className="pointer-events-none"
         />
       )}
 
+      {/* Тёмный градиент поверх картинки для читаемости текста */}
+      <motion.path animate={{ d: path }} transition={spring} d={path} fill={`url(#${gradId})`} className="pointer-events-none" />
+
+      {/* Оранжевый оверлей на выбранном секторе */}
+      {active && (
+        <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(249,115,22,0.3)" className="pointer-events-none" />
+      )}
+
       <motion.path
-        animate={{ d: path, fill: active ? glow : 'rgba(0,0,0,0.42)' }}
+        animate={{ d: path }}
         transition={spring}
         d={path}
-        stroke={active ? '#ffffff' : 'rgba(255,255,255,0.08)'}
-        strokeWidth={active ? 1.8 : 1}
-        style={{ filter: active ? `drop-shadow(0 0 10px ${glow})` : 'none' }}
+        fill="none"
+        stroke={active ? '#f97316' : 'rgba(255,255,255,0.08)'}
+        strokeWidth={active ? 2.5 : 1}
+        style={{ filter: active ? 'drop-shadow(0 0 10px rgba(249,115,22,0.6))' : 'none' }}
         className="pointer-events-none"
       />
 
       <path id={arcId} d={textRadialPath(start, end, R_OUTER - 12, R_INNER + 12)} fill="none" />
       <text
-        fontSize={10}
-        fill={active ? '#fff' : 'rgba(255,255,255,0.92)'}
+        fontSize={11}
+        fill="#ffffff"
         className="pointer-events-none select-none"
-        style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.8)', strokeWidth: 3.5, fontWeight: 600, letterSpacing: '0.02em' }}
+        style={{ fontWeight: 700, letterSpacing: '0.02em', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
       >
         <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
           {DISPLAY_LABELS[value.id] || value.label}
