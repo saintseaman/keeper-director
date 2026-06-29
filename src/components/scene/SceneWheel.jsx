@@ -110,9 +110,8 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
 
       {/* Радиальный тёмный градиент: к центру колеса картинка темнеет под текст */}
       <radialGradient id={gradId} gradientUnits="userSpaceOnUse" cx={C} cy={C} r={R_OUTER}>
-        <stop offset="0%" stopColor="rgba(0,0,0,0.7)" />
-        <stop offset="55%" stopColor="rgba(0,0,0,0.35)" />
-        <stop offset="100%" stopColor="rgba(0,0,0,0)" />
+        <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
+        <stop offset="100%" stopColor="rgba(0,0,0,0.3)" />
       </radialGradient>
 
       <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(20,20,20,0.9)" />
