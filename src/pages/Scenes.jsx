@@ -158,6 +158,10 @@ export default function Scenes() {
                 <h2 className="text-xs font-mono tracking-[0.2em] text-white/60 uppercase">Собрать атмосферу</h2>
               </div>
 
+              <div className="mb-3">
+                <SceneSliders selection={selection} onSelect={onSelect} />
+              </div>
+
               <SceneWheel
                 axes={axes}
                 selection={selection}
@@ -169,10 +173,6 @@ export default function Scenes() {
                 onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
                 onAddSegment={(axisId) => setAddAxis(axisId)}
               />
-
-              <div className="mt-2">
-                <SceneSliders selection={selection} onSelect={onSelect} />
-              </div>
 
               {hasScene && (
                 <div className="mt-5 space-y-3">
