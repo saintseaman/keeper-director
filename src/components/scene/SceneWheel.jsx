@@ -1,6 +1,17 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { segmentBg } from '@/lib/segmentBackgrounds';
+import { resolveAxisIcon } from '@/lib/sceneAxes';
+
+// Осветлить hex-цвет на заданную долю (для активного сектора — +20% яркости).
+function lighten(hex, amount = 0.2) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  const r = Math.min(255, Math.round(((n >> 16) & 255) + 255 * amount));
+  const g = Math.min(255, Math.round(((n >> 8) & 255) + 255 * amount));
+  const b = Math.min(255, Math.round((n & 255) + 255 * amount));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
 
 const LONG_PRESS_MS = 450;
 
@@ -43,18 +54,17 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-// Радиальный путь подписи вдоль середины сектора.
-// На правой половине колеса (mid 0..180) текст «снизу вверх» читается
-// перевёрнутым, поэтому там разворачиваем путь (центр -> край),
-// на левой — оставляем (край -> центр). Так все подписи читаются ровно.
-function textRadialPath(startDeg, endDeg, rOuter, rInner) {
-  const mid = ((startDeg + endDeg) / 2) % 360;
-  const pOuter = polar(C, C, rOuter, mid);
-  const pInner = polar(C, C, rInner, mid);
-  const flip = mid > 0 && mid < 180;
+// Дуговой путь подписи вдоль сектора у внешнего края.
+// На нижней половине колеса текст идёт «вверх ногами», поэтому там дугу
+// разворачиваем (по часовой) — так подписи читаются ровно со всех сторон.
+function arcLabelPath(startDeg, endDeg, r) {
+  const mid = ((startDeg + endDeg) / 2 + 360) % 360;
+  const flip = mid > 90 && mid < 270;
+  const a = polar(C, C, r, startDeg);
+  const b = polar(C, C, r, endDeg);
   return flip
-    ? `M ${pInner.x} ${pInner.y} L ${pOuter.x} ${pOuter.y}`
-    : `M ${pOuter.x} ${pOuter.y} L ${pInner.x} ${pInner.y}`;
+    ? `M ${b.x} ${b.y} A ${r} ${r} 0 0 0 ${a.x} ${a.y}`
+    : `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}`;
 }
 
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
@@ -75,10 +85,14 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const arcId = `arc-${axisId}-${value.id}`;
-  const clipId = `clip-${axisId}-${value.id}`;
   const gradId = `grad-${axisId}-${value.id}`;
-  const bg = value.image || segmentBg(value.id);
   const path = sectorPath(R_INNER, R_OUTER, start, end);
+  const mid = (start + end) / 2;
+  // Иконка по центру сектора, текст — дугой ближе к внешнему краю.
+  const iconPos = polar(C, C, (R_INNER + R_OUTER) / 2 - 10, mid);
+  const Icon = resolveAxisIcon(value.icon);
+  const baseGrad = value.grad || ['#1a1a1a', '#0d0d0d'];
+  const grad = active ? [lighten(baseGrad[0]), lighten(baseGrad[1])] : baseGrad;
 
   const startPress = () => {
     longFiredRef.current = false;
@@ -104,39 +118,13 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
       onContextMenu={(e) => { e.preventDefault(); onLongPress?.(axisId, value.id); }}
       className="cursor-pointer select-none"
     >
-      <clipPath id={clipId}>
-        <motion.path animate={{ d: path }} transition={spring} d={path} />
-      </clipPath>
+      {/* Цветовой градиент сектора (вместо фотографии) */}
+      <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1={C} y1={C - R_OUTER} x2={C} y2={C + R_OUTER}>
+        <stop offset="0%" stopColor={grad[0]} />
+        <stop offset="100%" stopColor={grad[1]} />
+      </linearGradient>
 
-      {/* Радиальный тёмный градиент: к центру колеса картинка темнеет под текст */}
-      <radialGradient id={gradId} gradientUnits="userSpaceOnUse" cx={C} cy={C} r={R_OUTER}>
-        <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
-        <stop offset="100%" stopColor="rgba(0,0,0,0.3)" />
-      </radialGradient>
-
-      <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(20,20,20,0.9)" />
-
-      {bg && (
-        <image
-          href={bg}
-          x={C - R_OUTER}
-          y={C - R_OUTER}
-          width={R_OUTER * 2}
-          height={R_OUTER * 2}
-          preserveAspectRatio="xMidYMid slice"
-          clipPath={`url(#${clipId})`}
-          opacity={1}
-          className="pointer-events-none"
-        />
-      )}
-
-      {/* Тёмный градиент поверх картинки для читаемости текста */}
       <motion.path animate={{ d: path }} transition={spring} d={path} fill={`url(#${gradId})`} className="pointer-events-none" />
-
-      {/* Оранжевый оверлей на выбранном секторе */}
-      {active && (
-        <motion.path animate={{ d: path }} transition={spring} d={path} fill="rgba(249,115,22,0.3)" className="pointer-events-none" />
-      )}
 
       <motion.path
         animate={{ d: path }}
@@ -144,17 +132,23 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
         d={path}
         fill="none"
         stroke={active ? '#f97316' : 'rgba(255,255,255,0.08)'}
-        strokeWidth={active ? 2.5 : 1}
+        strokeWidth={active ? 2 : 1}
         style={{ filter: active ? 'drop-shadow(0 0 10px rgba(249,115,22,0.6))' : 'none' }}
         className="pointer-events-none"
       />
 
-      <path id={arcId} d={textRadialPath(start, end, R_OUTER - 12, R_INNER + 12)} fill="none" />
+      {/* Крупная иконка по центру сектора */}
+      <g transform={`translate(${iconPos.x - 9}, ${iconPos.y - 9})`} className="pointer-events-none">
+        <Icon width={18} height={18} color="#ffffff" strokeWidth={1.8} style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }} />
+      </g>
+
+      {/* Название дугой у внешнего края */}
+      <path id={arcId} d={arcLabelPath(start, end, R_OUTER - 14)} fill="none" />
       <text
-        fontSize={11}
+        fontSize={10}
         fill="#ffffff"
         className="pointer-events-none select-none"
-        style={{ fontWeight: 700, letterSpacing: '0.02em', textShadow: '0 1px 3px rgba(0,0,0,0.9)' }}
+        style={{ fontWeight: 600, letterSpacing: '0.02em', textShadow: '0 1px 4px rgba(0,0,0,1)' }}
       >
         <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
           {DISPLAY_LABELS[value.id] || value.label}
