@@ -45,3 +45,22 @@ export function playSceneMix(audioEngine, pads) {
   }
   return loops.length;
 }
+
+// Живое обновление микса сцены: подмешивает новый набор лупов в уже играющую
+// сцену. Останавливает слои, что больше не подходят, запускает новые и
+// пере-нормализует громкость всех (playFile у играющего слоя идемпотентно
+// просто выставляет новую громкость). Возвращает новый набор id сцены.
+export function syncSceneMix(audioEngine, pads, currentIds) {
+  const loops = loopableScenePads(pads).slice(0, MAX_SCENE_LAYERS);
+  const targetIds = new Set(loops.map((p) => p.id));
+  // остановить слои, которые больше не подходят
+  for (const id of currentIds) {
+    if (!targetIds.has(id)) audioEngine.stop(id, 0.4);
+  }
+  // запустить новые + пере-нормализовать громкость всех
+  const vol = layerVolume(loops.length);
+  for (const pad of loops) {
+    audioEngine.playFile(pad.id, pad.url, pad.title, vol, true);
+  }
+  return targetIds;
+}

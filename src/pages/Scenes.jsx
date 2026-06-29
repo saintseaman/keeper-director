@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Layers, Sparkles, Play, Square, Save, Plus } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useCustomPads } from '@/lib/useCustomPads';
@@ -8,7 +8,7 @@ import { useAudio } from '@/lib/useAudio';
 import { padAxes, padMatchesSelection } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { audioEngine } from '@/lib/audioEngine';
-import { playSceneMix, loopableScenePads } from '@/lib/sceneMix';
+import { syncSceneMix, loopableScenePads } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMatchList from '@/components/scene/SceneMatchList';
@@ -37,6 +37,8 @@ export default function Scenes() {
   // Ручные правки текущей сцены поверх автоподбора по фильтру:
   const [extraIds, setExtraIds] = useState([]); // вручную добавленные звуки
   const [excludedIds, setExcludedIds] = useState(new Set()); // убранные из сцены звуки
+  const [sceneActive, setSceneActive] = useState(false); // сцена играет — слушаем колесо вживую
+  const sceneIdsRef = useRef(new Set()); // текущий набор id играющих слоёв сцены
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
@@ -95,7 +97,22 @@ export default function Scenes() {
       });
       return;
     }
-    playSceneMix(audioEngine, matches);
+    setSceneActive(true);
+    sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current);
+  };
+
+  // Живое обновление: пока сцена играет, любое изменение набора звуков
+  // (смена выбора на колесе) подмешивается в звук без повторного тапа.
+  useEffect(() => {
+    if (!sceneActive) return;
+    sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current);
+  }, [matches, sceneActive]);
+
+  // Полная остановка сцены: гасим всё и сбрасываем активность.
+  const stopScene = () => {
+    stopAll(0.4);
+    setSceneActive(false);
+    sceneIdsRef.current = new Set();
   };
 
   const saveScene = () => {
@@ -113,7 +130,7 @@ export default function Scenes() {
           <span className="text-[13px] font-mono tracking-[0.25em] text-white/80 uppercase">Сцены</span>
         </div>
         <button
-          onClick={() => stopAll(0.4)}
+          onClick={stopScene}
           disabled={activeCount === 0}
           className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-mono tracking-wider transition-all ${
             activeCount > 0
@@ -146,7 +163,7 @@ export default function Scenes() {
                 selection={selection}
                 onSelect={onSelect}
                 onPlay={playMatches}
-                onStop={() => stopAll(0.4)}
+                onStop={stopScene}
                 activeCount={activeCount}
                 matchCount={matches.length}
                 onSegmentLongPress={(axisId, valueId) => setSegment({ axisId, valueId })}
@@ -165,7 +182,7 @@ export default function Scenes() {
                     </span>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => { setSelection(EMPTY); setExtraIds([]); setExcludedIds(new Set()); }}
+                        onClick={() => { stopScene(); setSelection(EMPTY); setExtraIds([]); setExcludedIds(new Set()); }}
                         className="text-[11px] text-white/40 hover:text-white/70 transition-colors"
                       >
                         Сбросить
