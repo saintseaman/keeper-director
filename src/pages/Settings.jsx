@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Volume2, Library, FolderUp, Trash2 } from 'lucide-react';
+import { Settings as SettingsIcon, Volume2, Library, FolderUp, FileAudio, Trash2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
 import { useCustomPads } from '@/lib/useCustomPads';
 import LangSelector from '@/components/pad/LangSelector';
 import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
+import SingleFileUploadDialog from '@/components/pad/SingleFileUploadDialog';
 
 export default function Settings() {
   const { masterVolume, setMasterVolume } = useAudio();
   const { pads, addPads, removePad } = useCustomPads();
   const [importOpen, setImportOpen] = useState(false);
+  const [fileOpen, setFileOpen] = useState(false);
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -50,13 +52,22 @@ export default function Settings() {
             <span className="text-[11px] font-mono text-white/40">Всего: {pads.length}</span>
           </div>
 
-          <button
-            onClick={() => setImportOpen(true)}
-            className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-orange-400/40 bg-orange-500/5 py-3 text-orange-200 hover:bg-orange-500/10 transition-colors"
-          >
-            <FolderUp size={16} />
-            <span className="text-xs font-mono tracking-wider">Импортировать звуки</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setImportOpen(true)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-dashed border-orange-400/40 bg-orange-500/5 py-3 text-orange-200 hover:bg-orange-500/10 transition-colors"
+            >
+              <FolderUp size={16} />
+              <span className="text-xs font-mono tracking-wider">Выбрать папку</span>
+            </button>
+            <button
+              onClick={() => setFileOpen(true)}
+              className="flex-1 flex items-center justify-center gap-2 rounded-lg border border-dashed border-orange-400/40 bg-orange-500/5 py-3 text-orange-200 hover:bg-orange-500/10 transition-colors"
+            >
+              <FileAudio size={16} />
+              <span className="text-xs font-mono tracking-wider">Добавить файл</span>
+            </button>
+          </div>
 
           {pads.length === 0 ? (
             <p className="text-xs text-white/40 py-2">Пока нет звуков. Импортируйте папку.</p>
@@ -87,6 +98,14 @@ export default function Settings() {
         open={importOpen}
         onClose={() => setImportOpen(false)}
         onImported={(sounds) => addPads(sounds)}
+      />
+
+      <SingleFileUploadDialog
+        open={fileOpen}
+        onClose={() => setFileOpen(false)}
+        onImport={({ url, name }) =>
+          addPads([{ id: `upload_${Date.now()}`, title: name, url, category: '', icon: 'Music' }])
+        }
       />
     </div>
   );
