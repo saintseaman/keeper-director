@@ -231,6 +231,8 @@ class AudioEngine {
     el._onErr = onErr;
     el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
+      // AbortError — нормально: play() прерван новым pause(), не ошибка. Тихо выходим.
+      if (e?.name === 'AbortError') return;
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
       // play() отклонён — убираем запись, чтобы эквалайзер не «горел» вхолостую.
       if (this.activeSounds.get(soundId)?.el === el) {
@@ -268,6 +270,8 @@ class AudioEngine {
     el._onErr = onErr;
     el.addEventListener('error', onErr);
     el.play().then(() => onError?.(null)).catch((e) => {
+      // AbortError — нормально: play() прерван новым pause(), не ошибка. Тихо выходим.
+      if (e?.name === 'AbortError') return;
       onError?.(`play() rejected: ${e?.name || ''} ${e?.message || String(e)}`);
       if (this.activeSounds.get(soundId)?.el === el) {
         this.activeSounds.delete(soundId);
