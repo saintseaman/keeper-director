@@ -1,85 +1,28 @@
 import React, { useRef, useState } from 'react';
-import { motion } from 'framer-motion';
-
-// Осветлить hex-цвет на заданную долю (для активного сектора — +20% яркости).
-function lighten(hex, amount = 0.2) {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
-  if (!m) return hex;
-  const n = parseInt(m[1], 16);
-  const r = Math.min(255, Math.round(((n >> 16) & 255) + 255 * amount));
-  const g = Math.min(255, Math.round(((n >> 8) & 255) + 255 * amount));
-  const b = Math.min(255, Math.round((n & 255) + 255 * amount));
-  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
-}
+import { Play, Square, Plus } from 'lucide-react';
+import { getIcon } from '@/lib/iconMap';
 
 const LONG_PRESS_MS = 450;
 
-// «Колесо атмосферы» с фокусом на одной оси за раз.
-// Сверху — табы осей (Локация / Действие / Погода). Активная ось
-// рисуется ОДНИМ большим кольцом крупных сегментов вокруг кнопки запуска,
-// поэтому сегменты читаемы и удобны для тапа. Выбранные значения других
-// осей видны как чипы под колесом. selection = { location, action, weather, ... }.
-
-const SIZE = 360;
-const C = SIZE / 2;
-const R_OUTER = 172;
-const R_INNER = 78; // внутренний радиус кольца (граница с хабом)
-const R_HUB = 66;
+// «Колесо атмосферы» в виде сетки плиток с фокусом на одной оси за раз.
+// Сверху — табы осей (Локация / Действие / Погода). Активная ось рисуется
+// сеткой крупных квадратных плиток. Выбранные значения других осей видны
+// как чипы под сеткой. selection = { location, action, weather, ... }.
+// Контракт компонента не изменился — те же пропсы, что и у SVG-версии.
 
 const AXIS_META = {
-  location: { label: 'Локация', accent: '#60a5fa', glow: 'rgba(96,165,250,0.5)' },
-  action: { label: 'Действие', accent: '#34d399', glow: 'rgba(52,211,153,0.5)' },
-  weather: { label: 'Погода', accent: '#a78bfa', glow: 'rgba(167,139,250,0.5)' },
+  location: { label: 'Локация', accent: '#60a5fa' },
+  action: { label: 'Действие', accent: '#34d399' },
+  weather: { label: 'Погода', accent: '#a78bfa' },
 };
 const AXIS_ORDER = ['location', 'action', 'weather'];
 
-function polar(cx, cy, r, deg) {
-  const rad = ((deg - 90) * Math.PI) / 180;
-  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-}
-
-function sectorPath(r1, r2, startDeg, endDeg) {
-  const p1 = polar(C, C, r2, startDeg);
-  const p2 = polar(C, C, r2, endDeg);
-  const p3 = polar(C, C, r1, endDeg);
-  const p4 = polar(C, C, r1, startDeg);
-  const large = endDeg - startDeg > 180 ? 1 : 0;
-  return [
-    `M ${p1.x} ${p1.y}`,
-    `A ${r2} ${r2} 0 ${large} 1 ${p2.x} ${p2.y}`,
-    `L ${p3.x} ${p3.y}`,
-    `A ${r1} ${r1} 0 ${large} 0 ${p4.x} ${p4.y}`,
-    'Z',
-  ].join(' ');
-}
-
-const spring = { type: 'spring', stiffness: 220, damping: 26 };
-
-// Короткие подписи для отображения в секторах колеса (id → текст).
-// id и label в sceneAxes.js не меняем — это только визуальная замена,
-// чтобы длинные названия не обрезались на дуге сектора.
-const DISPLAY_LABELS = {
-  investigate: 'Расслед.',
-  clues: 'Улики',
-  university: 'Универс.',
-  interrogation: 'Допрос',
-  surveillance: 'Слежка',
-  dungeon: 'Подземелье',
-  library: 'Библиотека',
-  asylum: 'Лечебница',
-};
-
-// Один крупный сегмент активного кольца.
-function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress }) {
+// Одна плитка значения оси.
+function Tile({ axisId, value, active, onClick, onLongPress }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
-  const gradId = `grad-${axisId}-${value.id}`;
-  const path = sectorPath(R_INNER, R_OUTER, start, end);
-  const mid = (start + end) / 2;
-  // Текст горизонтально на 70% радиуса от центра (ближе к внешнему краю).
-  const labelPos = polar(C, C, R_OUTER * 0.7, mid);
-  const baseGrad = value.grad || ['#1a1a1a', '#0d0d0d'];
-  const grad = active ? [lighten(baseGrad[0]), lighten(baseGrad[1])] : baseGrad;
+  const Icon = getIcon(value.icon);
+  const grad = value.grad || ['#1a1a1a', '#0d0d0d'];
 
   const startPress = () => {
     longFiredRef.current = false;
@@ -96,71 +39,34 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
   };
 
   return (
-    <g
+    <button
       onClick={handleClick}
       onPointerDown={startPress}
       onPointerUp={endPress}
       onPointerLeave={endPress}
       onPointerCancel={endPress}
       onContextMenu={(e) => { e.preventDefault(); onLongPress?.(axisId, value.id); }}
-      className="cursor-pointer select-none"
+      className="relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 overflow-hidden select-none transition-all"
+      style={{
+        background: `linear-gradient(160deg, ${grad[0]}, ${grad[1]})`,
+        borderColor: active ? '#f97316' : 'rgba(255,255,255,0.08)',
+        borderWidth: active ? 2 : 1,
+        boxShadow: active ? '0 0 12px rgba(249,115,22,0.55)' : 'none',
+      }}
     >
-      {/* Цветовой градиент сектора (вместо фотографии) */}
-      <linearGradient id={gradId} gradientUnits="userSpaceOnUse" x1={C} y1={C - R_OUTER} x2={C} y2={C + R_OUTER}>
-        <stop offset="0%" stopColor={grad[0]} />
-        <stop offset="100%" stopColor={grad[1]} />
-      </linearGradient>
-
-      <motion.path animate={{ d: path }} transition={spring} d={path} fill={`url(#${gradId})`} />
-
-      <motion.path
-        animate={{ d: path }}
-        transition={spring}
-        d={path}
-        fill="none"
-        stroke={active ? '#f97316' : 'rgba(255,255,255,0.08)'}
-        strokeWidth={active ? 2 : 1}
-        style={{ filter: active ? 'drop-shadow(0 0 10px rgba(249,115,22,0.6))' : 'none' }}
-        className="pointer-events-none"
-      />
-
-      {/* Горизонтальный текст: компенсируем поворот сектора, чтобы лейбл был ровным */}
-      <text
-        x={labelPos.x}
-        y={labelPos.y}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize={11}
-        fill="#ffffff"
-        className="pointer-events-none select-none"
-        style={{ fontWeight: 700, textShadow: '0 0 6px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,1)' }}
+      <Icon size={20} color="#ffffff" style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.9))' }} />
+      <span
+        className="px-1 text-center leading-tight"
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: '#ffffff',
+          textShadow: '0 0 6px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,1)',
+        }}
       >
-        {DISPLAY_LABELS[value.id] || value.label}
-      </text>
-    </g>
-  );
-}
-
-// Сегмент «+» в конце кольца — добавить новый сегмент.
-function AddSegment({ axisId, start, end, accent, onAdd }) {
-  const path = sectorPath(R_INNER, R_OUTER, start, end);
-  const pos = polar(C, C, (R_INNER + R_OUTER) / 2, (start + end) / 2);
-  return (
-    <g onClick={() => onAdd(axisId)} className="cursor-pointer select-none">
-      <motion.path
-        animate={{ d: path }}
-        transition={spring}
-        d={path}
-        fill="rgba(255,255,255,0.05)"
-        stroke="rgba(255,255,255,0.18)"
-        strokeWidth={1}
-        strokeDasharray="3 3"
-      />
-      <g transform={`translate(${pos.x}, ${pos.y})`} className="pointer-events-none">
-        <line x1={-8} y1={0} x2={8} y2={0} stroke={accent} strokeWidth={2.5} strokeLinecap="round" />
-        <line x1={0} y1={-8} x2={0} y2={8} stroke={accent} strokeWidth={2.5} strokeLinecap="round" />
-      </g>
-    </g>
+        {value.label}
+      </span>
+    </button>
   );
 }
 
@@ -169,10 +75,6 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
-  const meta = AXIS_META[activeAxis];
-
-  const slots = values.length + 1; // +1 под «добавить»
-  const step = 360 / slots;
 
   // Чипы выбранных значений по неактивным осям.
   const otherChips = AXIS_ORDER.filter((id) => id !== activeAxis).map((id) => {
@@ -182,7 +84,7 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
   });
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col">
       {/* Табы осей */}
       <div className="flex items-center gap-1.5 mb-3 w-full">
         {AXIS_ORDER.map((id) => {
@@ -205,94 +107,27 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
         })}
       </div>
 
-      <svg width="100%" viewBox={`0 0 ${SIZE} ${SIZE}`} className="max-w-[400px]">
-        <defs>
-          <radialGradient id="wheelGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="rgba(167,139,250,0.22)" />
-            <stop offset="70%" stopColor="rgba(96,165,250,0.06)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-          </radialGradient>
-          <radialGradient id="hubGrad" cx="50%" cy="40%" r="70%">
-            <stop offset="0%" stopColor="#1f1f26" />
-            <stop offset="100%" stopColor="#0c0c10" />
-          </radialGradient>
-        </defs>
-
-        <circle cx={C} cy={C} r={R_OUTER + 6} fill="url(#wheelGlow)" />
-        <circle cx={C} cy={C} r={R_OUTER + 2} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-
-        {values.map((v, i) => {
-          const start = i * step;
-          return (
-            <Segment
-              key={v.id}
-              axisId={activeAxis}
-              value={v}
-              start={start}
-              end={start + step}
-              glow={meta.glow}
-              active={selection[activeAxis] === v.id}
-              onClick={(id) => onSelect(activeAxis, id)}
-              onLongPress={onSegmentLongPress}
-            />
-          );
-        })}
-        <AddSegment
-          axisId={activeAxis}
-          start={values.length * step}
-          end={slots * step}
-          accent={meta.accent}
-          onAdd={onAddSegment}
-        />
-
-        {/* Центральная кнопка: запуск, либо пауза/стоп когда что-то играет */}
-        <g onClick={() => (isPlaying ? onStop?.() : onPlay())} className="cursor-pointer">
-          <circle
-            cx={C}
-            cy={C}
-            r={R_HUB}
-            fill="url(#hubGrad)"
-            stroke={isPlaying ? 'rgba(244,63,94,0.85)' : matchCount > 0 ? 'rgba(249,115,22,0.85)' : 'rgba(255,255,255,0.18)'}
-            strokeWidth={2}
-            style={{
-              filter: isPlaying
-                ? 'drop-shadow(0 0 12px rgba(244,63,94,0.45))'
-                : matchCount > 0
-                ? 'drop-shadow(0 0 12px rgba(249,115,22,0.45))'
-                : 'none',
-            }}
-            className="transition-all"
+      {/* Сетка плиток значений активной оси */}
+      <div className="grid grid-cols-3 gap-2">
+        {values.map((v) => (
+          <Tile
+            key={v.id}
+            axisId={activeAxis}
+            value={v}
+            active={selection[activeAxis] === v.id}
+            onClick={(id) => onSelect(activeAxis, id)}
+            onLongPress={onSegmentLongPress}
           />
-          {isPlaying ? (
-            <rect
-              x={C - 16}
-              y={C - 16}
-              width={32}
-              height={32}
-              rx={4}
-              fill="#fb7185"
-              className="transition-all"
-            />
-          ) : (
-            <path
-              d={`M ${C - 13} ${C - 18} L ${C + 20} ${C} L ${C - 13} ${C + 18} Z`}
-              fill={matchCount > 0 ? '#fb923c' : 'rgba(255,255,255,0.35)'}
-              className="transition-all"
-            />
-          )}
-          {isPlaying ? (
-            <text x={C} y={C + 40} fontSize={11} fill="#fb7185" textAnchor="middle" className="font-mono pointer-events-none">
-              {activeCount}
-            </text>
-          ) : (
-            matchCount > 0 && (
-              <text x={C} y={C + 40} fontSize={11} fill="#fb923c" textAnchor="middle" className="font-mono pointer-events-none">
-                {matchCount}
-              </text>
-            )
-          )}
-        </g>
-      </svg>
+        ))}
+
+        {/* Плитка «+ добавить сегмент» */}
+        <button
+          onClick={() => onAddSegment(activeAxis)}
+          className="aspect-square rounded-xl border border-dashed border-white/20 bg-white/[0.03] flex items-center justify-center text-white/45 hover:border-orange-400/50 hover:text-orange-300 transition-colors"
+        >
+          <Plus size={22} />
+        </button>
+      </div>
 
       {/* Чипы выбора по неактивным осям */}
       <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
@@ -308,6 +143,31 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
           </button>
         ))}
       </div>
+
+      {/* Кнопка запуска/остановки под сеткой */}
+      <button
+        onClick={() => (isPlaying ? onStop?.() : onPlay())}
+        className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-mono tracking-[0.2em] uppercase border transition-all"
+        style={
+          isPlaying
+            ? { background: 'rgba(244,63,94,0.18)', borderColor: 'rgba(244,63,94,0.6)', color: '#fb7185' }
+            : matchCount > 0
+            ? { background: 'rgba(249,115,22,0.18)', borderColor: 'rgba(249,115,22,0.6)', color: '#fb923c' }
+            : { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }
+        }
+      >
+        {isPlaying ? (
+          <>
+            <Square size={16} className="fill-current" />
+            Остановить · {activeCount}
+          </>
+        ) : (
+          <>
+            <Play size={16} className="fill-current" />
+            Запустить{matchCount > 0 ? ` · ${matchCount}` : ''}
+          </>
+        )}
+      </button>
     </div>
   );
 }
