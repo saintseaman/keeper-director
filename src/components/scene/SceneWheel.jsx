@@ -59,6 +59,17 @@ function textRadialPath(startDeg, endDeg, rOuter, rInner) {
 
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
 
+// Короткие подписи для отображения в секторах колеса (id → текст).
+// id и label в sceneAxes.js не меняем — это только визуальная замена,
+// чтобы длинные названия не обрезались на дуге сектора.
+const DISPLAY_LABELS = {
+  investigate: 'Расслед.',
+  clues: 'Улики',
+  university: 'Универс.',
+  interrogation: 'Допрос',
+  surveillance: 'Слежка',
+};
+
 // Один крупный сегмент активного кольца.
 function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress }) {
   const timerRef = useRef(null);
@@ -124,13 +135,13 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
 
       <path id={arcId} d={textRadialPath(start, end, R_OUTER - 12, R_INNER + 12)} fill="none" />
       <text
-        fontSize={13}
+        fontSize={10}
         fill={active ? '#fff' : 'rgba(255,255,255,0.92)'}
         className="pointer-events-none select-none"
         style={{ paintOrder: 'stroke', stroke: 'rgba(0,0,0,0.8)', strokeWidth: 3.5, fontWeight: 600, letterSpacing: '0.02em' }}
       >
         <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
-          {value.label}
+          {DISPLAY_LABELS[value.id] || value.label}
         </textPath>
       </text>
     </g>
