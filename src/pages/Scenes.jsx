@@ -7,6 +7,7 @@ import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
 import { padAxes, padMatchesSelection, axisValue } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
+import { useTileSounds } from '@/lib/useTileSounds';
 import { audioEngine } from '@/lib/audioEngine';
 import { syncSceneMix, loopableScenePads } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
@@ -27,6 +28,7 @@ export default function Scenes() {
   const { scenes, addScene, removeScene } = useScenes();
   const { activeSounds, stopAll } = useAudio();
   const { axes, addValue, removeValue } = useAxes();
+  const { tileSounds: tileSoundsMap, getSounds } = useTileSounds();
   const { toast } = useToast();
 
   const [selection, setSelection] = useState(EMPTY);
@@ -53,22 +55,27 @@ export default function Scenes() {
     return m;
   }, [pads]);
 
-  // Пэды, подходящие под выбранный набор осей (автоподбор).
-  const autoMatches = useMemo(() => {
-    if (!hasFilter) return [];
-    // Эффекты исключаем из автоподбора фона — они только для шторки эффектов.
-    return pads.filter((p) => !p.isEffect && padMatchesSelection(padAxes(p, overrides[p.id]), selection));
-  }, [pads, overrides, selection, hasFilter]);
+  // Активные плитки = по одной на ось, где selection[axis] задан.
+  // Сцена = ОБЪЕДИНЕНИЕ звуков всех активных плиток (логика ИЛИ, не И).
+  const tileMatchIds = useMemo(() => {
+    const ids = new Set();
+    for (const axisId of Object.keys(selection)) {
+      const valueId = selection[axisId];
+      if (!valueId) continue;
+      for (const sid of getSounds(axisId, valueId)) ids.add(sid);
+    }
+    return ids;
+    // tileSoundsMap — чтобы пересчёт шёл при изменении назначений плиток.
+  }, [selection, getSounds, tileSoundsMap]);
 
-  // Итоговый список звуков сцены = (автоподбор + вручную добавленные) − убранные.
-  // Это позволяет добавлять/удалять звуки поверх фильтра осей.
+  // Итоговый список звуков сцены = (звуки активных плиток + вручную добавленные) − убранные.
   const matches = useMemo(() => {
     const byId = new Map(pads.map((p) => [p.id, p]));
-    const ids = new Set(autoMatches.map((p) => p.id));
+    const ids = new Set(tileMatchIds);
     for (const id of extraIds) ids.add(id);
     for (const id of excludedIds) ids.delete(id);
     return Array.from(ids).map((id) => byId.get(id)).filter(Boolean);
-  }, [pads, autoMatches, extraIds, excludedIds]);
+  }, [pads, tileMatchIds, extraIds, excludedIds]);
 
   // Множество id текущей сцены — для подсветки в диалоге добавления.
   const sceneIds = useMemo(() => new Set(matches.map((p) => p.id)), [matches]);
@@ -92,10 +99,8 @@ export default function Scenes() {
     const loops = loopableScenePads(matches);
     if (loops.length === 0) {
       toast({
-        title: hasFilter ? 'Нет фоновых звуков под этот выбор' : 'Сначала выберите сегменты',
-        description: hasFilter
-          ? 'Под фильтр не попало ни одного зацикленного звука. Разовые звуки в фон сцены не идут — запустите их вручную из списка.'
-          : 'Выберите локацию и действие на колесе.',
+        title: 'Нет звуков для сцены',
+        description: 'На выбранные плитки не назначено ни одного звука. Зажми плитку и добавь звуки.',
       });
       return;
     }
