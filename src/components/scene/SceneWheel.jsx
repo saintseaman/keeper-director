@@ -1,6 +1,5 @@
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { resolveAxisIcon } from '@/lib/sceneAxes';
 
 // Осветлить hex-цвет на заданную долю (для активного сектора — +20% яркости).
 function lighten(hex, amount = 0.2) {
@@ -54,19 +53,6 @@ function sectorPath(r1, r2, startDeg, endDeg) {
   ].join(' ');
 }
 
-// Дуговой путь подписи вдоль сектора у внешнего края.
-// На нижней половине колеса текст идёт «вверх ногами», поэтому там дугу
-// разворачиваем (по часовой) — так подписи читаются ровно со всех сторон.
-function arcLabelPath(startDeg, endDeg, r) {
-  const mid = ((startDeg + endDeg) / 2 + 360) % 360;
-  const flip = mid > 90 && mid < 270;
-  const a = polar(C, C, r, startDeg);
-  const b = polar(C, C, r, endDeg);
-  return flip
-    ? `M ${b.x} ${b.y} A ${r} ${r} 0 0 0 ${a.x} ${a.y}`
-    : `M ${a.x} ${a.y} A ${r} ${r} 0 0 1 ${b.x} ${b.y}`;
-}
-
 const spring = { type: 'spring', stiffness: 220, damping: 26 };
 
 // Короткие подписи для отображения в секторах колеса (id → текст).
@@ -78,19 +64,20 @@ const DISPLAY_LABELS = {
   university: 'Универс.',
   interrogation: 'Допрос',
   surveillance: 'Слежка',
+  dungeon: 'Подземелье',
+  library: 'Библиотека',
+  asylum: 'Лечебница',
 };
 
 // Один крупный сегмент активного кольца.
 function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
-  const arcId = `arc-${axisId}-${value.id}`;
   const gradId = `grad-${axisId}-${value.id}`;
   const path = sectorPath(R_INNER, R_OUTER, start, end);
   const mid = (start + end) / 2;
-  // Иконка по центру сектора, текст — дугой ближе к внешнему краю.
-  const iconPos = polar(C, C, (R_INNER + R_OUTER) / 2 - 10, mid);
-  const Icon = resolveAxisIcon(value.icon);
+  // Текст горизонтально на 70% радиуса от центра (ближе к внешнему краю).
+  const labelPos = polar(C, C, R_OUTER * 0.7, mid);
   const baseGrad = value.grad || ['#1a1a1a', '#0d0d0d'];
   const grad = active ? [lighten(baseGrad[0]), lighten(baseGrad[1])] : baseGrad;
 
@@ -137,22 +124,18 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
         className="pointer-events-none"
       />
 
-      {/* Крупная иконка по центру сектора */}
-      <g transform={`translate(${iconPos.x - 9}, ${iconPos.y - 9})`} className="pointer-events-none">
-        <Icon width={18} height={18} color="#ffffff" strokeWidth={1.8} style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }} />
-      </g>
-
-      {/* Название дугой у внешнего края */}
-      <path id={arcId} d={arcLabelPath(start, end, R_OUTER - 14)} fill="none" />
+      {/* Горизонтальный текст: компенсируем поворот сектора, чтобы лейбл был ровным */}
       <text
-        fontSize={10}
+        x={labelPos.x}
+        y={labelPos.y}
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fontSize={11}
         fill="#ffffff"
         className="pointer-events-none select-none"
-        style={{ fontWeight: 600, letterSpacing: '0.02em', textShadow: '0 1px 4px rgba(0,0,0,1)' }}
+        style={{ fontWeight: 700, textShadow: '0 0 6px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,1)' }}
       >
-        <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
-          {DISPLAY_LABELS[value.id] || value.label}
-        </textPath>
+        {DISPLAY_LABELS[value.id] || value.label}
       </text>
     </g>
   );
