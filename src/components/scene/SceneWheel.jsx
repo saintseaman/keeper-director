@@ -111,7 +111,7 @@ function Segment({ axisId, value, start, end, glow, active, onClick, onLongPress
         <stop offset="100%" stopColor={grad[1]} />
       </linearGradient>
 
-      <motion.path animate={{ d: path }} transition={spring} d={path} fill={`url(#${gradId})`} className="pointer-events-none" />
+      <motion.path animate={{ d: path }} transition={spring} d={path} fill={`url(#${gradId})`} />
 
       <motion.path
         animate={{ d: path }}
