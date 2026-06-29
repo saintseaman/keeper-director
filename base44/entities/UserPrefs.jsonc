@@ -141,6 +141,31 @@
       "default": [],
       "description": "Quick mix snapshots \u2014 saved sets of playing pads with their volumes for one-tap switching"
     },
+    "effect_slots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "icon": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "isEmpty": {
+            "type": "boolean"
+          }
+        }
+      },
+      "default": [],
+      "description": "Global one-shot sound-effect slots for the Keeper \u2014 12 fixed slots (slot_1..slot_12)"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,

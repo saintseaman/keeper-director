@@ -6,7 +6,7 @@ import {
   Skull, Bug, Ear, Heart, HeartPulse, Megaphone, Music, Wrench,
   Orbit, AlertTriangle, Volume2, Brain, Building,
   Building2, Map, Hexagon, Anchor, Plus, Shield,
-  Droplet, Hand, Moon, Undo, Smile
+  Droplet, Hand, Moon, Undo, Smile, Target, MessageCircle, Star
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -16,6 +16,7 @@ const ICON_MAP = {
   Lightbulb, KeyRound, ArrowDown, Users, Fish, CircleDot, Bird, Eye,
   Skull, Bug, Ear, Heart, HeartPulse, Megaphone, Music, Wrench,
   Orbit, AlertTriangle, Volume2, Building, Building2, Map, Hexagon,
+  Target, MessageCircle, Star,
   Link: Link2,
   CloudFog,
   Train: TrainFront,

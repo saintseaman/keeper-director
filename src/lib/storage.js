@@ -33,6 +33,7 @@ const DEFAULTS = {
   recent_pads: [],
   pad_favorites: [],
   mix_presets: [],
+  effect_slots: [],
   migrated_from_local: false,
 };
 
@@ -170,6 +171,7 @@ export const storage = {
           recent_pads: r.recent_pads ?? DEFAULTS.recent_pads,
           pad_favorites: r.pad_favorites ?? DEFAULTS.pad_favorites,
           mix_presets: r.mix_presets ?? DEFAULTS.mix_presets,
+          effect_slots: r.effect_slots ?? DEFAULTS.effect_slots,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -370,4 +372,8 @@ export const storage = {
   // Снимки микса — заготовки сцены: [{ id, name, layers: [{ padId, volume }] }].
   getMixPresets: () => cache.mix_presets || [],
   setMixPresets: (list) => set('mix_presets', list),
+
+  // Глобальные слоты звуковых эффектов: [{ id, title, icon, url, isEmpty }].
+  getEffectSlots: () => cache.effect_slots || [],
+  setEffectSlots: (list) => set('effect_slots', list),
 };
