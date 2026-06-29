@@ -17,8 +17,8 @@ export default function EffectsSheet({ open, onOpenChange }) {
       <DrawerPrimitive.Root direction="top" open={open} onOpenChange={onOpenChange}>
         <DrawerPrimitive.Portal>
           <DrawerPrimitive.Overlay className="fixed inset-0 z-50 bg-black/80" />
-          <DrawerPrimitive.Content className="fixed inset-x-0 top-0 z-50 flex flex-col rounded-b-2xl border-b border-x border-white/10 bg-[#141414] outline-none">
-            <div className="px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-4">
+          <DrawerPrimitive.Content className="fixed inset-0 z-50 flex flex-col border-white/10 bg-[#141414] outline-none" style={{ height: '100dvh' }}>
+            <div className="flex-1 overflow-y-auto px-4 pt-[max(env(safe-area-inset-top),0.75rem)] pb-4">
               {/* Шапка */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
