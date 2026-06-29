@@ -14,15 +14,15 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 // ─────────────────────────────────────────────────────────────
 
 const AXIS_VALUES = {
-  location: ['city', 'suburb', 'cafe', 'forest', 'dungeon', 'sea', 'temple', 'asylum', 'library', 'university', 'ruins', 'ship_deck'],
-  action: ['explore', 'combat', 'dialogue', 'travel', 'ritual', 'rest', 'investigate', 'research', 'sanity', 'summon'],
+  location: ['city', 'suburb', 'manor', 'tavern', 'forest', 'sea', 'library', 'asylum', 'temple', 'ruins', 'university', 'dungeon'],
+  action: ['investigate', 'chase', 'interrogation', 'ritual', 'combat', 'rest', 'clues', 'surveillance'],
   weather: ['rain', 'sunny', 'storm', 'night', 'fog', 'underwater', 'cosmic', 'snow'],
   mood: ['calm', 'tense', 'horror', 'mystery'],
 };
 
 const AXIS_HINTS = {
-  location: 'Где происходит действие (можно несколько): city=город, suburb=пригород/дом, cafe=кафе/таверна, forest=лес/болото, dungeon=подземелье/пещера/подвал, sea=море/океан, temple=храм/церковь, asylum=лечебница, library=библиотека, university=университет, ruins=руины/древний город, ship_deck=корабль.',
-  action: 'Что происходит: explore=исследование/фон, combat=бой/погоня, dialogue=диалог, travel=путешествие/дорога, ritual=ритуал/призыв, rest=отдых/лагерь, investigate=расследование, research=изучение тайн/оккультизм, sanity=безумие/паника, summon=пробуждение древнего.',
+  location: 'Где происходит действие (можно несколько): city=город, suburb=пригород/дом, manor=поместье/особняк, tavern=таверна/бар/кафе, forest=лес/болото, sea=море/океан, library=библиотека, asylum=лечебница, temple=храм/церковь, ruins=руины/древний город, university=университет, dungeon=подземелье/пещера/подвал.',
+  action: 'Что происходит: investigate=расследование, chase=погоня/преследование, interrogation=допрос/разговор, ritual=ритуал/призыв, combat=бой/сражение, rest=отдых/лагерь, clues=изучение улик/анализ, surveillance=слежка/наблюдение.',
   weather: 'Погода/среда: rain=дождь, sunny=солнечно, storm=гроза, night=ночь/тьма, fog=туман/ветер, underwater=под водой/глубина, cosmic=космос/пустота, snow=снег/лёд.',
   mood: 'Настроение: calm=спокойно, tense=напряжённо/опасно, horror=ужас/крик/шёпот, mystery=тайна/загадка.',
 };
