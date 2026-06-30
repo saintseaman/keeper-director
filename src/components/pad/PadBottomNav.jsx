@@ -1,11 +1,10 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, Search, Layers, Tags, Settings } from 'lucide-react';
+import { Search, Layers, Tags, Settings } from 'lucide-react';
 
 const ITEMS = [
-  { to: '/app', label: 'Главная', icon: LayoutGrid, end: true },
+  { to: '/app', label: 'Сцены', icon: Layers, end: true },
   { to: '/app/search', label: 'Поиск', icon: Search },
-  { to: '/app/scenes', label: 'Сцены', icon: Layers },
   { to: '/app/tags', label: 'Теги', icon: Tags },
   { to: '/app/settings', label: 'Настройки', icon: Settings },
 ];
