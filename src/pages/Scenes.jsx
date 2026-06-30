@@ -8,7 +8,7 @@ import { axisValue } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { audioEngine } from '@/lib/audioEngine';
-import { syncSceneMix } from '@/lib/sceneMix';
+import { syncSceneMix, resolveStageWeights, layerVolume, loopableScenePads } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMixer from '@/components/scene/SceneMixer';
@@ -20,28 +20,6 @@ import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
 const STAGE_ORDER = ['calm', 'tense', 'horror'];
-
-// Текущая стадия локации по интенсивности.
-function stageFromIntensity(i) {
-  if (i < 0.33) return 'calm';
-  if (i < 0.66) return 'tense';
-  return 'horror';
-}
-
-// Звуки стадии с откатом на ближайшую непустую (сама → соседняя → дальняя).
-function stageSoundsWithFallback(allStages, stage) {
-  const idx = STAGE_ORDER.indexOf(stage);
-  const order = [idx];
-  for (let d = 1; d < STAGE_ORDER.length; d++) {
-    if (idx - d >= 0) order.push(idx - d);
-    if (idx + d < STAGE_ORDER.length) order.push(idx + d);
-  }
-  for (const i of order) {
-    const ids = allStages[STAGE_ORDER[i]] || [];
-    if (ids.length > 0) return ids;
-  }
-  return [];
-}
 
 export default function Scenes() {
   const { pads, addPads, updatePad, removePad } = useCustomPads();
@@ -61,45 +39,64 @@ export default function Scenes() {
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
   const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
-  const sceneIdsRef = useRef(new Set()); // текущий набор id играющих слоёв сцены
+  const sceneIdsRef = useRef(new Set()); // текущий набор id играющих слоёв сцены (action/weather)
+  const locIdsRef = useRef(new Set());   // текущий набор id играющих локационных слоёв (кроссфейд)
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
   const hasScene = hasFilter;
 
-  // Активные плитки = по одной на ось, где selection[axis] задан.
-  // Сцена = ОБЪЕДИНЕНИЕ звуков всех активных плиток (логика ИЛИ, не И).
+  // Не-локационные плитки (action/weather) идут в общий микс как обычно.
+  // Локация обрабатывается отдельно (кроссфейд стадий по интенсивности).
   const tileMatchIds = useMemo(() => {
     const ids = new Set();
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
-      if (!valueId) continue;
-      if (axisId === 'location') {
-        // Локация звучит по текущей стадии интенсивности (с откатом на ближайшую).
-        const stage = stageFromIntensity(intensity);
-        const sids = stageSoundsWithFallback(getAllStagesSounds(valueId), stage);
-        for (const sid of sids) ids.add(sid);
-      } else {
-        for (const sid of getSounds(axisId, valueId)) ids.add(sid);
-      }
+      if (!valueId || axisId === 'location') continue;
+      for (const sid of getSounds(axisId, valueId)) ids.add(sid);
     }
     return ids;
     // tileSoundsMap — чтобы пересчёт шёл при изменении назначений плиток.
-  }, [selection, intensity, getSounds, getAllStagesSounds, tileSoundsMap]);
+  }, [selection, getSounds, tileSoundsMap]);
 
-  // Итоговый список звуков сцены = звуки активных плиток.
+  // Итоговый список звуков сцены (без локации) = звуки активных плиток.
   const matches = useMemo(() => {
     const byId = new Map(pads.map((p) => [p.id, p]));
     return Array.from(tileMatchIds).map((id) => byId.get(id)).filter(Boolean);
   }, [pads, tileMatchIds]);
 
+  // Число «долей» нормализации: каждая активная ось со звуком = 1 доля.
+  // Локация считается ОДНОЙ долей целиком (две стадии делят её по весам),
+  // чтобы громкость не прыгала при входе в переходную зону.
+  const layerCount = useMemo(() => {
+    let n = 0;
+    for (const axisId of Object.keys(selection)) {
+      const valueId = selection[axisId];
+      if (!valueId) continue;
+      if (axisId === 'location') {
+        const all = getAllStagesSounds(valueId);
+        if (all.calm.length + all.tense.length + all.horror.length > 0) n += 1;
+      } else if (getSounds(axisId, valueId).length > 0) {
+        n += 1;
+      }
+    }
+    return n;
+  }, [selection, getSounds, getAllStagesSounds, tileSoundsMap]);
+
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
 
-  // Звуки одной плитки: для локации — по текущей стадии (с откатом), иначе как есть.
+  // Звуки одной плитки: для локации — звуки всех стадий с весом > 0
+  // (играющие в кроссфейде), иначе звуки плитки как есть.
   const tileSoundIds = useCallback((axisId, valueId) => {
     if (axisId === 'location') {
-      return stageSoundsWithFallback(getAllStagesSounds(valueId), stageFromIntensity(intensity));
+      const stages = getAllStagesSounds(valueId);
+      const w = resolveStageWeights(intensity, stages);
+      const ids = [];
+      for (const s of STAGE_ORDER) {
+        if (w[s] > 0) ids.push(...stages[s]);
+      }
+      return ids;
     }
     return getSounds(axisId, valueId);
   }, [intensity, getSounds, getAllStagesSounds]);
@@ -178,17 +175,53 @@ export default function Scenes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSounds, soloKey]);
 
-  // Реактивное воспроизведение: тап по плитке меняет matches — микс
-  // синхронизируется сам, без кнопки запуска. Тап = звук.
+  // Реактивное воспроизведение action/weather: тап по плитке меняет matches —
+  // микс синхронизируется сам. Громкость нормализуется по числу долей сцены.
   useEffect(() => {
-    sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current);
-  }, [matches]);
+    const vol = layerVolume(layerCount);
+    sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current, vol);
+  }, [matches, layerCount]);
+
+  // Кроссфейд локации: при движении интенсивности НЕ перезапускаем слои,
+  // только плавно меняем громкость. Две соседние стадии играют одновременно,
+  // деля долю локации (layerVolume) по весам. Стадии с весом 0 — останавливаем.
+  useEffect(() => {
+    const valueId = selection.location;
+    if (!valueId) {
+      // локация снята — гасим все её слои
+      for (const id of locIdsRef.current) audioEngine.stop(id, 0.4);
+      locIdsRef.current = new Set();
+      return;
+    }
+    const stages = getAllStagesSounds(valueId);
+    const w = resolveStageWeights(intensity, stages);
+    const locVol = layerVolume(layerCount); // доля локации в общей нормализации
+    const byId = new Map(pads.map((p) => [p.id, p]));
+    const nextIds = new Set();
+
+    for (const stage of STAGE_ORDER) {
+      const weight = w[stage];
+      if (weight <= 0) continue;
+      // только лупы с url участвуют в кроссфейде
+      const stagePads = loopableScenePads((stages[stage] || []).map((id) => byId.get(id)).filter(Boolean));
+      for (const pad of stagePads) {
+        nextIds.add(pad.id);
+        audioEngine.playFile(pad.id, pad.url, pad.title, locVol * weight, true);
+      }
+    }
+    // остановить слои стадий, которые больше не звучат (вес 0 / смена локации)
+    for (const id of locIdsRef.current) {
+      if (!nextIds.has(id)) audioEngine.stop(id, 0.4);
+    }
+    locIdsRef.current = nextIds;
+  }, [intensity, selection.location, layerCount, pads, getAllStagesSounds, tileSoundsMap]);
 
   // STOP в шапке: глушим всё, сбрасываем выбор всех плиток и набор слоёв.
   const stopScene = () => {
     stopAll(0.4);
     setSelection(EMPTY);
     sceneIdsRef.current = new Set();
+    locIdsRef.current = new Set();
     soloSnapshotRef.current = null;
     setSoloKey(null);
   };
