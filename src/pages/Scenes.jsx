@@ -1,9 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { Layers, Sparkles, Square, Save } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
+import { Layers, Sparkles, Square } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
-import { useScenes } from '@/lib/useScenes';
 import { useAudio } from '@/lib/useAudio';
 import { axisValue } from '@/lib/sceneAxes';
 // padAxes/padMatchesSelection больше не нужны — сцена кормится звуками плиток.
@@ -13,7 +11,7 @@ import { audioEngine } from '@/lib/audioEngine';
 import { syncSceneMix } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
-import SavedScenes from '@/components/scene/SavedScenes';
+import SceneMixer from '@/components/scene/SceneMixer';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import TileSoundsDialog from '@/components/scene/TileSoundsDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
@@ -24,14 +22,13 @@ const EMPTY = { location: null, action: null, weather: null, mood: null };
 export default function Scenes() {
   const { pads, addPads, updatePad, removePad } = useCustomPads();
   const { overrides, setOverride } = useSoundOverrides();
-  const { scenes, addScene, removeScene } = useScenes();
-  const { activeSounds, stopAll } = useAudio();
+  const { activeSounds, stopAll, setVolume, stop } = useAudio();
   const { axes, addValue, removeValue } = useAxes();
   const { tileSounds: tileSoundsMap, getSounds } = useTileSounds();
-  const { toast } = useToast();
 
   const [selection, setSelection] = useState(EMPTY);
-  const [name, setName] = useState('');
+  const [mutedGroups, setMutedGroups] = useState({}); // { [groupKey]: true } — приглушённые группы
+  const mutedVolsRef = useRef({}); // запомненные громкости приглушённых групп: { [key]: { id: vol } }
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
@@ -41,13 +38,6 @@ export default function Scenes() {
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const hasFilter = Object.values(selection).some(Boolean);
   const hasScene = hasFilter;
-
-  // Карта пэдов по id (для запуска сохранённых сцен).
-  const padsById = useMemo(() => {
-    const m = {};
-    for (const p of pads) m[p.id] = p;
-    return m;
-  }, [pads]);
 
   // Активные плитки = по одной на ось, где selection[axis] задан.
   // Сцена = ОБЪЕДИНЕНИЕ звуков всех активных плиток (логика ИЛИ, не И).
@@ -71,6 +61,36 @@ export default function Scenes() {
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
 
+  // Группы микшера: по одной на активную плитку, только с играющими звуками.
+  const mixerGroups = useMemo(() => {
+    const groups = [];
+    for (const axisId of Object.keys(selection)) {
+      const valueId = selection[axisId];
+      if (!valueId) continue;
+      const ids = getSounds(axisId, valueId).filter((id) => activeSounds[id]);
+      if (ids.length === 0) continue;
+      const v = axisValue(axisId, valueId);
+      groups.push({ key: `${axisId}:${valueId}`, label: v?.label || valueId, ids });
+    }
+    return groups;
+  }, [selection, getSounds, activeSounds]);
+
+  // Приглушение группы: запоминаем текущие громкости и гасим в 0; повтор — возврат.
+  const toggleMute = (key, ids) => {
+    const isMuted = !!mutedGroups[key];
+    if (isMuted) {
+      const saved = mutedVolsRef.current[key] || {};
+      ids.forEach((id) => setVolume(id, saved[id] ?? activeSounds[id]?.volume ?? 0.5));
+      delete mutedVolsRef.current[key];
+      setMutedGroups((prev) => { const next = { ...prev }; delete next[key]; return next; });
+    } else {
+      const saved = {};
+      ids.forEach((id) => { saved[id] = activeSounds[id]?.volume ?? 0; setVolume(id, 0); });
+      mutedVolsRef.current[key] = saved;
+      setMutedGroups((prev) => ({ ...prev, [key]: true }));
+    }
+  };
+
   // Реактивное воспроизведение: тап по плитке меняет matches — микс
   // синхронизируется сам, без кнопки запуска. Тап = звук.
   useEffect(() => {
@@ -82,12 +102,6 @@ export default function Scenes() {
     stopAll(0.4);
     setSelection(EMPTY);
     sceneIdsRef.current = new Set();
-  };
-
-  const saveScene = () => {
-    const finalName = name.trim() || 'Без названия';
-    addScene({ name: finalName, selection: { ...selection }, padIds: matches.map((p) => p.id) });
-    setName('');
   };
 
   return (
@@ -143,24 +157,7 @@ export default function Scenes() {
               />
 
               {hasScene && (
-                <div className="mt-5 space-y-3">
-                  <div className="flex items-center gap-2">
-                    <input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Название сцены…"
-                      className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/80 placeholder:text-white/25 focus:border-orange-400/50 focus:outline-none"
-                    />
-                    <button
-                      onClick={saveScene}
-                      disabled={matches.length === 0}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[11px] font-mono tracking-wider bg-white/5 border border-white/10 text-white/60 hover:border-orange-400/40 hover:text-orange-300 transition-colors disabled:opacity-40"
-                    >
-                      <Save size={13} />
-                      СОХРАНИТЬ
-                    </button>
-                  </div>
-
+                <div className="mt-5">
                   <button
                     onClick={stopScene}
                     className="text-[11px] text-white/40 hover:text-white/70 transition-colors"
@@ -171,10 +168,16 @@ export default function Scenes() {
               )}
             </section>
 
-            {/* Сохранённые сцены */}
+            {/* Групповой микшер активных плиток */}
             <section>
-              <h2 className="text-xs font-mono tracking-[0.2em] text-white/60 uppercase mb-3">Сохранённые сцены</h2>
-              <SavedScenes scenes={scenes} padsById={padsById} onRemove={removeScene} />
+              <SceneMixer
+                groups={mixerGroups}
+                activeSounds={activeSounds}
+                setVolume={setVolume}
+                stop={stop}
+                mutedGroups={mutedGroups}
+                onToggleMute={toggleMute}
+              />
             </section>
           </>
         )}
