@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { Layers, Sparkles, Square } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
@@ -19,14 +19,39 @@ import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
 
 const EMPTY = { location: null, action: null, weather: null, mood: null };
 
+const STAGE_ORDER = ['calm', 'tense', 'horror'];
+
+// Текущая стадия локации по интенсивности.
+function stageFromIntensity(i) {
+  if (i < 0.33) return 'calm';
+  if (i < 0.66) return 'tense';
+  return 'horror';
+}
+
+// Звуки стадии с откатом на ближайшую непустую (сама → соседняя → дальняя).
+function stageSoundsWithFallback(allStages, stage) {
+  const idx = STAGE_ORDER.indexOf(stage);
+  const order = [idx];
+  for (let d = 1; d < STAGE_ORDER.length; d++) {
+    if (idx - d >= 0) order.push(idx - d);
+    if (idx + d < STAGE_ORDER.length) order.push(idx + d);
+  }
+  for (const i of order) {
+    const ids = allStages[STAGE_ORDER[i]] || [];
+    if (ids.length > 0) return ids;
+  }
+  return [];
+}
+
 export default function Scenes() {
   const { pads, addPads, updatePad, removePad } = useCustomPads();
   const { overrides, setOverride } = useSoundOverrides();
   const { activeSounds, stopAll, setVolume, stop } = useAudio();
   const { axes, addValue, removeValue } = useAxes();
-  const { tileSounds: tileSoundsMap, getSounds } = useTileSounds();
+  const { tileSounds: tileSoundsMap, getSounds, getStageSounds, getAllStagesSounds } = useTileSounds();
 
   const [selection, setSelection] = useState(EMPTY);
+  const [intensity, setIntensity] = useState(0.5); // 0..1 — непрерывная интенсивность
   const [mutedGroups, setMutedGroups] = useState({}); // { [groupKey]: true } — приглушённые группы
   const mutedVolsRef = useRef({}); // запомненные громкости приглушённых групп: { [key]: { id: vol } }
   const [soloKey, setSoloKey] = useState(null); // 'axis:value' группы в соло, либо null
@@ -49,11 +74,18 @@ export default function Scenes() {
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
       if (!valueId) continue;
-      for (const sid of getSounds(axisId, valueId)) ids.add(sid);
+      if (axisId === 'location') {
+        // Локация звучит по текущей стадии интенсивности (с откатом на ближайшую).
+        const stage = stageFromIntensity(intensity);
+        const sids = stageSoundsWithFallback(getAllStagesSounds(valueId), stage);
+        for (const sid of sids) ids.add(sid);
+      } else {
+        for (const sid of getSounds(axisId, valueId)) ids.add(sid);
+      }
     }
     return ids;
     // tileSoundsMap — чтобы пересчёт шёл при изменении назначений плиток.
-  }, [selection, getSounds, tileSoundsMap]);
+  }, [selection, intensity, getSounds, getAllStagesSounds, tileSoundsMap]);
 
   // Итоговый список звуков сцены = звуки активных плиток.
   const matches = useMemo(() => {
@@ -64,19 +96,27 @@ export default function Scenes() {
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
 
+  // Звуки одной плитки: для локации — по текущей стадии (с откатом), иначе как есть.
+  const tileSoundIds = useCallback((axisId, valueId) => {
+    if (axisId === 'location') {
+      return stageSoundsWithFallback(getAllStagesSounds(valueId), stageFromIntensity(intensity));
+    }
+    return getSounds(axisId, valueId);
+  }, [intensity, getSounds, getAllStagesSounds]);
+
   // Группы микшера: по одной на активную плитку, только с играющими звуками.
   const mixerGroups = useMemo(() => {
     const groups = [];
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
       if (!valueId) continue;
-      const ids = getSounds(axisId, valueId).filter((id) => activeSounds[id]);
+      const ids = tileSoundIds(axisId, valueId).filter((id) => activeSounds[id]);
       if (ids.length === 0) continue;
       const v = axisValue(axisId, valueId);
       groups.push({ key: `${axisId}:${valueId}`, label: v?.label || valueId, ids });
     }
     return groups;
-  }, [selection, getSounds, activeSounds]);
+  }, [selection, tileSoundIds, activeSounds]);
 
   // Приглушение группы: запоминаем текущие громкости и гасим в 0; повтор — возврат.
   const toggleMute = (key, ids) => {
@@ -131,7 +171,7 @@ export default function Scenes() {
     if (!soloKey) return;
     const st = audioEngine.getState().activeSounds;
     const [axisId, valueId] = soloKey.split(':');
-    const soloIds = getSounds(axisId, valueId).filter((id) => st[id]);
+    const soloIds = tileSoundIds(axisId, valueId).filter((id) => st[id]);
     if (soloIds.length === 0) { restoreSolo(); return; }
     const keep = new Set(soloIds);
     Object.keys(st).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
@@ -191,7 +231,7 @@ export default function Scenes() {
               </div>
 
               <div className="mb-3">
-                <SceneSliders selection={selection} onSelect={onSelect} />
+                <SceneSliders value={intensity} onChange={setIntensity} />
               </div>
 
               <SceneWheel
