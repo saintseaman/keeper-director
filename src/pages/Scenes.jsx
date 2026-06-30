@@ -31,6 +31,7 @@ export default function Scenes() {
   const mutedVolsRef = useRef({}); // запомненные громкости приглушённых групп: { [key]: { id: vol } }
   const [soloKey, setSoloKey] = useState(null); // 'axis:value' группы в соло, либо null
   const soloSnapshotRef = useRef(null); // { soundId: volume } — громкости всех звуков до входа в соло
+  const restoringRef = useRef(false); // идёт восстановление из соло — доглушитель не вмешивается
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
@@ -104,9 +105,11 @@ export default function Scenes() {
   // Восстановление громкостей из соло-снимка и сброс соло-состояния.
   const restoreSolo = () => {
     const snap = soloSnapshotRef.current;
+    restoringRef.current = true; // блокируем доглушитель
+    setSoloKey(null);            // соло выключено до setVolume
     if (snap) Object.keys(snap).forEach((id) => setVolume(id, snap[id]));
     soloSnapshotRef.current = null;
-    setSoloKey(null);
+    setTimeout(() => { restoringRef.current = false; }, 0);
   };
 
   // Соло группы: снимок громкостей всех активных звуков, обнуление чужих.
@@ -124,6 +127,7 @@ export default function Scenes() {
   // Пока активно соло: новые/чужие звуки держим в нуле; если соло-группа
   // полностью остановлена — автоматически выходим из соло.
   useEffect(() => {
+    if (restoringRef.current) return; // не глушим во время restore
     if (!soloKey) return;
     const st = audioEngine.getState().activeSounds;
     const [axisId, valueId] = soloKey.split(':');
