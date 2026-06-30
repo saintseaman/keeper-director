@@ -93,6 +93,14 @@ export default function Scenes() {
     }
   };
 
+  // Снимок свежих громкостей напрямую из движка (синхронно, без задержки стейта).
+  const snapshotVolumes = () => {
+    const st = audioEngine.getState().activeSounds;
+    const snap = {};
+    Object.keys(st).forEach((id) => { snap[id] = st[id].volume; });
+    return snap;
+  };
+
   // Восстановление громкостей из соло-снимка и сброс соло-состояния.
   const restoreSolo = () => {
     const snap = soloSnapshotRef.current;
@@ -106,11 +114,10 @@ export default function Scenes() {
     if (soloKey === key) { restoreSolo(); return; }
     // Переключение на другую группу: сначала восстановить, затем засоло заново.
     if (soloKey) restoreSolo();
-    const snap = {};
-    Object.keys(activeSounds).forEach((id) => { snap[id] = activeSounds[id]?.volume ?? 0; });
+    const snap = snapshotVolumes(); // ← из движка, уже актуально после restoreSolo
     soloSnapshotRef.current = snap;
     const keep = new Set(ids);
-    Object.keys(activeSounds).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
+    Object.keys(snap).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
     setSoloKey(key);
   };
 
@@ -118,11 +125,12 @@ export default function Scenes() {
   // полностью остановлена — автоматически выходим из соло.
   useEffect(() => {
     if (!soloKey) return;
+    const st = audioEngine.getState().activeSounds;
     const [axisId, valueId] = soloKey.split(':');
-    const soloIds = getSounds(axisId, valueId).filter((id) => activeSounds[id]);
+    const soloIds = getSounds(axisId, valueId).filter((id) => st[id]);
     if (soloIds.length === 0) { restoreSolo(); return; }
     const keep = new Set(soloIds);
-    Object.keys(activeSounds).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
+    Object.keys(st).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSounds, soloKey]);
 
