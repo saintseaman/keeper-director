@@ -29,6 +29,8 @@ export default function Scenes() {
   const [selection, setSelection] = useState(EMPTY);
   const [mutedGroups, setMutedGroups] = useState({}); // { [groupKey]: true } — приглушённые группы
   const mutedVolsRef = useRef({}); // запомненные громкости приглушённых групп: { [key]: { id: vol } }
+  const [soloKey, setSoloKey] = useState(null); // 'axis:value' группы в соло, либо null
+  const soloSnapshotRef = useRef(null); // { soundId: volume } — громкости всех звуков до входа в соло
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
@@ -91,6 +93,39 @@ export default function Scenes() {
     }
   };
 
+  // Восстановление громкостей из соло-снимка и сброс соло-состояния.
+  const restoreSolo = () => {
+    const snap = soloSnapshotRef.current;
+    if (snap) Object.keys(snap).forEach((id) => setVolume(id, snap[id]));
+    soloSnapshotRef.current = null;
+    setSoloKey(null);
+  };
+
+  // Соло группы: снимок громкостей всех активных звуков, обнуление чужих.
+  const toggleSolo = (key, ids) => {
+    if (soloKey === key) { restoreSolo(); return; }
+    // Переключение на другую группу: сначала восстановить, затем засоло заново.
+    if (soloKey) restoreSolo();
+    const snap = {};
+    Object.keys(activeSounds).forEach((id) => { snap[id] = activeSounds[id]?.volume ?? 0; });
+    soloSnapshotRef.current = snap;
+    const keep = new Set(ids);
+    Object.keys(activeSounds).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
+    setSoloKey(key);
+  };
+
+  // Пока активно соло: новые/чужие звуки держим в нуле; если соло-группа
+  // полностью остановлена — автоматически выходим из соло.
+  useEffect(() => {
+    if (!soloKey) return;
+    const [axisId, valueId] = soloKey.split(':');
+    const soloIds = getSounds(axisId, valueId).filter((id) => activeSounds[id]);
+    if (soloIds.length === 0) { restoreSolo(); return; }
+    const keep = new Set(soloIds);
+    Object.keys(activeSounds).forEach((id) => { if (!keep.has(id)) setVolume(id, 0); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSounds, soloKey]);
+
   // Реактивное воспроизведение: тап по плитке меняет matches — микс
   // синхронизируется сам, без кнопки запуска. Тап = звук.
   useEffect(() => {
@@ -102,6 +137,8 @@ export default function Scenes() {
     stopAll(0.4);
     setSelection(EMPTY);
     sceneIdsRef.current = new Set();
+    soloSnapshotRef.current = null;
+    setSoloKey(null);
   };
 
   return (
@@ -177,6 +214,8 @@ export default function Scenes() {
                 stop={stop}
                 mutedGroups={mutedGroups}
                 onToggleMute={toggleMute}
+                soloKey={soloKey}
+                onToggleSolo={toggleSolo}
               />
             </section>
           </>
