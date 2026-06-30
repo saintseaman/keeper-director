@@ -18,12 +18,23 @@ const AXIS_META = {
 };
 const AXIS_ORDER = ['location', 'action', 'weather'];
 
+// Размер подписи по длине текста: короткие — крупно (15px), длинные —
+// мельче (до 11px), чтобы помещались в 2 строки без обрезки.
+function labelFontSize(text) {
+  const n = (text || '').length;
+  if (n <= 8) return 15;
+  if (n <= 11) return 13;
+  if (n <= 14) return 12;
+  return 11;
+}
+
 // Одна плитка значения оси.
 function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const Icon = getIcon(value.icon);
   const grad = value.grad || ['#1a1a1a', '#0d0d0d'];
+  const label = value.displayLabel || value.label;
 
   const startPress = () => {
     longFiredRef.current = false;
@@ -63,17 +74,33 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
           {soundCount}
         </span>
       )}
-      <Icon size={20} color="#ffffff" style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.9))' }} />
+      {/* Тёмная подложка снизу — подпись читается на любом фоне (вкл. картинки) */}
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3"
+        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55), transparent)' }}
+      />
+      <Icon
+        size={18}
+        color="#ffffff"
+        className="relative -mt-1"
+        style={{ filter: 'drop-shadow(0 0 4px rgba(0,0,0,0.9))' }}
+      />
       <span
-        className="px-1 text-center leading-tight"
+        className="relative px-1 text-center"
         style={{
-          fontSize: 11,
-          fontWeight: 600,
+          fontFamily: "'Inter', sans-serif",
+          fontSize: labelFontSize(label),
+          fontWeight: 700,
+          lineHeight: 1.1,
           color: '#ffffff',
-          textShadow: '0 0 6px rgba(0,0,0,1), 0 0 12px rgba(0,0,0,1)',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          textShadow: '0 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7)',
         }}
       >
-        {value.label}
+        {label}
       </span>
     </button>
   );
