@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Search, X, Sparkles, Music } from 'lucide-react';
+import { Check, Search, X, Sparkles, Music, Smile, Flame, Ghost } from 'lucide-react';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
@@ -10,16 +10,28 @@ import { searchPads } from '@/lib/padSearch';
 // Диалог назначения звуков на одну плитку оси (axisId:valueId).
 // Сверху — рекомендованные (у которых в тегах есть valueId по этой оси),
 // ниже — все остальные. Мультивыбор с мгновенным сохранением через useTileSounds.
+const STAGES = [
+  { id: 'calm', label: 'Спокойно', Icon: Smile },
+  { id: 'tense', label: 'Напряжённо', Icon: Flame },
+  { id: 'horror', label: 'Ужас', Icon: Ghost },
+];
+
 export default function TileSoundsDialog({ open, onClose, axisId, valueId, valueLabel }) {
-  const { tileSounds, getSounds, addSound, removeSound } = useTileSounds();
+  const {
+    tileSounds, getSounds, addSound, removeSound,
+    getStageSounds, addStageSound, removeStageSound,
+  } = useTileSounds();
   const { pads } = useCustomPads();
   const { overrides } = useSoundOverrides();
   const [query, setQuery] = useState('');
+  const [stage, setStage] = useState('calm');
 
-  const assigned = useMemo(
-    () => new Set(axisId && valueId ? getSounds(axisId, valueId) : []),
-    [axisId, valueId, getSounds, tileSounds]
-  );
+  const isLocation = axisId === 'location';
+
+  const assigned = useMemo(() => {
+    if (!axisId || !valueId) return new Set();
+    return new Set(isLocation ? getStageSounds(valueId, stage) : getSounds(axisId, valueId));
+  }, [axisId, valueId, isLocation, stage, getSounds, getStageSounds, tileSounds]);
 
   // Поиск по библиотеке (название + теги), затем деление на 2 группы.
   const { recommended, others } = useMemo(() => {
@@ -36,8 +48,13 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
   }, [pads, overrides, query, axisId, valueId]);
 
   const toggle = (id) => {
-    if (assigned.has(id)) removeSound(axisId, valueId, id);
-    else addSound(axisId, valueId, id);
+    if (isLocation) {
+      if (assigned.has(id)) removeStageSound(valueId, stage, id);
+      else addStageSound(valueId, stage, id);
+    } else {
+      if (assigned.has(id)) removeSound(axisId, valueId, id);
+      else addSound(axisId, valueId, id);
+    }
   };
 
   const Row = ({ pad, recommended }) => {
@@ -71,6 +88,29 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
             Звуки плитки · {valueLabel}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Вкладки стадий интенсивности (только для Локации) */}
+        {isLocation && (
+          <div className="flex items-center gap-1.5 px-4 pt-3">
+            {STAGES.map((s) => {
+              const on = stage === s.id;
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setStage(s.id)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 rounded-lg px-2 py-2 text-[11px] font-mono tracking-wider uppercase border transition-all ${
+                    on
+                      ? 'bg-orange-500/20 border-orange-400/50 text-orange-200'
+                      : 'bg-white/[0.03] border-white/10 text-white/45'
+                  }`}
+                >
+                  <s.Icon size={13} />
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Поиск */}
         <div className="px-4 pt-3">

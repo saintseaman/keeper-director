@@ -80,7 +80,7 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
 }
 
 export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPress, onAddSegment }) {
-  const { getSounds } = useTileSounds();
+  const { getSounds, getAllStagesSounds } = useTileSounds();
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
@@ -118,17 +118,26 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
 
       {/* Сетка плиток значений активной оси */}
       <div className="grid grid-cols-3 gap-2">
-        {values.map((v) => (
-          <Tile
-            key={v.id}
-            axisId={activeAxis}
-            value={v}
-            active={selection[activeAxis] === v.id}
-            onClick={(id) => onSelect(activeAxis, id)}
-            onLongPress={onSegmentLongPress}
-            soundCount={getSounds(activeAxis, v.id).length}
-          />
-        ))}
+        {values.map((v) => {
+          let soundCount;
+          if (activeAxis === 'location') {
+            const all = getAllStagesSounds(v.id);
+            soundCount = all.calm.length + all.tense.length + all.horror.length;
+          } else {
+            soundCount = getSounds(activeAxis, v.id).length;
+          }
+          return (
+            <Tile
+              key={v.id}
+              axisId={activeAxis}
+              value={v}
+              active={selection[activeAxis] === v.id}
+              onClick={(id) => onSelect(activeAxis, id)}
+              onLongPress={onSegmentLongPress}
+              soundCount={soundCount}
+            />
+          );
+        })}
 
         {/* Плитка «+ добавить сегмент» */}
         <button

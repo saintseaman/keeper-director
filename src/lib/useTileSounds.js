@@ -56,5 +56,41 @@ export function useTileSounds() {
     setSounds(axisId, valueId, current.filter((x) => x !== id));
   }, [setSounds]);
 
-  return { tileSounds, getSounds, setSounds, addSound, removeSound };
+  // ── Стадии интенсивности для оси location ──
+  // Ключ хранения: "location:<valueId>:<stage>", stage ∈ {calm, tense, horror}.
+  const getStageSounds = useCallback(
+    (valueId, stage) => getSounds('location', `${valueId}:${stage}`),
+    [getSounds]
+  );
+
+  const addStageSound = useCallback(
+    (valueId, stage, id) => addSound('location', `${valueId}:${stage}`, id),
+    [addSound]
+  );
+
+  const removeStageSound = useCallback(
+    (valueId, stage, id) => removeSound('location', `${valueId}:${stage}`, id),
+    [removeSound]
+  );
+
+  const getAllStagesSounds = useCallback(
+    (valueId) => ({
+      calm: getStageSounds(valueId, 'calm'),
+      tense: getStageSounds(valueId, 'tense'),
+      horror: getStageSounds(valueId, 'horror'),
+    }),
+    [getStageSounds]
+  );
+
+  return {
+    tileSounds,
+    getSounds,
+    setSounds,
+    addSound,
+    removeSound,
+    getStageSounds,
+    addStageSound,
+    removeStageSound,
+    getAllStagesSounds,
+  };
 }
