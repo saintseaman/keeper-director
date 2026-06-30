@@ -9,6 +9,7 @@ import { useAxes } from '@/lib/useAxes';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { audioEngine } from '@/lib/audioEngine';
 import { syncSceneMix, resolveStageWeights, layerVolume, loopableScenePads } from '@/lib/sceneMix';
+import { useSceneSelection } from '@/lib/sceneSelection';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SceneMixer from '@/components/scene/SceneMixer';
@@ -16,8 +17,6 @@ import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import TileSoundsDialog from '@/components/scene/TileSoundsDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
 import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
-
-const EMPTY = { location: null, action: null, weather: null, mood: null };
 
 const STAGE_ORDER = ['calm', 'tense', 'horror'];
 
@@ -28,8 +27,12 @@ export default function Scenes() {
   const { axes, addValue, removeValue } = useAxes();
   const { tileSounds: tileSoundsMap, getSounds, getStageSounds, getAllStagesSounds } = useTileSounds();
 
-  const [selection, setSelection] = useState(EMPTY);
-  const [intensity, setIntensity] = useState(0.5); // 0..1 — непрерывная интенсивность
+  // selection и intensity живут в долгоживущем сторе (вне страницы), чтобы
+  // переживать навигацию в Настройки и обратно, пока звук продолжает играть.
+  const sel = useSceneSelection();
+  const selection = sel.get();
+  const intensity = sel.getIntensity();
+  const setIntensity = sel.setIntensity;
   const [mutedGroups, setMutedGroups] = useState({}); // { [groupKey]: true } — приглушённые группы
   const mutedVolsRef = useRef({}); // запомненные громкости приглушённых групп: { [key]: { id: vol } }
   const [soloKey, setSoloKey] = useState(null); // 'axis:value' группы в соло, либо null
@@ -83,8 +86,7 @@ export default function Scenes() {
     return n;
   }, [selection, getSounds, getAllStagesSounds, tileSoundsMap]);
 
-  const onSelect = (axisId, valueId) =>
-    setSelection((prev) => ({ ...prev, [axisId]: valueId }));
+  const onSelect = (axisId, valueId) => sel.patch(axisId, valueId);
 
   // Звуки одной плитки: для локации — звуки всех стадий с весом > 0
   // (играющие в кроссфейде), иначе звуки плитки как есть.
@@ -219,7 +221,7 @@ export default function Scenes() {
   // STOP в шапке: глушим всё, сбрасываем выбор всех плиток и набор слоёв.
   const stopScene = () => {
     stopAll(0.4);
-    setSelection(EMPTY);
+    sel.reset();
     sceneIdsRef.current = new Set();
     locIdsRef.current = new Set();
     soloSnapshotRef.current = null;
@@ -328,7 +330,7 @@ export default function Scenes() {
         setOverride={setOverride}
         onRemoveSegment={(axisId, valueId) => {
           removeValue(axisId, valueId);
-          setSelection((prev) => (prev[axisId] === valueId ? { ...prev, [axisId]: null } : prev));
+          if (selection[axisId] === valueId) sel.patch(axisId, null);
         }}
       />
 
