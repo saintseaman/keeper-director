@@ -85,6 +85,21 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
 
+  // Свайп влево/вправо по сетке плиток переключает активную ось.
+  const touchStartRef = useRef({ x: 0, y: 0 });
+  const onGridTouchStart = (e) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const onGridTouchEnd = (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const dy = e.changedTouches[0].clientY - touchStartRef.current.y;
+    // Горизонтальный свайп: порог 50px и доминирование по горизонтали.
+    if (Math.abs(dx) <= 50 || Math.abs(dy) > Math.abs(dx)) return;
+    const idx = AXIS_ORDER.indexOf(activeAxis);
+    if (dx < 0) setActiveAxis(AXIS_ORDER[Math.min(idx + 1, AXIS_ORDER.length - 1)]);
+    else setActiveAxis(AXIS_ORDER[Math.max(idx - 1, 0)]);
+  };
+
   // Чипы выбранных значений по неактивным осям.
   const otherChips = AXIS_ORDER.filter((id) => id !== activeAxis).map((id) => {
     const ax = axes.find((a) => a.id === id);
@@ -117,7 +132,12 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
       </div>
 
       {/* Сетка плиток значений активной оси */}
-      <div className="grid grid-cols-3 gap-2">
+      <div
+        key={activeAxis}
+        onTouchStart={onGridTouchStart}
+        onTouchEnd={onGridTouchEnd}
+        className="grid grid-cols-3 gap-2 animate-in fade-in duration-200"
+      >
         {values.map((v) => {
           let soundCount;
           if (activeAxis === 'location') {
