@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Play, Square, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { useTileSounds } from '@/lib/useTileSounds';
 
@@ -79,8 +79,7 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
   );
 }
 
-export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, activeCount = 0, matchCount, onSegmentLongPress, onAddSegment }) {
-  const isPlaying = activeCount > 0;
+export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPress, onAddSegment }) {
   const { getSounds } = useTileSounds();
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
@@ -154,31 +153,6 @@ export default function SceneWheel({ axes, selection, onSelect, onPlay, onStop, 
           </button>
         ))}
       </div>
-
-      {/* Кнопка запуска/остановки под сеткой */}
-      <button
-        onClick={() => (isPlaying ? onStop?.() : onPlay())}
-        className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-mono tracking-[0.2em] uppercase border transition-all"
-        style={
-          isPlaying
-            ? { background: 'rgba(244,63,94,0.18)', borderColor: 'rgba(244,63,94,0.6)', color: '#fb7185' }
-            : matchCount > 0
-            ? { background: 'rgba(249,115,22,0.18)', borderColor: 'rgba(249,115,22,0.6)', color: '#fb923c' }
-            : { background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.4)' }
-        }
-      >
-        {isPlaying ? (
-          <>
-            <Square size={16} className="fill-current" />
-            Остановить · {activeCount}
-          </>
-        ) : (
-          <>
-            <Play size={16} className="fill-current" />
-            Запустить{matchCount > 0 ? ` · ${matchCount}` : ''}
-          </>
-        )}
-      </button>
     </div>
   );
 }

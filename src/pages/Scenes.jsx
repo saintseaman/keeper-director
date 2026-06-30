@@ -10,7 +10,7 @@ import { axisValue } from '@/lib/sceneAxes';
 import { useAxes } from '@/lib/useAxes';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { audioEngine } from '@/lib/audioEngine';
-import { syncSceneMix, loopableScenePads } from '@/lib/sceneMix';
+import { syncSceneMix } from '@/lib/sceneMix';
 import SceneWheel from '@/components/scene/SceneWheel';
 import SceneSliders from '@/components/scene/SceneSliders';
 import SavedScenes from '@/components/scene/SavedScenes';
@@ -36,7 +36,6 @@ export default function Scenes() {
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
   const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
-  const [sceneActive, setSceneActive] = useState(false); // сцена играет — слушаем колесо вживую
   const sceneIdsRef = useRef(new Set()); // текущий набор id играющих слоёв сцены
 
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
@@ -72,32 +71,16 @@ export default function Scenes() {
   const onSelect = (axisId, valueId) =>
     setSelection((prev) => ({ ...prev, [axisId]: valueId }));
 
-  // Запустить подходящие пэды как нормализованный фон сцены.
-  // В авто-микс идут только лупы; громкость каждого слоя снижается по числу слоёв.
-  const playMatches = () => {
-    const loops = loopableScenePads(matches);
-    if (loops.length === 0) {
-      toast({
-        title: 'Нет звуков для сцены',
-        description: 'На выбранные плитки не назначено ни одного звука. Зажми плитку и добавь звуки.',
-      });
-      return;
-    }
-    setSceneActive(true);
-    sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current);
-  };
-
-  // Живое обновление: пока сцена играет, любое изменение набора звуков
-  // (смена выбора на колесе) подмешивается в звук без повторного тапа.
+  // Реактивное воспроизведение: тап по плитке меняет matches — микс
+  // синхронизируется сам, без кнопки запуска. Тап = звук.
   useEffect(() => {
-    if (!sceneActive) return;
     sceneIdsRef.current = syncSceneMix(audioEngine, matches, sceneIdsRef.current);
-  }, [matches, sceneActive]);
+  }, [matches]);
 
-  // Полная остановка сцены: гасим всё и сбрасываем активность.
+  // STOP в шапке: глушим всё, сбрасываем выбор всех плиток и набор слоёв.
   const stopScene = () => {
     stopAll(0.4);
-    setSceneActive(false);
+    setSelection(EMPTY);
     sceneIdsRef.current = new Set();
   };
 
@@ -152,10 +135,6 @@ export default function Scenes() {
                 axes={axes}
                 selection={selection}
                 onSelect={onSelect}
-                onPlay={playMatches}
-                onStop={stopScene}
-                activeCount={activeCount}
-                matchCount={matches.length}
                 onSegmentLongPress={(axisId, valueId) => {
                   const v = axisValue(axisId, valueId);
                   setTileSounds({ axisId, valueId, label: v?.label || valueId });
@@ -183,7 +162,7 @@ export default function Scenes() {
                   </div>
 
                   <button
-                    onClick={() => { stopScene(); setSelection(EMPTY); }}
+                    onClick={stopScene}
                     className="text-[11px] text-white/40 hover:text-white/70 transition-colors"
                   >
                     Сбросить выбор
