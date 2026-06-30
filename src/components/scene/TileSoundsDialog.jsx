@@ -11,14 +11,14 @@ import { searchPads } from '@/lib/padSearch';
 // Сверху — рекомендованные (у которых в тегах есть valueId по этой оси),
 // ниже — все остальные. Мультивыбор с мгновенным сохранением через useTileSounds.
 export default function TileSoundsDialog({ open, onClose, axisId, valueId, valueLabel }) {
-  const { getSounds, addSound, removeSound } = useTileSounds();
+  const { tileSounds, getSounds, addSound, removeSound } = useTileSounds();
   const { pads } = useCustomPads();
   const { overrides } = useSoundOverrides();
   const [query, setQuery] = useState('');
 
   const assigned = useMemo(
     () => new Set(axisId && valueId ? getSounds(axisId, valueId) : []),
-    [axisId, valueId, getSounds]
+    [axisId, valueId, getSounds, tileSounds]
   );
 
   // Поиск по библиотеке (название + теги), затем деление на 2 группы.
