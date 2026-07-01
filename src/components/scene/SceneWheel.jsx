@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { useTileSounds } from '@/lib/useTileSounds';
+import { useCustomPads } from '@/lib/useCustomPads';
+import ActionTile from './ActionTile';
 
 const LONG_PRESS_MS = 450;
 
@@ -108,6 +110,7 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
 
 export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPress, onAddSegment }) {
   const { getSounds, getAllStagesSounds } = useTileSounds();
+  const { pads } = useCustomPads();
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
@@ -166,6 +169,20 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
         className="grid grid-cols-3 gap-2 animate-in fade-in duration-200"
       >
         {values.map((v) => {
+          // Ось «Действие» — one-shot плитки в стиле слотов эффектов.
+          if (activeAxis === 'action') {
+            const soundId = getSounds('action', v.id)[0];
+            const pad = pads.find((p) => p.id === soundId);
+            return (
+              <ActionTile
+                key={v.id}
+                axisId="action"
+                value={v}
+                pad={pad}
+                onLongPress={onSegmentLongPress}
+              />
+            );
+          }
           let soundCount;
           if (activeAxis === 'location') {
             const all = getAllStagesSounds(v.id);

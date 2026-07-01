@@ -18,7 +18,7 @@ const STAGES = [
 
 export default function TileSoundsDialog({ open, onClose, axisId, valueId, valueLabel }) {
   const {
-    tileSounds, getSounds, addSound, removeSound,
+    tileSounds, getSounds, addSound, removeSound, setSingleSound,
     getStageSounds, addStageSound, removeStageSound,
   } = useTileSounds();
   const { pads } = useCustomPads();
@@ -27,6 +27,8 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
   const [stage, setStage] = useState('calm');
 
   const isLocation = axisId === 'location';
+  // Ось «Действие» — one-shot: на плитку назначается ровно ОДИН звук.
+  const isSingle = axisId === 'action';
 
   const assigned = useMemo(() => {
     if (!axisId || !valueId) return new Set();
@@ -51,6 +53,9 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
     if (isLocation) {
       if (assigned.has(id)) removeStageSound(valueId, stage, id);
       else addStageSound(valueId, stage, id);
+    } else if (isSingle) {
+      // Single-select: выбор нового звука заменяет предыдущий, повтор — снимает.
+      setSingleSound(axisId, valueId, assigned.has(id) ? null : id);
     } else {
       if (assigned.has(id)) removeSound(axisId, valueId, id);
       else addSound(axisId, valueId, id);

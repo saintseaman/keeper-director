@@ -56,6 +56,12 @@ export function useTileSounds() {
     setSounds(axisId, valueId, current.filter((x) => x !== id));
   }, [setSounds]);
 
+  // Назначить ОДИН звук на плитку (заменяет предыдущий). Для оси action —
+  // плитка играет ровно один one-shot, поэтому массив всегда ≤ 1 элемента.
+  const setSingleSound = useCallback((axisId, valueId, id) => {
+    setSounds(axisId, valueId, id ? [id] : []);
+  }, [setSounds]);
+
   // ── Стадии интенсивности для оси location ──
   // Ключ хранения: "location:<valueId>:<stage>", stage ∈ {calm, tense, horror}.
   const getStageSounds = useCallback(
@@ -86,6 +92,7 @@ export function useTileSounds() {
     tileSounds,
     getSounds,
     setSounds,
+    setSingleSound,
     addSound,
     removeSound,
     getStageSounds,

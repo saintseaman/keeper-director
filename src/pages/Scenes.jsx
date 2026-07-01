@@ -55,7 +55,8 @@ export default function Scenes() {
     const ids = new Set();
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
-      if (!valueId || axisId === 'location') continue;
+      // location идёт отдельным кроссфейдом, action — one-shot (не фон).
+      if (!valueId || axisId === 'location' || axisId === 'action') continue;
       for (const sid of getSounds(axisId, valueId)) ids.add(sid);
     }
     return ids;
@@ -75,7 +76,7 @@ export default function Scenes() {
     let n = 0;
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
-      if (!valueId) continue;
+      if (!valueId || axisId === 'action') continue; // action не фон — не считаем в нормализацию
       if (axisId === 'location') {
         const all = getAllStagesSounds(valueId);
         if (all.calm.length + all.tense.length + all.horror.length > 0) n += 1;
@@ -108,7 +109,7 @@ export default function Scenes() {
     const groups = [];
     for (const axisId of Object.keys(selection)) {
       const valueId = selection[axisId];
-      if (!valueId) continue;
+      if (!valueId || axisId === 'action') continue; // action — one-shot, не в микшере
       const ids = tileSoundIds(axisId, valueId).filter((id) => activeSounds[id]);
       if (ids.length === 0) continue;
       const v = axisValue(axisId, valueId);
