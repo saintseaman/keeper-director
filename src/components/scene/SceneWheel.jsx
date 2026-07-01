@@ -161,16 +161,15 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
         })}
       </div>
 
-      {/* Сетка плиток значений активной оси */}
-      <div
-        key={activeAxis}
-        onTouchStart={onGridTouchStart}
-        onTouchEnd={onGridTouchEnd}
-        className="grid grid-cols-3 gap-2 animate-in fade-in duration-200"
-      >
-        {values.map((v) => {
-          // Ось «Действие» — one-shot плитки в стиле слотов эффектов.
-          if (activeAxis === 'action') {
+      {/* Ось «Действие» — компактная сетка one-shot слотов (как шторка эффектов) */}
+      {activeAxis === 'action' ? (
+        <div
+          key="action"
+          onTouchStart={onGridTouchStart}
+          onTouchEnd={onGridTouchEnd}
+          className="grid grid-cols-4 gap-2.5 animate-in fade-in duration-200"
+        >
+          {values.map((v) => {
             const soundId = getSounds('action', v.id)[0];
             const pad = pads.find((p) => p.id === soundId);
             return (
@@ -182,35 +181,54 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
                 onLongPress={onSegmentLongPress}
               />
             );
-          }
-          let soundCount;
-          if (activeAxis === 'location') {
-            const all = getAllStagesSounds(v.id);
-            soundCount = all.calm.length + all.tense.length + all.horror.length;
-          } else {
-            soundCount = getSounds(activeAxis, v.id).length;
-          }
-          return (
-            <Tile
-              key={v.id}
-              axisId={activeAxis}
-              value={v}
-              active={selection[activeAxis] === v.id}
-              onClick={(id) => onSelect(activeAxis, id)}
-              onLongPress={onSegmentLongPress}
-              soundCount={soundCount}
-            />
-          );
-        })}
+          })}
 
-        {/* Плитка «+ добавить сегмент» */}
-        <button
-          onClick={() => onAddSegment(activeAxis)}
-          className="aspect-square rounded-xl border border-dashed border-white/20 bg-white/[0.03] flex items-center justify-center text-white/45 hover:border-orange-400/50 hover:text-orange-300 transition-colors"
+          {/* Пустой слот «+ добавить сегмент» — в стиле слота эффектов */}
+          <button
+            onClick={() => onAddSegment('action')}
+            className="aspect-square rounded-xl border border-dashed border-white/15 flex items-center justify-center text-white/25 hover:border-orange-400/40 hover:text-orange-300/60 transition-colors"
+          >
+            <Plus size={22} strokeWidth={1.6} />
+          </button>
+        </div>
+      ) : (
+        /* Крупные плитки значений (Локация / Погода) */
+        <div
+          key={activeAxis}
+          onTouchStart={onGridTouchStart}
+          onTouchEnd={onGridTouchEnd}
+          className="grid grid-cols-3 gap-2 animate-in fade-in duration-200"
         >
-          <Plus size={22} />
-        </button>
-      </div>
+          {values.map((v) => {
+            let soundCount;
+            if (activeAxis === 'location') {
+              const all = getAllStagesSounds(v.id);
+              soundCount = all.calm.length + all.tense.length + all.horror.length;
+            } else {
+              soundCount = getSounds(activeAxis, v.id).length;
+            }
+            return (
+              <Tile
+                key={v.id}
+                axisId={activeAxis}
+                value={v}
+                active={selection[activeAxis] === v.id}
+                onClick={(id) => onSelect(activeAxis, id)}
+                onLongPress={onSegmentLongPress}
+                soundCount={soundCount}
+              />
+            );
+          })}
+
+          {/* Плитка «+ добавить сегмент» */}
+          <button
+            onClick={() => onAddSegment(activeAxis)}
+            className="aspect-square rounded-xl border border-dashed border-white/20 bg-white/[0.03] flex items-center justify-center text-white/45 hover:border-orange-400/50 hover:text-orange-300 transition-colors"
+          >
+            <Plus size={22} />
+          </button>
+        </div>
+      )}
 
       {/* Чипы выбора по неактивным осям */}
       <div className="flex items-center justify-center gap-2 mt-3 flex-wrap">
