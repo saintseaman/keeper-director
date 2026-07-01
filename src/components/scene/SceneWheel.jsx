@@ -109,7 +109,7 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
 }
 
 export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPress, onAddSegment }) {
-  const { getSounds, getAllStagesSounds } = useTileSounds();
+  const { getSounds, getAllStagesSounds, getLabel } = useTileSounds();
   const { pads } = useCustomPads();
   const [activeAxis, setActiveAxis] = useState('location');
   const axis = axes.find((a) => a.id === activeAxis);
@@ -178,6 +178,7 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
                 axisId="action"
                 value={v}
                 pad={pad}
+                label={getLabel('action', v.id) || v.displayLabel || v.label}
                 onLongPress={onSegmentLongPress}
               />
             );

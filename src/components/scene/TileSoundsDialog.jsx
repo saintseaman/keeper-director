@@ -1,10 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Check, Search, X, Sparkles, Music, Smile, Flame, Ghost } from 'lucide-react';
+import { Check, Search, X, Sparkles, Music, Smile, Flame, Ghost, Tag } from 'lucide-react';
 import { useTileSounds } from '@/lib/useTileSounds';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
-import { padAxes } from '@/lib/sceneAxes';
+import { padAxes, axisValue } from '@/lib/sceneAxes';
 import { searchPads } from '@/lib/padSearch';
 
 // Диалог назначения звуков на одну плитку оси (axisId:valueId).
@@ -19,6 +19,7 @@ const STAGES = [
 export default function TileSoundsDialog({ open, onClose, axisId, valueId, valueLabel }) {
   const {
     tileSounds, getSounds, addSound, removeSound, setSingleSound,
+    getLabel, setLabel,
     getStageSounds, addStageSound, removeStageSound,
   } = useTileSounds();
   const { pads } = useCustomPads();
@@ -29,6 +30,22 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
   const isLocation = axisId === 'location';
   // Ось «Действие» — one-shot: на плитку назначается ровно ОДИН звук.
   const isSingle = axisId === 'action';
+
+  // Черновик кастомного имени плитки Действия (дебаунс записи ~400мс).
+  const [labelDraft, setLabelDraft] = useState('');
+  const labelTimerRef = useRef(null);
+  useEffect(() => {
+    if (open && isSingle && valueId) {
+      setLabelDraft(getLabel('action', valueId) || axisValue('action', valueId)?.label || '');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, isSingle, valueId]);
+
+  const onLabelChange = (text) => {
+    setLabelDraft(text);
+    if (labelTimerRef.current) clearTimeout(labelTimerRef.current);
+    labelTimerRef.current = setTimeout(() => setLabel('action', valueId, text), 400);
+  };
 
   const assigned = useMemo(() => {
     if (!axisId || !valueId) return new Set();
@@ -117,6 +134,22 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
           </div>
         )}
 
+        {/* Название плитки (только для оси «Действие») */}
+        {isSingle && (
+          <div className="px-4 pt-3">
+            <label className="flex items-center gap-1.5 text-[11px] font-mono tracking-wider text-white/40 uppercase mb-1.5">
+              <Tag size={12} /> Название плитки
+            </label>
+            <input
+              value={labelDraft}
+              onChange={(e) => onLabelChange(e.target.value)}
+              onBlur={() => setLabel('action', valueId, labelDraft)}
+              placeholder="Название действия…"
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white/85 placeholder:text-white/25 focus:border-orange-400/50 focus:outline-none"
+            />
+          </div>
+        )}
+
         {/* Поиск */}
         <div className="px-4 pt-3">
           <div className="relative">
@@ -164,7 +197,7 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
             onClick={() => { setQuery(''); onClose(); }}
             className="w-full rounded-lg py-2.5 text-[12px] font-mono tracking-wider uppercase bg-orange-500/20 border border-orange-400/50 text-orange-200 hover:bg-orange-500/30 transition-colors"
           >
-            Готово{assigned.size > 0 ? ` · ${assigned.size}` : ''}
+            Готово{assigned.size > 0 ? ` · ${isSingle ? 1 : assigned.size}` : ''}
           </button>
         </div>
       </DialogContent>

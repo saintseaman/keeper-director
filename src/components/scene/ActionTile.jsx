@@ -10,7 +10,8 @@ const MOVE_TOLERANCE = 12;
 // Короткий тап проигрывает назначенный звук разово (не фон, не в selection).
 // Long-press открывает выбор ОДНОГО звука. Пустая плитка (звук не назначен) —
 // пунктирная рамка с "+", как пустой слот эффекта.
-export default function ActionTile({ axisId, value, pad, onLongPress }) {
+export default function ActionTile({ axisId, value, pad, label, onLongPress }) {
+  const displayLabel = label || value.displayLabel || value.label;
   const timerRef = useRef(null);
   const longFiredRef = useRef(false);
   const startPtRef = useRef(null);
@@ -73,7 +74,7 @@ export default function ActionTile({ axisId, value, pad, onLongPress }) {
       >
         <Plus size={22} strokeWidth={1.6} />
         <span className="px-1 text-[10px] font-mono tracking-wide text-center leading-tight text-white/35">
-          {value.displayLabel || value.label}
+          {displayLabel}
         </span>
       </button>
     );
@@ -100,7 +101,7 @@ export default function ActionTile({ axisId, value, pad, onLongPress }) {
         <Icon size={20} strokeWidth={1.7} />
       </span>
       <span className="px-1 text-[10px] font-mono tracking-wide text-center leading-tight break-words [display:-webkit-box] [-webkit-line-clamp:2] [-webkit-box-orient:vertical] overflow-hidden text-white/70">
-        {value.displayLabel || value.label}
+        {displayLabel}
       </span>
     </button>
   );

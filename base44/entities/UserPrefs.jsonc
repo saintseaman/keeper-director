@@ -171,6 +171,11 @@
       "default": {},
       "description": "Sounds assigned to axis tiles, keyed by 'axisId:valueId': { 'location:city': ['soundId1','soundId2'], ... }"
     },
+    "tile_labels": {
+      "type": "object",
+      "default": {},
+      "description": "Custom display names for axis tiles, keyed by 'axisId:valueId': { 'action:chase': '\u041f\u043e\u0433\u043e\u043d\u044f \u043f\u043e \u043a\u0440\u044b\u0448\u0430\u043c' }"
+    },
     "migrated_from_local": {
       "type": "boolean",
       "default": false,

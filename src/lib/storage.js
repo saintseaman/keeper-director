@@ -35,6 +35,7 @@ const DEFAULTS = {
   mix_presets: [],
   effect_slots: [],
   tile_sounds: {},
+  tile_labels: {},
   migrated_from_local: false,
 };
 
@@ -175,6 +176,7 @@ export const storage = {
           mix_presets: r.mix_presets ?? DEFAULTS.mix_presets,
           effect_slots: r.effect_slots ?? DEFAULTS.effect_slots,
           tile_sounds: r.tile_sounds ?? DEFAULTS.tile_sounds,
+          tile_labels: r.tile_labels ?? DEFAULTS.tile_labels,
           migrated_from_local: !!r.migrated_from_local,
         };
       }
@@ -384,4 +386,8 @@ export const storage = {
   // Звуки, назначенные на плитки осей: { 'axisId:valueId': [soundId, ...] }.
   getTileSounds: () => cache.tile_sounds || {},
   setTileSounds: (map) => set('tile_sounds', map),
+
+  // Кастомные имена плиток осей: { 'action:chase': 'Погоня по крышам' }.
+  getTileLabels: () => cache.tile_labels || {},
+  setTileLabels: (map) => set('tile_labels', map),
 };
