@@ -9,7 +9,7 @@
 //     тем тише каждый (∝ 1/√N), чтобы суммарная энергия не клиппила.
 // ─────────────────────────────────────────────────────────────
 
-const BASE_VOLUME = 0.6; // громкость одиночного слоя
+const BASE_VOLUME = 0.9; // громкость одиночного слоя
 export const MAX_SCENE_LAYERS = 8; // максимум одновременных фоновых слоёв
 
 // Луп ли это пэд (по умолчанию — да; one-shot помечается isLoopable === false).
@@ -31,7 +31,8 @@ export function sceneMixCount(pads) {
 // 1/√N сохраняет суммарную воспринимаемую энергию примерно постоянной.
 export function layerVolume(count) {
   if (count <= 1) return BASE_VOLUME;
-  return BASE_VOLUME / Math.sqrt(count);
+  // мягче, чем 1/sqrt(N): не даём громкости упасть слишком низко
+  return BASE_VOLUME / Math.pow(count, 0.35);
 }
 
 // Веса соседних стадий по интенсивности (calm=0, tense=0.5, horror=1).
