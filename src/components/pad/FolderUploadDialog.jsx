@@ -84,7 +84,7 @@ export default function FolderUploadDialog({ open, onClose, onImported }) {
           <input
             ref={inputRef}
             type="file"
-            accept="audio/*"
+            accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,*/*"
             webkitdirectory=""
             directory=""
             multiple

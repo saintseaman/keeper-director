@@ -43,7 +43,7 @@ export default function SingleFileUploadDialog({ open, onClose, onImport }) {
         </DialogHeader>
 
         <div className="flex flex-col gap-4 pt-2">
-          <input ref={inputRef} type="file" accept="audio/*" className="hidden" onChange={handleFile} />
+          <input ref={inputRef} type="file" accept="audio/*,.mp3,.wav,.ogg,.oga,.m4a,.aac,.flac,.webm,*/*" className="hidden" onChange={handleFile} />
           <button
             onClick={pick}
             disabled={uploading}
