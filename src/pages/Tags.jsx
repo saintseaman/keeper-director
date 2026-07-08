@@ -1,11 +1,10 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
-import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, Sparkles, Square, HeartPulse } from 'lucide-react';
+import { Tags as TagsIcon, AlertCircle, CheckCircle2, CheckSquare, X, Square, HeartPulse } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useAudio } from '@/lib/useAudio';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { audioEngine } from '@/lib/audioEngine';
 import { padAxes, missingAxes, autoAxes } from '@/lib/sceneAxes';
-import { useSmartTag } from '@/lib/useSmartTag';
 import { useHealthCheck } from '@/lib/useHealthCheck';
 import TagFixRow from '@/components/scene/TagFixRow';
 import BulkTagDialog from '@/components/scene/BulkTagDialog';
@@ -18,7 +17,6 @@ export default function Tags() {
   const { activeSounds, stopAll } = useAudio();
   const activeCount = Object.values(activeSounds).filter((v) => v.isPlaying !== false).length;
   const { overrides, setOverride, mergeOverrides } = useSoundOverrides();
-  const smart = useSmartTag(mergeOverrides, overrides);
   const health = useHealthCheck();
   const [showDone, setShowDone] = useState(true);
   const [selectMode, setSelectMode] = useState(false);
@@ -162,15 +160,6 @@ export default function Tags() {
               <CheckCircle2 size={12} /> {done.length}
             </span>
             <button
-              onClick={() => smart.run(pads)}
-              disabled={smart.running || pads.length === 0}
-              title="Умная разметка всех звуков через ИИ"
-              className="flex items-center gap-1 rounded-lg border border-violet-400/30 bg-violet-500/10 px-2 py-1.5 text-violet-200 hover:bg-violet-500/20 hover:border-violet-400/50 disabled:opacity-50 transition-colors"
-            >
-              <Sparkles size={13} className={smart.running ? 'animate-pulse' : ''} />
-              {smart.running && smart.progress && `${smart.progress.done}/${smart.progress.total}`}
-            </button>
-            <button
               onClick={() => health.run(pads)}
               disabled={health.running || pads.length === 0}
               title="Проверить, какие звуки не загружаются"
@@ -184,19 +173,6 @@ export default function Tags() {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3">
-        {!selectMode && smart.running && (
-          <div className="rounded-lg border border-violet-400/40 bg-violet-500/10 px-3 py-2 text-[12px] text-violet-200 flex items-center gap-2">
-            <Sparkles size={13} className="animate-pulse" />
-            ИИ размечает звуки…{smart.progress ? ` ${smart.progress.done} / ${smart.progress.total}` : ''}
-          </div>
-        )}
-
-        {!selectMode && !smart.running && smart.result && (
-          <div className="rounded-lg border border-emerald-400/40 bg-emerald-500/10 px-3 py-2 text-[12px] text-emerald-200">
-            ИИ-разметка завершена. Размечено звуков: {smart.result.tagged}
-          </div>
-        )}
-
         {!selectMode && health.running && (
           <div className="rounded-lg border border-sky-400/40 bg-sky-500/10 px-3 py-2 text-[12px] text-sky-200 flex items-center gap-2">
             <HeartPulse size={13} className="animate-pulse" />

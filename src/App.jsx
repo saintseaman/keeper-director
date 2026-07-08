@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { LangProvider } from '@/lib/LangContext';
-import { ModeProvider } from '@/lib/ModeContext';
 import { useAudioResume } from '@/lib/useAudioResume';
 import { usePrefsReady } from '@/lib/usePrefsReady';
 
@@ -117,7 +116,6 @@ function App() {
   useAudioResume(); // відновлення AudioContext при поверненні з фону (M5)
   return (
     <LangProvider>
-      <ModeProvider>
       <AuthProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
@@ -127,7 +125,6 @@ function App() {
           <Toaster />
         </QueryClientProvider>
       </AuthProvider>
-      </ModeProvider>
     </LangProvider>
   )
 }

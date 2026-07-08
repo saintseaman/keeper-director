@@ -37,6 +37,9 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
   const Icon = getIcon(value.icon);
   const grad = value.grad || ['#1a1a1a', '#0d0d0d'];
   const label = value.displayLabel || value.label;
+  // «Немая» плитка без назначенных звуков: приглушена, тап открывает
+  // диалог назначения вместо выбора.
+  const isEmpty = soundCount === 0;
 
   const startPress = () => {
     longFiredRef.current = false;
@@ -49,6 +52,7 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
   const endPress = () => timerRef.current && clearTimeout(timerRef.current);
   const handleClick = () => {
     if (longFiredRef.current) { longFiredRef.current = false; return; }
+    if (isEmpty) { onLongPress?.(axisId, value.id); return; }
     onClick(active ? null : value.id);
   };
 
@@ -63,9 +67,11 @@ function Tile({ axisId, value, active, onClick, onLongPress, soundCount = 0 }) {
       className="relative aspect-square rounded-xl border flex flex-col items-center justify-center gap-1 overflow-hidden select-none transition-all"
       style={{
         background: `linear-gradient(160deg, ${grad[0]}, ${grad[1]})`,
-        borderColor: active ? '#f97316' : 'rgba(255,255,255,0.08)',
+        borderColor: active ? '#f97316' : isEmpty ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.08)',
         borderWidth: active ? 2 : 1,
+        borderStyle: isEmpty && !active ? 'dashed' : 'solid',
         boxShadow: active ? '0 0 12px rgba(249,115,22,0.55)' : 'none',
+        opacity: isEmpty ? 0.55 : 1,
       }}
     >
       {soundCount > 0 && (

@@ -55,7 +55,9 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
   // Поиск по библиотеке (название + теги), затем деление на 2 группы.
   const { recommended, others } = useMemo(() => {
     if (!axisId || !valueId) return { recommended: [], others: [] };
-    const list = searchPads(pads, overrides, query);
+    // Фоновые оси (location/weather) не показывают one-shot эффекты —
+    // им место на плитках Действий. Для action (isSingle) — все звуки.
+    const list = searchPads(pads, overrides, query).filter((p) => isSingle || !p.isEffect);
     const rec = [];
     const rest = [];
     for (const p of list) {

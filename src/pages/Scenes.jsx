@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { Layers, Sparkles, Square } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Layers, Sparkles, Square, Settings as SettingsIcon } from 'lucide-react';
 import { useCustomPads } from '@/lib/useCustomPads';
 import { useSoundOverrides } from '@/lib/useSoundOverrides';
 import { useAudio } from '@/lib/useAudio';
@@ -16,7 +17,6 @@ import SceneMixer from '@/components/scene/SceneMixer';
 import SceneSegmentDialog from '@/components/scene/SceneSegmentDialog';
 import TileSoundsDialog from '@/components/scene/TileSoundsDialog';
 import AddSegmentDialog from '@/components/scene/AddSegmentDialog';
-import FolderUploadDialog from '@/components/pad/FolderUploadDialog';
 
 const STAGE_ORDER = ['calm', 'tense', 'horror'];
 
@@ -41,7 +41,7 @@ export default function Scenes() {
   const [segment, setSegment] = useState(null); // { axisId, valueId } — открытый редактор сегмента
   const [tileSounds, setTileSounds] = useState(null); // { axisId, valueId, label } — диалог назначения звуков на плитку
   const [addAxis, setAddAxis] = useState(null); // ось, в которую добавляем сегмент
-  const [driveOpen, setDriveOpen] = useState(false); // импорт с Диска внутри сцены
+  const navigate = useNavigate();
   const sceneIdsRef = useRef(new Set()); // текущий набор id играющих слоёв сцены (action/weather)
   const locIdsRef = useRef(new Set());   // текущий набор id играющих локационных слоёв (кроссфейд)
 
@@ -255,7 +255,13 @@ export default function Scenes() {
         {pads.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <Layers size={40} className="text-white/15" strokeWidth={1.2} />
-            <p className="text-sm text-white/45">Сначала импортируйте звуки на главной.</p>
+            <p className="text-sm text-white/45">Сначала импортируйте звуки: Настройки → Библиотека звуков.</p>
+            <button
+              onClick={() => navigate('/app/settings')}
+              className="flex items-center gap-1.5 rounded-lg border border-orange-400/40 bg-orange-500/15 px-3 py-2 text-[12px] font-mono tracking-wider text-orange-200 hover:bg-orange-500/25 transition-colors"
+            >
+              <SettingsIcon size={13} /> Открыть настройки
+            </button>
           </div>
         ) : (
           <>
@@ -342,14 +348,6 @@ export default function Scenes() {
         onAdd={addValue}
       />
 
-      <FolderUploadDialog
-        open={driveOpen}
-        onClose={() => setDriveOpen(false)}
-        onImported={(sounds) => {
-          addPads(sounds);
-          setDriveOpen(false);
-        }}
-      />
     </div>
   );
 }
