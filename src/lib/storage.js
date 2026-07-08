@@ -379,10 +379,6 @@ export const storage = {
   getMixPresets: () => cache.mix_presets || [],
   setMixPresets: (list) => set('mix_presets', list),
 
-  // Глобальные слоты звуковых эффектов: [{ id, title, icon, url, isEmpty }].
-  getEffectSlots: () => cache.effect_slots || [],
-  setEffectSlots: (list) => set('effect_slots', list),
-
   // Звуки, назначенные на плитки осей: { 'axisId:valueId': [soundId, ...] }.
   getTileSounds: () => cache.tile_sounds || {},
   setTileSounds: (map) => set('tile_sounds', map),

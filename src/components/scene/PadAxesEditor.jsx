@@ -48,14 +48,14 @@ export default function PadAxesEditor({ pad, override, onChange }) {
 
   return (
     <div className="space-y-3">
-      {/* Флаг «Эффект» — отдельная секция над осями. Звук уходит в шторку
-          эффектов и исключается из автоподбора атмосферы. */}
+      {/* Флаг «Эффект» — исключает звук из фоновых списков атмосферы.
+          Такой звук назначается на one-shot плитки Действий. */}
       <div className="flex items-center justify-between rounded-lg border border-orange-400/25 bg-orange-500/[0.06] px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Zap size={14} className="text-orange-300" />
           <div className="leading-tight">
-            <div className="text-[12px] text-white/85">Эффект (для шторки)</div>
-            <div className="text-[10px] text-white/35">Разовый звук, не для атмосферы</div>
+            <div className="text-[12px] text-white/85">Эффект (короткий звук)</div>
+            <div className="text-[10px] text-white/35">One-shot звук для плиток Действий, не для фоновой атмосферы</div>
           </div>
         </div>
         <Switch
