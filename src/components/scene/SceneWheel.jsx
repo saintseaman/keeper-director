@@ -115,6 +115,15 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
   const axis = axes.find((a) => a.id === activeAxis);
   const values = axis?.values || [];
 
+  // Авто-хвост оси «Действие»: звуки-эффекты, не назначенные ни на одну плитку.
+  const actionAxis = axes.find((a) => a.id === 'action');
+  const assignedIds = new Set(
+    (actionAxis?.values || []).flatMap((v) => getSounds('action', v.id))
+  );
+  const orphanEffects = pads
+    .filter((p) => p.isEffect && p.url && !assignedIds.has(p.id))
+    .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
+
   // Свайп влево/вправо по сетке плиток переключает активную ось.
   const touchStartRef = useRef({ x: 0, y: 0 });
   const onGridTouchStart = (e) => {
@@ -183,6 +192,17 @@ export default function SceneWheel({ axes, selection, onSelect, onSegmentLongPre
               />
             );
           })}
+
+          {/* Авто-хвост: звуки-эффекты (isEffect), не назначенные ни на одну
+              плитку действия. Появляются/пропадают реактивно. */}
+          {orphanEffects.map((p) => (
+            <ActionTile
+              key={`auto:${p.id}`}
+              axisId="action"
+              pad={p}
+              variant="auto"
+            />
+          ))}
 
           {/* Пустой слот «+ добавить сегмент» — в стиле слота эффектов */}
           <button
