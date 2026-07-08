@@ -63,6 +63,10 @@ export default function TileSoundsDialog({ open, onClose, axisId, valueId, value
       if ((axes[axisId] || []).includes(valueId)) rec.push(p);
       else rest.push(p);
     }
+    // Алфавитный порядок внутри каждой группы (кириллица через локаль 'ru').
+    const byTitle = (a, b) => (a.title || '').localeCompare(b.title || '', 'ru');
+    rec.sort(byTitle);
+    rest.sort(byTitle);
     return { recommended: rec, others: rest };
   }, [pads, overrides, query, axisId, valueId]);
 

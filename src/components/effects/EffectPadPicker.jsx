@@ -7,7 +7,9 @@ import { useCustomPads } from '@/lib/useCustomPads';
 // Тап по звуку — назначить его в редактируемый слот шторки.
 export default function EffectPadPicker({ onPick }) {
   const { pads } = useCustomPads();
-  const effects = (pads || []).filter((p) => p.isEffect && p.url);
+  const effects = (pads || [])
+    .filter((p) => p.isEffect && p.url)
+    .sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru'));
 
   if (effects.length === 0) {
     return (

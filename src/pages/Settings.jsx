@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Settings as SettingsIcon, Volume2, Library, FolderUp, FileAudio, Trash2 } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { useAudio } from '@/lib/useAudio';
@@ -12,6 +12,12 @@ export default function Settings() {
   const { pads, addPads, removePad } = useCustomPads();
   const [importOpen, setImportOpen] = useState(false);
   const [fileOpen, setFileOpen] = useState(false);
+
+  // Алфавитный порядок библиотеки (кириллица через локаль 'ru').
+  const sortedPads = useMemo(
+    () => [...pads].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'ru')),
+    [pads]
+  );
 
   return (
     <div className="flex-1 min-h-0 flex flex-col">
@@ -73,7 +79,7 @@ export default function Settings() {
             <p className="text-xs text-white/40 py-2">Пока нет звуков. Импортируйте папку.</p>
           ) : (
             <div className="space-y-1.5">
-              {pads.map((p) => (
+              {sortedPads.map((p) => (
                 <div
                   key={p.id}
                   className="flex items-center gap-2 rounded-lg bg-white/[0.03] border border-white/10 px-3 py-2"

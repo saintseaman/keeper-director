@@ -34,7 +34,12 @@ export default function Tags() {
       rank.set(p.id, missingAxes(padAxes(p, overrides[p.id])).length);
     });
     return [...pads]
-      .sort((a, b) => (rank.get(b.id) || 0) - (rank.get(a.id) || 0))
+      .sort((a, b) => {
+        const diff = (rank.get(b.id) || 0) - (rank.get(a.id) || 0);
+        // Внутри одного ранга дыр — по алфавиту (кириллица через локаль 'ru').
+        if (diff !== 0) return diff;
+        return (a.title || '').localeCompare(b.title || '', 'ru');
+      })
       .map((p) => p.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pads]);
