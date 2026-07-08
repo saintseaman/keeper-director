@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { getIcon } from '@/lib/iconMap';
 import { audioEngine } from '@/lib/audioEngine';
+import { actionPlayback } from '@/lib/actionPlayback';
 
 const LONG_PRESS_MS = 450;
 const MOVE_TOLERANCE = 12;
@@ -16,41 +17,44 @@ export default function ActionTile({ axisId, value, pad, label, onLongPress }) {
   const longFiredRef = useRef(false);
   const startPtRef = useRef(null);
   const movedRef = useRef(false);
-  const playingIdRef = useRef(null);
   const [pulse, setPulse] = useState(false);
 
   const hasSound = !!pad;
   const Icon = getIcon(value.icon);
 
-  // Подсветка отражает реальное состояние воспроизведения этой плитки:
-  // если звук доиграл сам — pulse гаснет и следующий тап считается «первым».
+  // Подсветка отражает реальное состояние воспроизведения этой плитки из
+  // долгоживущей карты. При монтировании сразу восстанавливаем pulse из
+  // реального состояния движка (пережив переключение вкладок осей).
   useEffect(() => {
-    const unsub = audioEngine.subscribe((state) => {
-      const id = playingIdRef.current;
-      const playing = !!id && state.activeSounds[id]?.isPlaying;
-      if (!playing) playingIdRef.current = null;
+    const sync = () => {
+      const id = actionPlayback.get(value.id);
+      const playing = !!id && audioEngine.getState().activeSounds[id]?.isPlaying;
+      // Звук доиграл сам — чистим запись, чтобы следующий тап был «первым».
+      if (id && !playing) actionPlayback.clear(value.id);
       setPulse(!!playing);
-    });
+    };
+    sync(); // ← сразу при монтировании, а не только по событию движка
+    const unsub = audioEngine.subscribe(sync);
     return unsub;
-  }, []);
+  }, [value.id]);
 
   const fire = () => {
     if (!hasSound) { onLongPress?.(axisId, value.id); return; } // нет звука — открыть выбор
 
-    const currentId = playingIdRef.current;
+    const currentId = actionPlayback.get(value.id);
     const stillPlaying = currentId && audioEngine.getState().activeSounds[currentId]?.isPlaying;
 
     if (stillPlaying) {
       // Второй тап на играющий звук — стоп.
       audioEngine.stop(currentId, 0.2);
-      playingIdRef.current = null;
+      actionPlayback.clear(value.id);
       setPulse(false);
       return;
     }
 
     // Первый тап (или предыдущий уже доиграл) — запускаем.
     const newId = `${pad.id}:act:${Date.now()}`;
-    playingIdRef.current = newId;
+    actionPlayback.set(value.id, newId);
     audioEngine.triggerFile(newId, pad.url, pad.title, 0.9);
     setPulse(true);
   };
